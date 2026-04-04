@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contextception.dev/schema/analysis-v3.2.json",
+  "title": "AnalysisOutput",
+  "description": "Contextception analysis output (schema v3.2). Describes the context bundle for a single or multi-file analysis.",
+  "$defs": {
+    "AnalysisOutput": {
+      "type": "object",
+      "properties": {
+        "blast_radius": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BlastRadius"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "circular_deps": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "confidence_note": {
+          "type": "string"
+        },
+        "external": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hotspots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "likely_modify": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/LikelyModifyEntry"
+            }
+          }
+        },
+        "likely_modify_note": {
+          "type": "string"
+        },
+        "must_read": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MustReadEntry"
+          }
+        },
+        "must_read_note": {
+          "type": "string"
+        },
+        "related": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/RelatedEntry"
+            }
+          }
+        },
+        "related_note": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "stats": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/IndexStats"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestEntry"
+          }
+        },
+        "tests_note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "subject",
+        "confidence",
+        "external",
+        "must_read",
+        "likely_modify",
+        "tests",
+        "related"
+      ]
+    },
+    "BlastRadius": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": "string"
+        },
+        "fragility": {
+          "type": "number"
+        },
+        "level": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "detail"
+      ]
+    },
+    "IndexStats": {
+      "type": "object",
+      "properties": {
+        "total_edges": {
+          "type": "integer"
+        },
+        "total_files": {
+          "type": "integer"
+        },
+        "unresolved_count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_files",
+        "total_edges",
+        "unresolved_count"
+      ]
+    },
+    "LikelyModifyEntry": {
+      "type": "object",
+      "properties": {
+        "confidence": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "file",
+        "confidence",
+        "signals"
+      ]
+    },
+    "MustReadEntry": {
+      "type": "object",
+      "properties": {
+        "circular": {
+          "type": "boolean"
+        },
+        "definitions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "direction": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "stable": {
+          "type": "boolean"
+        },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "file"
+      ]
+    },
+    "RelatedEntry": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "file",
+        "signals"
+      ]
+    },
+    "TestEntry": {
+      "type": "object",
+      "properties": {
+        "direct": {
+          "type": "boolean"
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "direct"
+      ]
+    }
+  },
+  "$ref": "#/$defs/AnalysisOutput"
+}

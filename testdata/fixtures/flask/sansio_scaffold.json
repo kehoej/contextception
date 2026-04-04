@@ -1,0 +1,27 @@
+{
+  "subject": "src/flask/sansio/scaffold.py",
+  "must_read": [
+    "src/flask/helpers.py",
+    "src/flask/typing.py",
+    "src/flask/templating.py",
+    "src/flask/sansio/app.py",
+    "src/flask/debughelpers.py",
+    "src/flask/blueprints.py",
+    "src/flask/sansio/blueprints.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_basic.py",
+    "tests/test_helpers.py"
+  ],
+  "related": [
+    "src/flask/globals.py",
+    "src/flask/wrappers.py",
+    "src/flask/app.py",
+    "src/flask/views.py",
+    "src/flask/config.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_basic.py"
+  ]
+}

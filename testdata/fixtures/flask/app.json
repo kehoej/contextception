@@ -1,0 +1,32 @@
+{
+  "subject": "src/flask/app.py",
+  "must_read": [
+    "src/flask/globals.py",
+    "src/flask/wrappers.py",
+    "src/flask/helpers.py",
+    "src/flask/sansio/app.py",
+    "src/flask/typing.py",
+    "src/flask/ctx.py",
+    "src/flask/signals.py",
+    "src/flask/cli.py",
+    "src/flask/sessions.py",
+    "src/flask/templating.py"
+  ],
+  "must_read_forbidden": [
+    "tests/conftest.py",
+    "tests/test_basic.py"
+  ],
+  "related": [
+    "src/flask/debughelpers.py",
+    "src/flask/testing.py",
+    "src/flask/sansio/scaffold.py",
+    "src/flask/blueprints.py",
+    "src/flask/config.py",
+    "src/flask/views.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/conftest.py",
+    "tests/test_basic.py"
+  ]
+}

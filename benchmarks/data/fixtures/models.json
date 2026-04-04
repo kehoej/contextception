@@ -1,0 +1,29 @@
+{
+  "subject": "httpx/_models.py",
+  "must_read": [
+    "httpx/_content.py",
+    "httpx/_decoders.py",
+    "httpx/_exceptions.py",
+    "httpx/_multipart.py",
+    "httpx/_status_codes.py",
+    "httpx/_types.py",
+    "httpx/_urls.py",
+    "httpx/_utils.py",
+    "httpx/_transports/base.py",
+    "httpx/_config.py"
+  ],
+  "must_read_forbidden": [
+    "tests/conftest.py",
+    "tests/models/test_requests.py"
+  ],
+  "related": [
+    "httpx/__init__.py",
+    "httpx/_client.py",
+    "httpx/_auth.py",
+    "httpx/_api.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/conftest.py"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "subject": "src/flask/json/provider.py",
+  "must_read": [
+    "src/flask/sansio/app.py",
+    "src/flask/json/__init__.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_json.py"
+  ],
+  "related": [
+    "src/flask/globals.py",
+    "src/flask/helpers.py",
+    "src/flask/app.py",
+    "src/flask/typing.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_json.py"
+  ]
+}

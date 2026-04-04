@@ -1,0 +1,271 @@
+# Build and release binaries on new tags.
+#
+# CGO is required for tree-sitter (TS/JS extraction). Cross-compiling CGO
+# across OS boundaries (e.g. Linux→macOS) requires complex toolchains like
+# osxcross. Instead, we build natively on each OS runner and combine the
+# results for a single GitHub release.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: '1.24'
+  LDFLAGS: >-
+    -s -w
+    -X github.com/kehoej/contextception/internal/version.Version=${{ github.ref_name }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build: macOS (darwin/amd64 + darwin/arm64) — CGO enabled
+  # ---------------------------------------------------------------------------
+  build-darwin:
+    name: Build macOS
+    runs-on: macos-latest          # Apple Silicon (arm64)
+    strategy:
+      matrix:
+        include:
+          - goarch: arm64
+          - goarch: amd64
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build
+        env:
+          GOOS: darwin
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '1'
+        run: |
+          mkdir -p dist
+          go build -ldflags "$LDFLAGS" -o dist/contextception ./cmd/contextception
+
+      - name: Package
+        run: |
+          cd dist
+          cp ../LICENSE* ../README* . 2>/dev/null || true
+          tar czf contextception_darwin_${{ matrix.goarch }}.tar.gz contextception LICENSE* README*
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: dist-darwin-${{ matrix.goarch }}
+          path: dist/contextception_darwin_${{ matrix.goarch }}.tar.gz
+
+  # ---------------------------------------------------------------------------
+  # Build: Linux (linux/amd64 + linux/arm64) — CGO enabled
+  # ---------------------------------------------------------------------------
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goarch: amd64
+            cc: gcc
+          - goarch: arm64
+            cc: aarch64-linux-gnu-gcc
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install cross-compiler (arm64)
+        if: matrix.goarch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '1'
+          CC: ${{ matrix.cc }}
+        run: |
+          mkdir -p dist
+          go build -ldflags "$LDFLAGS" -o dist/contextception ./cmd/contextception
+
+      - name: Package
+        run: |
+          cd dist
+          cp ../LICENSE* ../README* . 2>/dev/null || true
+          tar czf contextception_linux_${{ matrix.goarch }}.tar.gz contextception LICENSE* README*
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: dist-linux-${{ matrix.goarch }}
+          path: dist/contextception_linux_${{ matrix.goarch }}.tar.gz
+
+  # ---------------------------------------------------------------------------
+  # Build: Windows (windows/amd64 + windows/arm64) — CGO disabled
+  # ---------------------------------------------------------------------------
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - goarch: amd64
+          - goarch: arm64
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build
+        env:
+          GOOS: windows
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          go build -ldflags "$env:LDFLAGS" -o dist/contextception.exe ./cmd/contextception
+
+      - name: Package
+        shell: bash
+        run: |
+          cd dist
+          cp ../LICENSE* ../README* . 2>/dev/null || true
+          7z a -tzip contextception_windows_${{ matrix.goarch }}.zip contextception.exe LICENSE* README*
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: dist-windows-${{ matrix.goarch }}
+          path: dist/contextception_windows_${{ matrix.goarch }}.zip
+
+  # ---------------------------------------------------------------------------
+  # Release: combine artifacts, create checksums, publish GitHub release + Homebrew
+  # ---------------------------------------------------------------------------
+  release:
+    name: Publish Release
+    needs: [build-darwin, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz *.zip > checksums.txt
+
+      - name: Generate changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git tag --sort=-version:refname | head -2 | tail -1)
+          CURRENT_TAG=${{ github.ref_name }}
+          if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
+            echo "Initial release" > changelog.md
+          else
+            # Generate changelog, excluding docs/test/ci commits
+            git log --pretty=format:"* %s (%h)" "$PREV_TAG".."$CURRENT_TAG" \
+              | grep -v -E '^(\* docs:|\* test:|\* ci:)' > changelog.md || true
+            if [ ! -s changelog.md ]; then
+              echo "Maintenance release" > changelog.md
+            fi
+          fi
+
+      - name: Determine prerelease
+        id: prerelease
+        run: |
+          TAG=${{ github.ref_name }}
+          if echo "$TAG" | grep -qE '(alpha|beta|rc|dev|pre)'; then
+            echo "flag=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "flag=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PRERELEASE_FLAG=""
+          if [ "${{ steps.prerelease.outputs.flag }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file changelog.md \
+            $PRERELEASE_FLAG \
+            dist/*
+
+      - name: Update Homebrew tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        if: steps.prerelease.outputs.flag == 'false' && env.HOMEBREW_TAP_TOKEN != ''
+        run: |
+          TAG=${{ github.ref_name }}
+          VERSION=${TAG#v}
+
+          # Calculate SHA256 for the darwin archives
+          SHA_ARM64=$(sha256sum dist/contextception_darwin_arm64.tar.gz | awk '{print $1}')
+          SHA_AMD64=$(sha256sum dist/contextception_darwin_amd64.tar.gz | awk '{print $1}')
+          SHA_LINUX_ARM64=$(sha256sum dist/contextception_linux_arm64.tar.gz | awk '{print $1}')
+          SHA_LINUX_AMD64=$(sha256sum dist/contextception_linux_amd64.tar.gz | awk '{print $1}')
+
+          BASE_URL="https://github.com/kehoej/contextception/releases/download/${TAG}"
+
+          # Clone the tap repo
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/kehoej/homebrew-tap.git" homebrew-tap
+
+          # Write the Homebrew formula
+          {
+            echo 'class Contextception < Formula'
+            echo '  desc "Deterministic context intelligence for code. Know what must be understood before making a safe change."'
+            echo '  homepage "https://github.com/kehoej/contextception"'
+            echo "  version \"${VERSION}\""
+            echo '  license "MIT"'
+            echo ''
+            echo '  on_macos do'
+            echo '    if Hardware::CPU.arm?'
+            echo "      url \"${BASE_URL}/contextception_darwin_arm64.tar.gz\""
+            echo "      sha256 \"${SHA_ARM64}\""
+            echo '    else'
+            echo "      url \"${BASE_URL}/contextception_darwin_amd64.tar.gz\""
+            echo "      sha256 \"${SHA_AMD64}\""
+            echo '    end'
+            echo '  end'
+            echo ''
+            echo '  on_linux do'
+            echo '    if Hardware::CPU.arm?'
+            echo "      url \"${BASE_URL}/contextception_linux_arm64.tar.gz\""
+            echo "      sha256 \"${SHA_LINUX_ARM64}\""
+            echo '    else'
+            echo "      url \"${BASE_URL}/contextception_linux_amd64.tar.gz\""
+            echo "      sha256 \"${SHA_LINUX_AMD64}\""
+            echo '    end'
+            echo '  end'
+            echo ''
+            echo '  def install'
+            echo '    bin.install "contextception"'
+            echo '  end'
+            echo ''
+            echo '  test do'
+            echo '    system "#{bin}/contextception", "--version"'
+            echo '  end'
+            echo 'end'
+          } > homebrew-tap/Formula/contextception.rb
+
+          # Commit and push
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/contextception.rb
+          git commit -m "Update contextception to ${VERSION}" || echo "No changes to commit"
+          git push

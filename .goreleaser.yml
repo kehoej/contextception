@@ -1,0 +1,102 @@
+version: 2
+
+project_name: contextception
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  # Linux and macOS builds with CGO enabled (tree-sitter for TS/JS extraction).
+  - id: contextception-cgo
+    main: ./cmd/contextception
+    binary: contextception
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/kehoej/contextception/internal/version.Version={{.Version}}
+    # Cross-compilation requires appropriate C toolchains.
+    overrides:
+      - goos: linux
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1
+          - CC=x86_64-linux-gnu-gcc
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=aarch64-linux-gnu-gcc
+      - goos: darwin
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1
+          - CC=o64-clang
+      - goos: darwin
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+
+  # Windows builds without CGO (no tree-sitter; TS/JS uses regex fallback).
+  - id: contextception-windows
+    main: ./cmd/contextception
+    binary: contextception
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/kehoej/contextception/internal/version.Version={{.Version}}
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE*
+      - README*
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+
+brews:
+  - name: contextception
+    repository:
+      owner: kehoej
+      name: homebrew-tap
+    homepage: "https://github.com/kehoej/contextception"
+    description: "Deterministic context intelligence for code. Know what must be understood before making a safe change."
+    license: "MIT"
+    install: |
+      bin.install "contextception"
+    test: |
+      system "#{bin}/contextception", "--version"
+
+release:
+  github:
+    owner: kehoej
+    name: contextception
+  prerelease: auto
+  name_template: "v{{.Version}}"

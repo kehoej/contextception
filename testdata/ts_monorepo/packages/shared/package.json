@@ -1,0 +1,9 @@
+{
+  "name": "@myapp/shared",
+  "version": "1.0.0",
+  "exports": {
+    ".": "./dist/index.js",
+    "./errors": "./dist/errors.js"
+  },
+  "types": "./dist/index.d.ts"
+}

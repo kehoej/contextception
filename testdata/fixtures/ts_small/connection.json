@@ -1,0 +1,19 @@
+{
+  "subject": "src/db/connection.ts",
+  "must_read": [
+    "src/types.ts",
+    "src/config.ts",
+    "src/db/queries.ts",
+    "src/db/index.ts"
+  ],
+  "must_read_forbidden": [],
+  "related": [
+    "src/utils.ts",
+    "src/auth/login.ts",
+    "src/routes.ts",
+    "src/app.ts"
+  ],
+  "tests": [],
+  "ignore_must_contain": [],
+  "external": ["pg"]
+}

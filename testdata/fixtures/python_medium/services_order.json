@@ -1,0 +1,27 @@
+{
+  "subject": "shop/orders/services.py",
+  "must_read": [
+    "shop/common/utils.py",
+    "shop/products/models.py",
+    "shop/accounts/models.py",
+    "shop/orders/models.py",
+    "shop/common/exceptions.py",
+    "shop/orders/views.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_orders.py",
+    "docs/api_guide.py",
+    "examples/create_shop.py"
+  ],
+  "related": [
+    "shop/settings.py",
+    "shop/common/permissions.py",
+    "shop/common/validators.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_orders.py",
+    "docs/api_guide.py",
+    "examples/create_shop.py"
+  ]
+}

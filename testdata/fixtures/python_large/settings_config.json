@@ -1,0 +1,33 @@
+{
+  "subject": "webapp/settings.py",
+  "must_read": [
+    "webapp/orders/shipping.py",
+    "webapp/utils/caching.py",
+    "webapp/utils/logging.py",
+    "webapp/auth/tokens.py",
+    "webapp/core/base.py",
+    "webapp/core/registry.py",
+    "webapp/wsgi.py",
+    "webapp/tasks/scheduler.py",
+    "webapp/db/connection.py",
+    "webapp/tasks/workers.py"
+  ],
+  "must_read_forbidden": [
+    "tests/conftest.py",
+    "docs/quickstart.py",
+    "examples/advanced_config.py",
+    "examples/basic_usage.py"
+  ],
+  "related": [
+    "webapp/admin/management.py",
+    "webapp/core/signals.py",
+    "webapp/db/migrations.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "docs/quickstart.py",
+    "examples/advanced_config.py",
+    "examples/basic_usage.py",
+    "tests/conftest.py"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "subject": "mylib/models.py",
+  "must_read": [
+    "mylib/base.py",
+    "mylib/db/connection.py",
+    "mylib/api.py",
+    "mylib/auth/login.py",
+    "mylib/db/queries.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_models.py",
+    "docs/tutorial.py"
+  ],
+  "must_read_ordered": [
+    "mylib/db/connection.py",
+    "mylib/base.py"
+  ],
+  "related": [
+    "mylib/config.py",
+    "mylib/utils.py",
+    "mylib/middleware.py"
+  ],
+  "related_forbidden": [
+    "tests/test_models.py",
+    "tests/test_api.py",
+    "docs/tutorial.py"
+  ],
+  "tests": ["tests/test_models.py"],
+  "ignore_must_contain": [
+    "tests/test_models.py",
+    "docs/tutorial.py"
+  ]
+}

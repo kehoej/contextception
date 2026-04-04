@@ -1,0 +1,16 @@
+{
+  "subject": "packages/shared/src/utils.ts",
+  "must_read": [
+    "packages/shared/src/types.ts",
+    "packages/shared/src/index.ts"
+  ],
+  "must_read_forbidden": [],
+  "related": [
+    "packages/api/src/routes/products.ts",
+    "packages/api/src/routes/users.ts",
+    "packages/web/src/components/ProductList.ts"
+  ],
+  "tests": [],
+  "ignore_must_contain": [],
+  "external": ["nanoid"]
+}

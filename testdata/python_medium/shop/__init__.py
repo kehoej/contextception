@@ -1,0 +1,1 @@
+"""Shop application package."""

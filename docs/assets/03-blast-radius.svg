@@ -1,0 +1,304 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" style="background:#0a0e1a">
+  <defs>
+    <filter id="glow-red" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feFlood flood-color="#ef4444" flood-opacity="0.5" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-amber" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feFlood flood-color="#f59e0b" flood-opacity="0.4" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feFlood flood-color="#22c55e" flood-opacity="0.3" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#111830" stroke-width="0.5"/>
+    </pattern>
+
+    <!-- Shockwave gradient -->
+    <radialGradient id="shockwave-red" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0"/>
+      <stop offset="80%" stop-color="#ef4444" stop-opacity="0.3"/>
+      <stop offset="90%" stop-color="#ef4444" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shockwave-amber" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0"/>
+      <stop offset="80%" stop-color="#f59e0b" stop-opacity="0.2"/>
+      <stop offset="90%" stop-color="#f59e0b" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shockwave-green" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0"/>
+      <stop offset="80%" stop-color="#22c55e" stop-opacity="0.15"/>
+      <stop offset="90%" stop-color="#22c55e" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Impact zone fills -->
+    <radialGradient id="zone-critical">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0.02"/>
+    </radialGradient>
+    <radialGradient id="zone-warning">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.01"/>
+    </radialGradient>
+    <radialGradient id="zone-safe">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0.01"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="800" fill="url(#grid)" opacity="0.5"/>
+
+  <!-- Title -->
+  <text x="400" y="35" text-anchor="middle" font-family="monospace" font-size="14" fill="#4a5568" font-weight="bold" letter-spacing="5">
+    BLAST RADIUS ANALYSIS
+  </text>
+  <text x="400" y="55" text-anchor="middle" font-family="monospace" font-size="10" fill="#374151" letter-spacing="2">
+    CHANGE IMPACT VISUALIZATION
+  </text>
+
+  <!-- ═══ IMPACT ZONES (expanding rings) ═══ -->
+
+  <!-- Zone 3: Safe (outer) -->
+  <circle cx="400" cy="420" r="0" fill="url(#zone-safe)" stroke="#22c55e" stroke-width="0.5" stroke-dasharray="6,6" opacity="0">
+    <animate attributeName="r" values="0;320" dur="1s" begin="3s" fill="freeze"/>
+    <animate attributeName="opacity" values="0;0.4" dur="1s" begin="3s" fill="freeze"/>
+  </circle>
+
+  <!-- Zone 2: Warning (middle) -->
+  <circle cx="400" cy="420" r="0" fill="url(#zone-warning)" stroke="#f59e0b" stroke-width="0.8" stroke-dasharray="4,4" opacity="0">
+    <animate attributeName="r" values="0;200" dur="0.8s" begin="2s" fill="freeze"/>
+    <animate attributeName="opacity" values="0;0.5" dur="0.8s" begin="2s" fill="freeze"/>
+  </circle>
+
+  <!-- Zone 1: Critical (inner) -->
+  <circle cx="400" cy="420" r="0" fill="url(#zone-critical)" stroke="#ef4444" stroke-width="1" opacity="0">
+    <animate attributeName="r" values="0;100" dur="0.6s" begin="1s" fill="freeze"/>
+    <animate attributeName="opacity" values="0;0.6" dur="0.6s" begin="1s" fill="freeze"/>
+  </circle>
+
+  <!-- ═══ SHOCKWAVES (repeating outward pulses) ═══ -->
+  <circle cx="400" cy="420" r="20" fill="none" stroke="#ef4444" stroke-width="2" opacity="0">
+    <animate attributeName="r" values="20;350" dur="3s" begin="4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.7;0" dur="3s" begin="4s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-width" values="3;0.5" dur="3s" begin="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="400" cy="420" r="20" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0">
+    <animate attributeName="r" values="20;350" dur="3s" begin="5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;0" dur="3s" begin="5s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-width" values="2;0.3" dur="3s" begin="5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="400" cy="420" r="20" fill="none" stroke="#22c55e" stroke-width="1" opacity="0">
+    <animate attributeName="r" values="20;350" dur="3s" begin="6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0" dur="3s" begin="6s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-width" values="1.5;0.2" dur="3s" begin="6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══ CENTER: SUBJECT FILE (epicenter) ═══ -->
+  <g>
+    <!-- Pulsing glow behind -->
+    <circle cx="400" cy="420" r="25" fill="#ef4444" opacity="0">
+      <animate attributeName="opacity" values="0;0.3;0.15" dur="1.5s" begin="0.5s" fill="freeze"/>
+      <animate attributeName="r" values="15;28;25" dur="1.5s" begin="0.5s" fill="freeze"/>
+    </circle>
+    <!-- Core node -->
+    <circle cx="400" cy="420" r="0" fill="#ef4444" filter="url(#glow-red)">
+      <animate attributeName="r" values="0;18;15" dur="0.8s" begin="0.5s" fill="freeze"/>
+    </circle>
+    <!-- Impact flash -->
+    <circle cx="400" cy="420" r="15" fill="white" opacity="0">
+      <animate attributeName="opacity" values="0;0.8;0" dur="0.3s" begin="0.5s" fill="freeze"/>
+      <animate attributeName="r" values="5;25" dur="0.3s" begin="0.5s" fill="freeze"/>
+    </circle>
+    <text x="400" y="424" text-anchor="middle" font-family="monospace" font-size="11" fill="white" font-weight="bold" opacity="0">
+      auth.ts
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="1s" fill="freeze"/>
+    </text>
+    <text x="400" y="450" text-anchor="middle" font-family="monospace" font-size="10" fill="#ef4444" opacity="0">
+      CHANGE HERE
+      <animate attributeName="opacity" values="0;0.8;0.5;0.8" dur="2s" begin="1.2s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- ═══ CRITICAL ZONE FILES (will break) ═══ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.4s" begin="1.5s" fill="freeze"/>
+
+    <!-- session.ts -->
+    <circle cx="340" cy="360" r="10" fill="#ef4444" opacity="0.8" filter="url(#glow-red)">
+      <animate attributeName="r" values="0;10" dur="0.3s" begin="1.5s" fill="freeze"/>
+    </circle>
+    <text x="340" y="345" text-anchor="middle" font-family="monospace" font-size="10" fill="#fca5a5">session.ts</text>
+    <line x1="355" y1="370" x2="390" y2="410" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+
+    <!-- middleware.ts -->
+    <circle cx="460" cy="350" r="9" fill="#ef4444" opacity="0.8" filter="url(#glow-red)">
+      <animate attributeName="r" values="0;9" dur="0.3s" begin="1.7s" fill="freeze"/>
+    </circle>
+    <text x="460" y="335" text-anchor="middle" font-family="monospace" font-size="10" fill="#fca5a5">middleware.ts</text>
+    <line x1="450" y1="360" x2="410" y2="410" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+
+    <!-- routes.ts -->
+    <circle cx="370" cy="490" r="11" fill="#ef4444" opacity="0.8" filter="url(#glow-red)">
+      <animate attributeName="r" values="0;11" dur="0.3s" begin="1.9s" fill="freeze"/>
+    </circle>
+    <text x="370" y="510" text-anchor="middle" font-family="monospace" font-size="10" fill="#fca5a5">routes.ts</text>
+    <line x1="380" y1="480" x2="395" y2="435" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+
+    <!-- token.ts -->
+    <circle cx="450" cy="480" r="8" fill="#ef4444" opacity="0.8" filter="url(#glow-red)">
+      <animate attributeName="r" values="0;8" dur="0.3s" begin="2.1s" fill="freeze"/>
+    </circle>
+    <text x="450" y="500" text-anchor="middle" font-family="monospace" font-size="10" fill="#fca5a5">token.ts</text>
+    <line x1="440" y1="472" x2="410" y2="435" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+
+    <!-- Shake animation on critical files -->
+    <animateTransform attributeName="transform" type="translate" values="0,0;2,0;-2,0;1,0;-1,0;0,0" dur="0.5s" begin="1.5s" fill="freeze"/>
+  </g>
+
+  <!-- ═══ WARNING ZONE FILES (may need changes) ═══ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.4s" begin="2.5s" fill="freeze"/>
+
+    <!-- user.ts -->
+    <circle cx="250" cy="330" r="7" fill="#f59e0b" opacity="0.7" filter="url(#glow-amber)">
+      <animate attributeName="r" values="0;7" dur="0.3s" begin="2.5s" fill="freeze"/>
+    </circle>
+    <text x="250" y="318" text-anchor="middle" font-family="monospace" font-size="10" fill="#fcd34d">user.ts</text>
+
+    <!-- config.ts -->
+    <circle cx="540" cy="340" r="6" fill="#f59e0b" opacity="0.7" filter="url(#glow-amber)">
+      <animate attributeName="r" values="0;6" dur="0.3s" begin="2.7s" fill="freeze"/>
+    </circle>
+    <text x="540" y="328" text-anchor="middle" font-family="monospace" font-size="10" fill="#fcd34d">config.ts</text>
+
+    <!-- db.ts -->
+    <circle cx="520" cy="520" r="8" fill="#f59e0b" opacity="0.7" filter="url(#glow-amber)">
+      <animate attributeName="r" values="0;8" dur="0.3s" begin="2.9s" fill="freeze"/>
+    </circle>
+    <text x="520" y="540" text-anchor="middle" font-family="monospace" font-size="10" fill="#fcd34d">db.ts</text>
+
+    <!-- validator.ts -->
+    <circle cx="280" cy="500" r="6" fill="#f59e0b" opacity="0.7" filter="url(#glow-amber)">
+      <animate attributeName="r" values="0;6" dur="0.3s" begin="3.1s" fill="freeze"/>
+    </circle>
+    <text x="280" y="518" text-anchor="middle" font-family="monospace" font-size="10" fill="#fcd34d">validator.ts</text>
+
+    <!-- crypto.ts -->
+    <circle cx="300" cy="420" r="7" fill="#f59e0b" opacity="0.7" filter="url(#glow-amber)">
+      <animate attributeName="r" values="0;7" dur="0.3s" begin="3.3s" fill="freeze"/>
+    </circle>
+    <text x="270" y="420" text-anchor="end" font-family="monospace" font-size="10" fill="#fcd34d">crypto.ts</text>
+
+    <!-- api.ts -->
+    <circle cx="500" cy="420" r="7" fill="#f59e0b" opacity="0.7" filter="url(#glow-amber)">
+      <animate attributeName="r" values="0;7" dur="0.3s" begin="3.5s" fill="freeze"/>
+    </circle>
+    <text x="530" y="420" text-anchor="start" font-family="monospace" font-size="10" fill="#fcd34d">api.ts</text>
+
+    <!-- Connection lines to critical zone -->
+    <g stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.3">
+      <line x1="260" y1="340" x2="335" y2="365"/>
+      <line x1="530" y1="348" x2="465" y2="355"/>
+      <line x1="512" y1="515" x2="455" y2="485"/>
+      <line x1="290" y1="495" x2="365" y2="485"/>
+    </g>
+  </g>
+
+  <!-- ═══ SAFE ZONE FILES (nearby context) ═══ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.4s" begin="3.5s" fill="freeze"/>
+
+    <circle cx="180" cy="250" r="5" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;5" dur="0.2s" begin="3.5s" fill="freeze"/></circle>
+    <text x="180" y="240" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">logger.ts</text>
+
+    <circle cx="620" cy="250" r="4" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;4" dur="0.2s" begin="3.6s" fill="freeze"/></circle>
+    <text x="620" y="240" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">cache.ts</text>
+
+    <circle cx="160" cy="550" r="5" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;5" dur="0.2s" begin="3.7s" fill="freeze"/></circle>
+    <text x="160" y="565" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">utils.ts</text>
+
+    <circle cx="640" cy="560" r="4" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;4" dur="0.2s" begin="3.8s" fill="freeze"/></circle>
+    <text x="640" y="575" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">types.ts</text>
+
+    <circle cx="400" cy="200" r="5" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;5" dur="0.2s" begin="3.9s" fill="freeze"/></circle>
+    <text x="400" y="190" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">env.ts</text>
+
+    <circle cx="160" cy="400" r="4" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;4" dur="0.2s" begin="4s" fill="freeze"/></circle>
+    <text x="140" y="400" text-anchor="end" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">http.ts</text>
+
+    <circle cx="640" cy="420" r="4" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;4" dur="0.2s" begin="4.1s" fill="freeze"/></circle>
+    <text x="660" y="420" text-anchor="start" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">email.ts</text>
+
+    <circle cx="400" cy="650" r="5" fill="#22c55e" opacity="0.5"><animate attributeName="r" values="0;5" dur="0.2s" begin="4.2s" fill="freeze"/></circle>
+    <text x="400" y="665" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ade80" opacity="0.6">test_auth.ts</text>
+  </g>
+
+  <!-- ═══ ZONE LABELS ═══ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.5s" begin="4.5s" fill="freeze"/>
+
+    <text x="400" y="340" text-anchor="middle" font-family="monospace" font-size="11" fill="#ef4444" opacity="0.5">CRITICAL</text>
+    <text x="400" y="260" text-anchor="middle" font-family="monospace" font-size="11" fill="#f59e0b" opacity="0.4">WARNING</text>
+    <text x="400" y="160" text-anchor="middle" font-family="monospace" font-size="11" fill="#22c55e" opacity="0.3">RELATED</text>
+  </g>
+
+  <!-- ═══ FRAGILITY METER (bottom-left) ═══ -->
+  <g transform="translate(40, 680)" opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.5s" begin="5s" fill="freeze"/>
+
+    <text x="0" y="0" font-family="monospace" font-size="10" fill="#6b7280" font-weight="bold">FRAGILITY</text>
+
+    <!-- Meter background -->
+    <rect x="0" y="10" width="200" height="12" rx="6" fill="#1e293b"/>
+
+    <!-- Meter fill (animated to 0.72) -->
+    <rect x="0" y="10" width="0" height="12" rx="6" fill="#ef4444">
+      <animate attributeName="width" values="0;144" dur="1s" begin="5.2s" fill="freeze"/>
+    </rect>
+
+    <!-- Threshold markers -->
+    <line x1="140" y1="8" x2="140" y2="24" stroke="#ef4444" stroke-width="1" opacity="0.5"/>
+    <text x="140" y="36" text-anchor="middle" font-family="monospace" font-size="10" fill="#ef4444" opacity="0.5">0.7</text>
+
+    <!-- Value -->
+    <text x="210" y="20" font-family="monospace" font-size="14" fill="#ef4444" font-weight="bold" opacity="0">
+      0.72
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="6s" fill="freeze"/>
+    </text>
+    <text x="0" y="50" font-family="monospace" font-size="11" fill="#6b7280">outdegree / (outdegree + indegree)</text>
+  </g>
+
+  <!-- ═══ BLAST RADIUS VERDICT (bottom-right) ═══ -->
+  <g transform="translate(440, 680)" opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.5s" begin="5.5s" fill="freeze"/>
+
+    <rect x="0" y="-10" width="340" height="85" rx="8" fill="#ef4444" fill-opacity="0.08" stroke="#ef4444" stroke-width="1" stroke-opacity="0.3"/>
+
+    <text x="170" y="12" text-anchor="middle" font-family="monospace" font-size="12" fill="#6b7280" font-weight="bold">BLAST RADIUS</text>
+
+    <text x="170" y="40" text-anchor="middle" font-family="monospace" font-size="24" fill="#ef4444" font-weight="bold" filter="url(#glow-red)">
+      HIGH
+      <animate attributeName="opacity" values="0;1;0.7;1" dur="2s" begin="5.8s" repeatCount="indefinite"/>
+    </text>
+
+    <text x="170" y="62" text-anchor="middle" font-family="monospace" font-size="12" fill="#6b7280">
+      4 critical, 6 warning, 8 related, 2 tests
+    </text>
+  </g>
+
+  <!-- Bottom watermark -->
+  <text x="400" y="790" text-anchor="middle" font-family="monospace" font-size="12" fill="#1e293b" letter-spacing="3">
+    CONTEXTCEPTION
+  </text>
+</svg>

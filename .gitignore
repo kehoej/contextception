@@ -1,0 +1,53 @@
+# Build output
+bin/
+contextception
+playground
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Contextception index
+.contextception/
+
+# Task manager
+.todos/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sidecar
+.sidecar/
+
+# Claude Code personal settings
+.claude/
+
+# Superset
+.superset/
+
+# Auto-generated project index
+PROJECT_INDEX.json
+
+# Dev app cache
+dev-cache/
+
+# Security reports
+.gstack/
+
+# Temporary files
+.temp/

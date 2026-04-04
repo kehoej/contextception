@@ -1,0 +1,21 @@
+{
+  "subject": "shop/common/middleware.py",
+  "must_read": [
+    "shop/settings.py",
+    "shop/common/permissions.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_common.py",
+    "tests/conftest.py"
+  ],
+  "related": [
+    "shop/common/utils.py",
+    "shop/common/decorators.py",
+    "shop/common/cache.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_common.py",
+    "tests/conftest.py"
+  ]
+}

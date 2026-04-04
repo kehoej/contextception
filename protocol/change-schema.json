@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contextception.dev/schema/change-v1.0.json",
+  "title": "ChangeReport",
+  "description": "Contextception change report (schema v1.0). Describes the impact analysis for a branch diff.",
+  "$defs": {
+    "BlastRadius": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": "string"
+        },
+        "fragility": {
+          "type": "number"
+        },
+        "level": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "detail"
+      ]
+    },
+    "ChangeReport": {
+      "type": "object",
+      "properties": {
+        "blast_radius": {
+          "$ref": "#/$defs/BlastRadius"
+        },
+        "changed_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChangedFile"
+          }
+        },
+        "circular_deps": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "coupling": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CouplingPair"
+          }
+        },
+        "hidden_coupling": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HiddenCouplingEntry"
+          }
+        },
+        "hotspots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "likely_modify": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/LikelyModifyEntry"
+            }
+          }
+        },
+        "must_read": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MustReadEntry"
+          }
+        },
+        "ref_range": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "stats": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/IndexStats"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/ChangeSummary"
+        },
+        "test_gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestEntry"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "ref_range",
+        "changed_files",
+        "summary",
+        "blast_radius",
+        "must_read",
+        "likely_modify",
+        "tests"
+      ]
+    },
+    "ChangeSummary": {
+      "type": "object",
+      "properties": {
+        "added": {
+          "type": "integer"
+        },
+        "deleted": {
+          "type": "integer"
+        },
+        "high_risk_files": {
+          "type": "integer"
+        },
+        "indexed_files": {
+          "type": "integer"
+        },
+        "modified": {
+          "type": "integer"
+        },
+        "renamed": {
+          "type": "integer"
+        },
+        "test_files": {
+          "type": "integer"
+        },
+        "total_files": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_files",
+        "added",
+        "modified",
+        "deleted",
+        "renamed",
+        "indexed_files",
+        "test_files",
+        "high_risk_files"
+      ]
+    },
+    "ChangedFile": {
+      "type": "object",
+      "properties": {
+        "blast_radius": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BlastRadius"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "file": {
+          "type": "string"
+        },
+        "indexed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "status",
+        "indexed"
+      ]
+    },
+    "CouplingPair": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "type": "string"
+        },
+        "file_a": {
+          "type": "string"
+        },
+        "file_b": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_a",
+        "file_b",
+        "direction"
+      ]
+    },
+    "HiddenCouplingEntry": {
+      "type": "object",
+      "properties": {
+        "changed_file": {
+          "type": "string"
+        },
+        "frequency": {
+          "type": "integer"
+        },
+        "partner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "changed_file",
+        "partner",
+        "frequency"
+      ]
+    },
+    "IndexStats": {
+      "type": "object",
+      "properties": {
+        "total_edges": {
+          "type": "integer"
+        },
+        "total_files": {
+          "type": "integer"
+        },
+        "unresolved_count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_files",
+        "total_edges",
+        "unresolved_count"
+      ]
+    },
+    "LikelyModifyEntry": {
+      "type": "object",
+      "properties": {
+        "confidence": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "file",
+        "confidence",
+        "signals"
+      ]
+    },
+    "MustReadEntry": {
+      "type": "object",
+      "properties": {
+        "circular": {
+          "type": "boolean"
+        },
+        "definitions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "direction": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "stable": {
+          "type": "boolean"
+        },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "file"
+      ]
+    },
+    "TestEntry": {
+      "type": "object",
+      "properties": {
+        "direct": {
+          "type": "boolean"
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "direct"
+      ]
+    }
+  },
+  "$ref": "#/$defs/ChangeReport"
+}

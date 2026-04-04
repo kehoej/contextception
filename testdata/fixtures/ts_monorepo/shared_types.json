@@ -1,0 +1,16 @@
+{
+  "subject": "packages/shared/src/types.ts",
+  "must_read": [
+    "packages/shared/src/utils.ts",
+    "packages/shared/src/index.ts"
+  ],
+  "must_read_forbidden": [],
+  "related": [
+    "packages/shared/src/logger.ts",
+    "packages/api/src/routes/products.ts",
+    "packages/api/src/routes/users.ts",
+    "packages/web/src/components/UserList.ts"
+  ],
+  "tests": [],
+  "ignore_must_contain": []
+}

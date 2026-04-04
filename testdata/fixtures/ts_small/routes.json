@@ -1,0 +1,34 @@
+{
+  "subject": "src/routes.ts",
+  "must_read": [
+    "src/types.ts",
+    "src/db/queries.ts",
+    "src/middleware/auth.ts",
+    "src/middleware/logging.ts",
+    "src/utils.ts",
+    "src/auth/login.ts",
+    "src/app.ts"
+  ],
+  "must_read_forbidden": [
+    "tests/routes.test.ts",
+    "docs/setup.ts"
+  ],
+  "must_read_ordered": [
+    "src/types.ts",
+    "src/auth/login.ts"
+  ],
+  "related": [
+    "src/config.ts",
+    "src/db/index.ts",
+    "src/db/connection.ts",
+    "src/auth/permissions.ts",
+    "src/auth/token.ts"
+  ],
+  "tests": ["tests/routes.test.ts"],
+  "ignore_must_contain": [
+    "tests/routes.test.ts",
+    "docs/setup.ts"
+  ],
+  "external": ["zod"],
+  "expect_stable": ["src/types.ts"]
+}

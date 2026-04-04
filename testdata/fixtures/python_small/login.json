@@ -1,0 +1,27 @@
+{
+  "subject": "mylib/auth/login.py",
+  "must_read": [
+    "mylib/models.py",
+    "mylib/utils.py",
+    "mylib/api.py",
+    "mylib/auth/__init__.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_api.py",
+    "docs/tutorial.py",
+    "examples/basic.py"
+  ],
+  "related": [
+    "mylib/base.py",
+    "mylib/db/connection.py",
+    "mylib/config.py",
+    "mylib/middleware.py",
+    "mylib/auth/permissions.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_api.py",
+    "docs/tutorial.py",
+    "examples/basic.py"
+  ]
+}

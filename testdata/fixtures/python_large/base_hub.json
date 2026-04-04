@@ -1,0 +1,34 @@
+{
+  "subject": "webapp/core/base.py",
+  "must_read": [
+    "webapp/settings.py",
+    "webapp/auth/models.py",
+    "webapp/catalog/models.py",
+    "webapp/orders/models.py",
+    "webapp/db/connection.py",
+    "webapp/tasks/scheduler.py",
+    "webapp/api/serializers.py",
+    "webapp/core/registry.py",
+    "webapp/core/signals.py",
+    "webapp/db/session.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_auth.py",
+    "tests/test_catalog.py",
+    "docs/quickstart.py",
+    "examples/advanced_config.py"
+  ],
+  "related": [
+    "webapp/auth/tokens.py",
+    "webapp/admin/management.py",
+    "webapp/db/migrations.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "docs/quickstart.py",
+    "examples/advanced_config.py",
+    "tests/conftest.py",
+    "tests/test_auth.py",
+    "tests/test_catalog.py"
+  ]
+}

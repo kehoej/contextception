@@ -1,0 +1,35 @@
+{
+  "subject": "webapp/api/v1/users.py",
+  "must_read": [
+    "webapp/auth/models.py",
+    "webapp/api/serializers.py",
+    "webapp/auth/services.py",
+    "webapp/api/errors.py",
+    "webapp/api/routes.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_api.py",
+    "tests/test_auth.py",
+    "docs/api_reference.py",
+    "examples/basic_usage.py"
+  ],
+  "related": [
+    "webapp/core/base.py",
+    "webapp/db/connection.py",
+    "webapp/auth/tokens.py",
+    "webapp/admin/dashboard.py",
+    "webapp/auth/permissions.py"
+  ],
+  "related_forbidden": [
+    "tests/test_api.py",
+    "tests/test_auth.py",
+    "docs/api_reference.py",
+    "examples/basic_usage.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_api.py",
+    "docs/api_reference.py",
+    "examples/basic_usage.py"
+  ]
+}

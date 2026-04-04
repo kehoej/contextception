@@ -1,0 +1,30 @@
+{
+  "subject": "webapp/urls.py",
+  "must_read": [
+    "webapp/api/routes.py",
+    "webapp/admin/dashboard.py",
+    "webapp/auth/views.py",
+    "webapp/catalog/views.py",
+    "webapp/orders/views.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_api.py",
+    "docs/api_reference.py"
+  ],
+  "must_read_ordered": [
+    "webapp/admin/dashboard.py",
+    "webapp/auth/views.py"
+  ],
+  "related": [
+    "webapp/auth/models.py",
+    "webapp/catalog/models.py",
+    "webapp/admin/management.py",
+    "webapp/auth/permissions.py",
+    "webapp/auth/services.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "docs/api_reference.py",
+    "tests/test_api.py"
+  ]
+}

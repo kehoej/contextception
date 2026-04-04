@@ -1,0 +1,24 @@
+{
+  "subject": "src/auth/login.ts",
+  "must_read": [
+    "src/types.ts",
+    "src/db/queries.ts",
+    "src/auth/token.ts",
+    "src/routes.ts"
+  ],
+  "must_read_forbidden": [
+    "tests/auth.test.ts",
+    "tests/routes.test.ts"
+  ],
+  "related": [
+    "src/config.ts",
+    "src/app.ts",
+    "src/db/connection.ts",
+    "src/utils.ts"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/auth.test.ts",
+    "tests/routes.test.ts"
+  ]
+}

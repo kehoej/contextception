@@ -1,0 +1,33 @@
+{
+  "subject": "src/types.ts",
+  "must_read": [
+    "src/auth/permissions.ts",
+    "src/utils.ts",
+    "src/config.ts",
+    "src/middleware/auth.ts",
+    "src/auth/token.ts",
+    "src/db/connection.ts",
+    "src/db/queries.ts",
+    "src/auth/login.ts",
+    "src/routes.ts"
+  ],
+  "must_read_forbidden": [
+    "tests/auth.test.ts",
+    "tests/routes.test.ts"
+  ],
+  "related": [
+    "src/app.ts",
+    "src/db/index.ts"
+  ],
+  "related_forbidden": [
+    "tests/auth.test.ts",
+    "tests/routes.test.ts",
+    "docs/setup.ts"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/auth.test.ts",
+    "tests/routes.test.ts",
+    "docs/setup.ts"
+  ]
+}

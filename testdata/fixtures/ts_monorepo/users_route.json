@@ -1,0 +1,26 @@
+{
+  "subject": "packages/api/src/routes/users.ts",
+  "must_read": [
+    "packages/shared/src/index.ts",
+    "packages/shared/src/errors.ts",
+    "packages/api/src/index.ts",
+    "packages/api/src/server.ts"
+  ],
+  "must_read_forbidden": [
+    "packages/api/tests/users.test.ts"
+  ],
+  "related": [
+    "packages/api/src/routes/products.ts",
+    "packages/shared/src/types.ts",
+    "packages/api/src/middleware/errors.ts",
+    "packages/shared/src/utils.ts"
+  ],
+  "related_forbidden": [
+    "packages/api/tests/users.test.ts"
+  ],
+  "tests": ["packages/api/tests/users.test.ts"],
+  "ignore_must_contain": [
+    "packages/api/tests/users.test.ts"
+  ],
+  "external": ["zod"]
+}

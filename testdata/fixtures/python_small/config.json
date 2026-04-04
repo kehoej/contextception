@@ -1,0 +1,23 @@
+{
+  "subject": "mylib/config.py",
+  "must_read": [
+    "mylib/utils.py",
+    "mylib/base.py",
+    "mylib/middleware.py",
+    "mylib/auth/permissions.py",
+    "mylib/db/connection.py",
+    "mylib/__init__.py"
+  ],
+  "must_read_forbidden": [
+    "tests/conftest.py"
+  ],
+  "related": [
+    "mylib/api.py",
+    "mylib/auth/login.py",
+    "mylib/models.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/conftest.py"
+  ]
+}

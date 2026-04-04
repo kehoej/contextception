@@ -1,0 +1,26 @@
+{
+  "subject": "shop/products/views.py",
+  "must_read": [
+    "shop/products/models.py",
+    "shop/common/permissions.py",
+    "shop/products/services.py",
+    "shop/products/urls.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_products.py",
+    "docs/quickstart.py",
+    "examples/manage_inventory.py"
+  ],
+  "related": [
+    "shop/common/utils.py",
+    "shop/settings.py",
+    "shop/common/exceptions.py",
+    "shop/common/validators.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_products.py",
+    "docs/quickstart.py",
+    "examples/manage_inventory.py"
+  ]
+}

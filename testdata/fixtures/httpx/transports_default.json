@@ -1,0 +1,27 @@
+{
+  "subject": "httpx/_transports/default.py",
+  "must_read": [
+    "httpx/__init__.py",
+    "httpx/_models.py",
+    "httpx/_types.py",
+    "httpx/_exceptions.py",
+    "httpx/_urls.py",
+    "httpx/_transports/base.py",
+    "httpx/_config.py",
+    "httpx/_client.py",
+    "httpx/_transports/__init__.py"
+  ],
+  "must_read_forbidden": [
+    "tests/conftest.py",
+    "tests/test_wsgi.py"
+  ],
+  "related": [
+    "httpx/_utils.py",
+    "httpx/_status_codes.py",
+    "httpx/_auth.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/conftest.py"
+  ]
+}

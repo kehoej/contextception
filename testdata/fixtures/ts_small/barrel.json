@@ -1,0 +1,14 @@
+{
+  "subject": "src/db/index.ts",
+  "must_read": [
+    "src/db/connection.ts",
+    "src/db/queries.ts"
+  ],
+  "must_read_forbidden": [],
+  "related": [
+    "src/types.ts",
+    "src/config.ts"
+  ],
+  "tests": [],
+  "ignore_must_contain": []
+}

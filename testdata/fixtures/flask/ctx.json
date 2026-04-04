@@ -1,0 +1,29 @@
+{
+  "subject": "src/flask/ctx.py",
+  "must_read": [
+    "src/flask/globals.py",
+    "src/flask/wrappers.py",
+    "src/flask/app.py",
+    "src/flask/typing.py",
+    "src/flask/signals.py",
+    "src/flask/sessions.py",
+    "src/flask/sansio/app.py",
+    "src/flask/templating.py",
+    "src/flask/__init__.py"
+  ],
+  "must_read_forbidden": [
+    "tests/conftest.py",
+    "tests/test_appctx.py",
+    "tests/test_reqctx.py"
+  ],
+  "related": [
+    "src/flask/sansio/scaffold.py",
+    "src/flask/cli.py",
+    "src/flask/blueprints.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/conftest.py",
+    "tests/test_appctx.py"
+  ]
+}

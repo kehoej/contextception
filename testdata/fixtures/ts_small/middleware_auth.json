@@ -1,0 +1,31 @@
+{
+  "subject": "src/middleware/auth.ts",
+  "must_read": [
+    "src/types.ts",
+    "src/auth/permissions.ts",
+    "src/routes.ts",
+    "src/app.ts"
+  ],
+  "must_read_forbidden": [
+    "tests/routes.test.ts"
+  ],
+  "must_read_ordered": [
+    "src/types.ts",
+    "src/auth/permissions.ts",
+    "src/routes.ts"
+  ],
+  "related": [
+    "src/config.ts",
+    "src/db/queries.ts",
+    "src/db/connection.ts",
+    "src/middleware/logging.ts",
+    "src/utils.ts",
+    "src/auth/login.ts"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/routes.test.ts",
+    "docs/setup.ts"
+  ],
+  "external": ["jsonwebtoken"]
+}

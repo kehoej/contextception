@@ -1,0 +1,34 @@
+{
+  "subject": "webapp/orders/services.py",
+  "must_read": [
+    "webapp/auth/models.py",
+    "webapp/catalog/models.py",
+    "webapp/orders/models.py",
+    "webapp/orders/notifications.py",
+    "webapp/orders/payment.py",
+    "webapp/api/v1/orders.py",
+    "webapp/orders/views.py"
+  ],
+  "must_read_forbidden": [
+    "tests/test_orders.py",
+    "tests/test_auth.py",
+    "docs/api_reference.py"
+  ],
+  "must_read_ordered": [
+    "webapp/orders/models.py",
+    "webapp/orders/views.py"
+  ],
+  "related": [
+    "webapp/core/base.py",
+    "webapp/db/connection.py",
+    "webapp/api/serializers.py",
+    "webapp/auth/tokens.py",
+    "webapp/admin/dashboard.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_orders.py",
+    "tests/test_auth.py",
+    "docs/api_reference.py"
+  ]
+}

@@ -1,0 +1,552 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" style="background:#0a0e1a">
+  <defs>
+    <!-- Glow filters -->
+    <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feFlood flood-color="#00ff88" flood-opacity="0.3" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-purple" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feFlood flood-color="#a855f7" flood-opacity="0.4" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-orange" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feFlood flood-color="#f97316" flood-opacity="0.4" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Grid pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a2040" stroke-width="0.5"/>
+    </pattern>
+
+    <!-- Particle gradient -->
+    <radialGradient id="particle-g">
+      <stop offset="0%" stop-color="#00ffd5" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00ffd5" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Stage gradients -->
+    <linearGradient id="stage1-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="stage2-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="stage3-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="stage4-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00ff88" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#00ff88" stop-opacity="0.05"/>
+    </linearGradient>
+
+    <!-- Scanning line -->
+    <linearGradient id="scan-line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00ffd5" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00ffd5" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#00ffd5" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background grid -->
+  <rect width="1200" height="600" fill="url(#grid)" opacity="0.5"/>
+
+  <!-- Ambient floating particles -->
+  <g opacity="0.4">
+    <circle cx="100" cy="100" r="1.5" fill="#06b6d4">
+      <animate attributeName="cy" values="100;80;100" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0.8;0.2" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="300" cy="500" r="1" fill="#a855f7">
+      <animate attributeName="cy" values="500;480;500" dur="3.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="80" r="1.5" fill="#00ff88">
+      <animate attributeName="cy" values="80;60;80" dur="5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0.9;0.2" dur="5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1100" cy="400" r="1" fill="#f97316">
+      <animate attributeName="cy" values="400;380;400" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="45" text-anchor="middle" font-family="monospace" font-size="18" fill="#4a5568" font-weight="bold" letter-spacing="6">
+    CONTEXTCEPTION PIPELINE
+    <animate attributeName="opacity" values="0;1" dur="0.5s" fill="freeze"/>
+  </text>
+
+  <!-- ═══════════ STAGE 1: CLONE ═══════════ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.6s" begin="0.5s" fill="freeze"/>
+
+    <!-- Stage box -->
+    <rect x="30" y="80" width="250" height="440" rx="12" fill="url(#stage1-grad)" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.4"/>
+
+    <!-- Stage label -->
+    <text x="155" y="110" text-anchor="middle" font-family="monospace" font-size="17" fill="#06b6d4" font-weight="bold" letter-spacing="3" filter="url(#glow-cyan)">
+      01 CLONE
+    </text>
+    <line x1="60" y1="120" x2="250" y2="120" stroke="#06b6d4" stroke-width="0.5" stroke-opacity="0.3"/>
+
+    <!-- Git repo icon - animated -->
+    <g transform="translate(155, 200)">
+      <!-- Branch lines -->
+      <line x1="-30" y1="40" x2="-30" y2="-30" stroke="#06b6d4" stroke-width="2" stroke-dasharray="100" stroke-dashoffset="100">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.8s" begin="1s" fill="freeze"/>
+      </line>
+      <line x1="0" y1="30" x2="0" y2="-40" stroke="#22d3ee" stroke-width="2" stroke-dasharray="100" stroke-dashoffset="100">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.8s" begin="1.2s" fill="freeze"/>
+      </line>
+      <line x1="30" y1="40" x2="30" y2="-20" stroke="#67e8f9" stroke-width="2" stroke-dasharray="100" stroke-dashoffset="100">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.8s" begin="1.4s" fill="freeze"/>
+      </line>
+
+      <!-- Commit dots popping in -->
+      <circle cx="-30" cy="-30" r="5" fill="#06b6d4" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="1.8s" fill="freeze"/>
+        <animate attributeName="r" values="0;5" dur="0.3s" begin="1.8s" fill="freeze"/>
+      </circle>
+      <circle cx="-30" cy="0" r="4" fill="#06b6d4" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="2s" fill="freeze"/>
+        <animate attributeName="r" values="0;4" dur="0.3s" begin="2s" fill="freeze"/>
+      </circle>
+      <circle cx="-30" cy="40" r="5" fill="#06b6d4" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="2.2s" fill="freeze"/>
+      </circle>
+      <circle cx="0" cy="-40" r="5" fill="#22d3ee" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="1.9s" fill="freeze"/>
+      </circle>
+      <circle cx="0" cy="-10" r="4" fill="#22d3ee" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="2.1s" fill="freeze"/>
+      </circle>
+      <circle cx="0" cy="30" r="5" fill="#22d3ee" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="2.3s" fill="freeze"/>
+      </circle>
+      <circle cx="30" cy="-20" r="4" fill="#67e8f9" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="2s" fill="freeze"/>
+      </circle>
+      <circle cx="30" cy="10" r="5" fill="#67e8f9" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="2.2s" fill="freeze"/>
+      </circle>
+      <circle cx="30" cy="40" r="4" fill="#67e8f9" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="2.4s" fill="freeze"/>
+      </circle>
+
+      <!-- Merge lines -->
+      <path d="M -30 0 Q -15 -5, 0 -10" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" values="50;0" dur="0.5s" begin="2.5s" fill="freeze"/>
+      </path>
+      <path d="M 0 30 Q 15 25, 30 10" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="50" stroke-dashoffset="50" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" values="50;0" dur="0.5s" begin="2.7s" fill="freeze"/>
+      </path>
+    </g>
+
+    <!-- File list streaming in -->
+    <g font-family="monospace" font-size="14" fill="#06b6d4" opacity="0.7">
+      <text x="70" y="310" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="2.8s" fill="freeze"/>src/auth/login.py</text>
+      <text x="70" y="325" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="2.9s" fill="freeze"/>src/auth/session.py</text>
+      <text x="70" y="340" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="3s" fill="freeze"/>src/models/user.py</text>
+      <text x="70" y="355" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="3.1s" fill="freeze"/>src/api/routes.py</text>
+      <text x="70" y="370" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="3.2s" fill="freeze"/>src/db/connection.py</text>
+      <text x="70" y="385" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="3.3s" fill="freeze"/>src/utils/crypto.py</text>
+      <text x="70" y="400" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="3.4s" fill="freeze"/>tests/test_auth.py</text>
+      <text x="70" y="415" opacity="0"><animate attributeName="opacity" values="0;0.7" dur="0.15s" begin="3.5s" fill="freeze"/>tests/test_session.py</text>
+    </g>
+
+    <!-- File count -->
+    <text x="155" y="460" text-anchor="middle" font-family="monospace" font-size="20" fill="#06b6d4" font-weight="bold" opacity="0" filter="url(#glow-cyan)">
+      2,638 files
+      <animate attributeName="opacity" values="0;1" dur="0.4s" begin="3.6s" fill="freeze"/>
+    </text>
+    <text x="155" y="480" text-anchor="middle" font-family="monospace" font-size="14" fill="#4a5568" opacity="0">
+      repository cloned
+      <animate attributeName="opacity" values="0;0.7" dur="0.4s" begin="3.8s" fill="freeze"/>
+    </text>
+  </g>
+
+  <!-- Arrow 1→2 -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.3s" begin="4s" fill="freeze"/>
+    <line x1="280" y1="300" x2="320" y2="300" stroke="#06b6d4" stroke-width="2"/>
+    <polygon points="320,295 330,300 320,305" fill="#06b6d4"/>
+    <!-- Data stream particles -->
+    <circle r="3" fill="#06b6d4" opacity="0.8">
+      <animate attributeName="cx" values="280;330" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="300;300" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0" dur="0.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="2" fill="#22d3ee" opacity="0.6">
+      <animate attributeName="cx" values="280;330" dur="0.8s" begin="0.3s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="298;298" dur="0.8s" begin="0.3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0" dur="0.8s" begin="0.3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══════════ STAGE 2: INDEX ═══════════ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.6s" begin="4s" fill="freeze"/>
+
+    <rect x="335" y="80" width="250" height="440" rx="12" fill="url(#stage2-grad)" stroke="#a855f7" stroke-width="1" stroke-opacity="0.4"/>
+
+    <text x="460" y="110" text-anchor="middle" font-family="monospace" font-size="17" fill="#a855f7" font-weight="bold" letter-spacing="3" filter="url(#glow-purple)">
+      02 INDEX
+    </text>
+    <line x1="365" y1="120" x2="555" y2="120" stroke="#a855f7" stroke-width="0.5" stroke-opacity="0.3"/>
+
+    <!-- SQLite database icon -->
+    <g transform="translate(460, 170)">
+      <ellipse cx="0" cy="0" rx="40" ry="12" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200">
+        <animate attributeName="stroke-dashoffset" values="200;0" dur="0.8s" begin="4.5s" fill="freeze"/>
+      </ellipse>
+      <path d="M -40 0 L -40 50" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="50" stroke-dashoffset="50">
+        <animate attributeName="stroke-dashoffset" values="50;0" dur="0.4s" begin="5.3s" fill="freeze"/>
+      </path>
+      <path d="M 40 0 L 40 50" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="50" stroke-dashoffset="50">
+        <animate attributeName="stroke-dashoffset" values="50;0" dur="0.4s" begin="5.3s" fill="freeze"/>
+      </path>
+      <ellipse cx="0" cy="25" rx="40" ry="12" fill="none" stroke="#a855f7" stroke-width="1" stroke-opacity="0.4" stroke-dasharray="200" stroke-dashoffset="200">
+        <animate attributeName="stroke-dashoffset" values="200;0" dur="0.5s" begin="5.7s" fill="freeze"/>
+      </ellipse>
+      <ellipse cx="0" cy="50" rx="40" ry="12" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200">
+        <animate attributeName="stroke-dashoffset" values="200;0" dur="0.5s" begin="5.9s" fill="freeze"/>
+      </ellipse>
+
+      <!-- Data flowing into DB -->
+      <circle r="2" fill="#c084fc" opacity="0">
+        <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="6.2s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="-30;0" dur="0.6s" begin="6.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="2" fill="#a855f7" opacity="0">
+        <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="6.5s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="-20;0" dur="0.6s" begin="6.5s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="-25;5" dur="0.6s" begin="6.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="2" fill="#e9d5ff" opacity="0">
+        <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="6.8s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="20;0" dur="0.6s" begin="6.8s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="-25;5" dur="0.6s" begin="6.8s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+
+    <!-- Concurrent extraction bars -->
+    <g transform="translate(370, 270)">
+      <text x="0" y="0" font-family="monospace" font-size="13" fill="#a855f7" opacity="0.6">extracting imports...</text>
+
+      <!-- Python bar -->
+      <rect x="0" y="12" width="0" height="8" rx="2" fill="#a855f7" opacity="0.8">
+        <animate attributeName="width" values="0;170" dur="1.2s" begin="5s" fill="freeze"/>
+      </rect>
+      <text x="0" y="10" font-family="monospace" font-size="12" fill="#c084fc" opacity="0">
+        Python
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="5s" fill="freeze"/>
+      </text>
+
+      <!-- TypeScript bar -->
+      <rect x="0" y="35" width="0" height="8" rx="2" fill="#8b5cf6" opacity="0.8">
+        <animate attributeName="width" values="0;140" dur="1s" begin="5.2s" fill="freeze"/>
+      </rect>
+      <text x="0" y="33" font-family="monospace" font-size="12" fill="#c084fc" opacity="0">
+        TypeScript
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="5.2s" fill="freeze"/>
+      </text>
+
+      <!-- Go bar -->
+      <rect x="0" y="58" width="0" height="8" rx="2" fill="#7c3aed" opacity="0.8">
+        <animate attributeName="width" values="0;120" dur="0.9s" begin="5.4s" fill="freeze"/>
+      </rect>
+      <text x="0" y="56" font-family="monospace" font-size="12" fill="#c084fc" opacity="0">
+        Go
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="5.4s" fill="freeze"/>
+      </text>
+
+      <!-- Java bar -->
+      <rect x="0" y="81" width="0" height="8" rx="2" fill="#6d28d9" opacity="0.8">
+        <animate attributeName="width" values="0;90" dur="0.7s" begin="5.6s" fill="freeze"/>
+      </rect>
+      <text x="0" y="79" font-family="monospace" font-size="12" fill="#c084fc" opacity="0">
+        Java
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="5.6s" fill="freeze"/>
+      </text>
+
+      <!-- Rust bar -->
+      <rect x="0" y="104" width="0" height="8" rx="2" fill="#5b21b6" opacity="0.8">
+        <animate attributeName="width" values="0;80" dur="0.6s" begin="5.8s" fill="freeze"/>
+      </rect>
+      <text x="0" y="102" font-family="monospace" font-size="12" fill="#c084fc" opacity="0">
+        Rust
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="5.8s" fill="freeze"/>
+      </text>
+    </g>
+
+    <!-- Edge count -->
+    <text x="460" y="440" text-anchor="middle" font-family="monospace" font-size="15" fill="#a855f7" opacity="0">
+      12,847 edges resolved
+      <animate attributeName="opacity" values="0;0.8" dur="0.3s" begin="6.5s" fill="freeze"/>
+    </text>
+    <text x="460" y="460" text-anchor="middle" font-family="monospace" font-size="20" fill="#a855f7" font-weight="bold" opacity="0" filter="url(#glow-purple)">
+      INDEX READY
+      <animate attributeName="opacity" values="0;1" dur="0.4s" begin="6.8s" fill="freeze"/>
+    </text>
+    <text x="460" y="480" text-anchor="middle" font-family="monospace" font-size="14" fill="#4a5568" opacity="0">
+      0.3s concurrent
+      <animate attributeName="opacity" values="0;0.7" dur="0.3s" begin="7s" fill="freeze"/>
+    </text>
+  </g>
+
+  <!-- Arrow 2→3 -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.3s" begin="7s" fill="freeze"/>
+    <line x1="585" y1="300" x2="625" y2="300" stroke="#a855f7" stroke-width="2"/>
+    <polygon points="625,295 635,300 625,305" fill="#a855f7"/>
+    <circle r="3" fill="#a855f7" opacity="0.8">
+      <animate attributeName="cx" values="585;635" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="300;300" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0" dur="0.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══════════ STAGE 3: ANALYZE ═══════════ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.6s" begin="7s" fill="freeze"/>
+
+    <rect x="640" y="80" width="250" height="440" rx="12" fill="url(#stage3-grad)" stroke="#f97316" stroke-width="1" stroke-opacity="0.4"/>
+
+    <text x="765" y="110" text-anchor="middle" font-family="monospace" font-size="17" fill="#f97316" font-weight="bold" letter-spacing="3" filter="url(#glow-orange)">
+      03 ANALYZE
+    </text>
+    <line x1="670" y1="120" x2="860" y2="120" stroke="#f97316" stroke-width="0.5" stroke-opacity="0.3"/>
+
+    <!-- Target file highlight -->
+    <g transform="translate(765, 165)">
+      <rect x="-70" y="-15" width="140" height="30" rx="6" fill="#f97316" fill-opacity="0.15" stroke="#f97316" stroke-width="1">
+        <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <text x="0" y="5" text-anchor="middle" font-family="monospace" font-size="15" fill="#fb923c" font-weight="bold">auth/login.py</text>
+    </g>
+
+    <!-- Graph traversal visualization -->
+    <g transform="translate(765, 260)">
+      <!-- Center node (subject) -->
+      <circle cx="0" cy="0" r="12" fill="#f97316" opacity="0">
+        <animate attributeName="opacity" values="0;1" dur="0.3s" begin="7.5s" fill="freeze"/>
+        <animate attributeName="r" values="8;12;10" dur="1s" begin="7.5s" fill="freeze"/>
+      </circle>
+
+      <!-- Hop-1 nodes -->
+      <circle cx="-50" cy="-40" r="7" fill="#fb923c" opacity="0">
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="8s" fill="freeze"/>
+      </circle>
+      <circle cx="50" cy="-40" r="7" fill="#fb923c" opacity="0">
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="8.1s" fill="freeze"/>
+      </circle>
+      <circle cx="-60" cy="20" r="7" fill="#fb923c" opacity="0">
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="8.2s" fill="freeze"/>
+      </circle>
+      <circle cx="55" cy="30" r="7" fill="#fb923c" opacity="0">
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="8.3s" fill="freeze"/>
+      </circle>
+      <circle cx="0" cy="50" r="7" fill="#fb923c" opacity="0">
+        <animate attributeName="opacity" values="0;0.8" dur="0.2s" begin="8.4s" fill="freeze"/>
+      </circle>
+
+      <!-- Hop-2 nodes (smaller, dimmer) -->
+      <circle cx="-80" cy="-70" r="4" fill="#fdba74" opacity="0">
+        <animate attributeName="opacity" values="0;0.5" dur="0.2s" begin="8.6s" fill="freeze"/>
+      </circle>
+      <circle cx="-20" cy="-70" r="4" fill="#fdba74" opacity="0">
+        <animate attributeName="opacity" values="0;0.5" dur="0.2s" begin="8.7s" fill="freeze"/>
+      </circle>
+      <circle cx="80" cy="-60" r="4" fill="#fdba74" opacity="0">
+        <animate attributeName="opacity" values="0;0.5" dur="0.2s" begin="8.8s" fill="freeze"/>
+      </circle>
+      <circle cx="85" cy="10" r="4" fill="#fdba74" opacity="0">
+        <animate attributeName="opacity" values="0;0.5" dur="0.2s" begin="8.9s" fill="freeze"/>
+      </circle>
+
+      <!-- Edges (drawn after nodes) -->
+      <line x1="0" y1="0" x2="-50" y2="-40" stroke="#f97316" stroke-width="1.5" stroke-dasharray="100" stroke-dashoffset="100" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.3s" begin="8s" fill="freeze"/>
+      </line>
+      <line x1="0" y1="0" x2="50" y2="-40" stroke="#f97316" stroke-width="1.5" stroke-dasharray="100" stroke-dashoffset="100" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.3s" begin="8.1s" fill="freeze"/>
+      </line>
+      <line x1="0" y1="0" x2="-60" y2="20" stroke="#f97316" stroke-width="1.5" stroke-dasharray="100" stroke-dashoffset="100" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.3s" begin="8.2s" fill="freeze"/>
+      </line>
+      <line x1="0" y1="0" x2="55" y2="30" stroke="#f97316" stroke-width="1.5" stroke-dasharray="100" stroke-dashoffset="100" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.3s" begin="8.3s" fill="freeze"/>
+      </line>
+      <line x1="0" y1="0" x2="0" y2="50" stroke="#f97316" stroke-width="1.5" stroke-dasharray="100" stroke-dashoffset="100" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" values="100;0" dur="0.3s" begin="8.4s" fill="freeze"/>
+      </line>
+
+      <!-- Hop-2 edges -->
+      <line x1="-50" y1="-40" x2="-80" y2="-70" stroke="#fdba74" stroke-width="1" stroke-dasharray="60" stroke-dashoffset="60" opacity="0.3">
+        <animate attributeName="stroke-dashoffset" values="60;0" dur="0.3s" begin="8.6s" fill="freeze"/>
+      </line>
+      <line x1="-50" y1="-40" x2="-20" y2="-70" stroke="#fdba74" stroke-width="1" stroke-dasharray="60" stroke-dashoffset="60" opacity="0.3">
+        <animate attributeName="stroke-dashoffset" values="60;0" dur="0.3s" begin="8.7s" fill="freeze"/>
+      </line>
+      <line x1="50" y1="-40" x2="80" y2="-60" stroke="#fdba74" stroke-width="1" stroke-dasharray="60" stroke-dashoffset="60" opacity="0.3">
+        <animate attributeName="stroke-dashoffset" values="60;0" dur="0.3s" begin="8.8s" fill="freeze"/>
+      </line>
+      <line x1="55" y1="30" x2="85" y2="10" stroke="#fdba74" stroke-width="1" stroke-dasharray="60" stroke-dashoffset="60" opacity="0.3">
+        <animate attributeName="stroke-dashoffset" values="60;0" dur="0.3s" begin="8.9s" fill="freeze"/>
+      </line>
+
+      <!-- Pulse rings on center -->
+      <circle cx="0" cy="0" r="12" fill="none" stroke="#f97316" stroke-width="1" opacity="0">
+        <animate attributeName="r" values="12;40" dur="1.5s" begin="9s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.6;0" dur="1.5s" begin="9s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="0" cy="0" r="12" fill="none" stroke="#f97316" stroke-width="1" opacity="0">
+        <animate attributeName="r" values="12;40" dur="1.5s" begin="9.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.6;0" dur="1.5s" begin="9.5s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+
+    <!-- Scoring text -->
+    <text x="765" y="380" text-anchor="middle" font-family="monospace" font-size="13" fill="#f97316" opacity="0">
+      scoring &amp; ranking
+      <animate attributeName="opacity" values="0;0.7" dur="0.5s" begin="9s" fill="freeze"/>
+    </text>
+    <text x="765" y="400" text-anchor="middle" font-family="monospace" font-size="13" fill="#f97316" opacity="0">
+      topological sort
+      <animate attributeName="opacity" values="0;0.7" dur="0.5s" begin="9.5s" fill="freeze"/>
+    </text>
+    <text x="765" y="420" text-anchor="middle" font-family="monospace" font-size="13" fill="#f97316" opacity="0">
+      symbol enrichment
+      <animate attributeName="opacity" values="0;0.7" dur="0.5s" begin="10s" fill="freeze"/>
+    </text>
+
+    <text x="765" y="460" text-anchor="middle" font-family="monospace" font-size="20" fill="#f97316" font-weight="bold" opacity="0" filter="url(#glow-orange)">
+      87ms
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="10.5s" fill="freeze"/>
+    </text>
+    <text x="765" y="480" text-anchor="middle" font-family="monospace" font-size="14" fill="#4a5568" opacity="0">
+      analysis complete
+      <animate attributeName="opacity" values="0;0.7" dur="0.3s" begin="10.7s" fill="freeze"/>
+    </text>
+  </g>
+
+  <!-- Arrow 3→4 -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.3s" begin="10.5s" fill="freeze"/>
+    <line x1="890" y1="300" x2="930" y2="300" stroke="#f97316" stroke-width="2"/>
+    <polygon points="930,295 940,300 930,305" fill="#f97316"/>
+    <circle r="3" fill="#f97316" opacity="0.8">
+      <animate attributeName="cx" values="890;940" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="300;300" dur="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0" dur="0.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══════════ STAGE 4: RESULTS ═══════════ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.6s" begin="10.5s" fill="freeze"/>
+
+    <rect x="945" y="80" width="230" height="440" rx="12" fill="url(#stage4-grad)" stroke="#00ff88" stroke-width="1" stroke-opacity="0.4"/>
+
+    <text x="1060" y="110" text-anchor="middle" font-family="monospace" font-size="17" fill="#00ff88" font-weight="bold" letter-spacing="3" filter="url(#glow-green)">
+      04 RESULTS
+    </text>
+    <line x1="975" y1="120" x2="1145" y2="120" stroke="#00ff88" stroke-width="0.5" stroke-opacity="0.3"/>
+
+    <!-- must_read section -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="11s" fill="freeze"/>
+      <text x="970" y="145" font-family="monospace" font-size="14" fill="#00ff88" font-weight="bold">must_read</text>
+      <rect x="965" y="150" width="195" height="70" rx="4" fill="#00ff88" fill-opacity="0.05" stroke="#00ff88" stroke-width="0.5" stroke-opacity="0.3"/>
+      <text x="975" y="165" font-family="monospace" font-size="12" fill="#4ade80">session.py</text>
+      <text x="1100" y="165" font-family="monospace" font-size="11" fill="#22c55e" text-anchor="end">model</text>
+      <text x="975" y="180" font-family="monospace" font-size="12" fill="#4ade80">user.py</text>
+      <text x="1100" y="180" font-family="monospace" font-size="11" fill="#22c55e" text-anchor="end">data</text>
+      <text x="975" y="195" font-family="monospace" font-size="12" fill="#4ade80">crypto.py</text>
+      <text x="1100" y="195" font-family="monospace" font-size="11" fill="#22c55e" text-anchor="end">utility</text>
+      <text x="975" y="210" font-family="monospace" font-size="12" fill="#4ade80">connection.py</text>
+      <text x="1100" y="210" font-family="monospace" font-size="11" fill="#22c55e" text-anchor="end">infra</text>
+    </g>
+
+    <!-- likely_modify section -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="11.3s" fill="freeze"/>
+      <text x="970" y="240" font-family="monospace" font-size="14" fill="#fbbf24" font-weight="bold">likely_modify</text>
+      <rect x="965" y="245" width="195" height="45" rx="4" fill="#fbbf24" fill-opacity="0.05" stroke="#fbbf24" stroke-width="0.5" stroke-opacity="0.3"/>
+      <text x="975" y="260" font-family="monospace" font-size="12" fill="#fcd34d">routes.py</text>
+      <text x="1100" y="260" font-family="monospace" font-size="11" fill="#f59e0b" text-anchor="end">HIGH</text>
+      <text x="975" y="275" font-family="monospace" font-size="12" fill="#fcd34d">middleware.py</text>
+      <text x="1100" y="275" font-family="monospace" font-size="11" fill="#f59e0b" text-anchor="end">MED</text>
+    </g>
+
+    <!-- tests section -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="11.6s" fill="freeze"/>
+      <text x="970" y="308" font-family="monospace" font-size="14" fill="#38bdf8" font-weight="bold">tests</text>
+      <rect x="965" y="313" width="195" height="35" rx="4" fill="#38bdf8" fill-opacity="0.05" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.3"/>
+      <text x="975" y="328" font-family="monospace" font-size="12" fill="#7dd3fc">test_auth.py</text>
+      <text x="1100" y="328" font-family="monospace" font-size="11" fill="#0ea5e9" text-anchor="end">direct</text>
+      <text x="975" y="343" font-family="monospace" font-size="12" fill="#7dd3fc">test_session.py</text>
+      <text x="1100" y="343" font-family="monospace" font-size="11" fill="#0ea5e9" text-anchor="end">indirect</text>
+    </g>
+
+    <!-- blast_radius section -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="11.9s" fill="freeze"/>
+      <text x="970" y="368" font-family="monospace" font-size="14" fill="#f87171" font-weight="bold">blast_radius</text>
+      <rect x="965" y="373" width="195" height="25" rx="4" fill="#f87171" fill-opacity="0.1" stroke="#f87171" stroke-width="0.5" stroke-opacity="0.4"/>
+      <text x="1060" y="390" text-anchor="middle" font-family="monospace" font-size="16" fill="#f87171" font-weight="bold">
+        MEDIUM
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/>
+      </text>
+    </g>
+
+    <!-- confidence score -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="12.2s" fill="freeze"/>
+      <text x="970" y="418" font-family="monospace" font-size="14" fill="#a78bfa" font-weight="bold">confidence</text>
+      <rect x="965" y="423" width="195" height="25" rx="4" fill="#a78bfa" fill-opacity="0.1" stroke="#a78bfa" stroke-width="0.5" stroke-opacity="0.4"/>
+      <!-- Confidence bar fill -->
+      <rect x="970" y="428" width="0" height="15" rx="3" fill="#a78bfa" fill-opacity="0.3">
+        <animate attributeName="width" values="0;170" dur="0.6s" begin="12.4s" fill="freeze"/>
+      </rect>
+      <text x="1060" y="441" text-anchor="middle" font-family="monospace" font-size="15" fill="#a78bfa" font-weight="bold">0.92</text>
+    </g>
+
+    <!-- Final success flash -->
+    <rect x="965" y="460" width="195" height="30" rx="6" fill="#00ff88" fill-opacity="0" stroke="#00ff88" stroke-width="1.5" opacity="0">
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="12.8s" fill="freeze"/>
+      <animate attributeName="fill-opacity" values="0;0.15;0.05" dur="0.8s" begin="12.8s" fill="freeze"/>
+    </rect>
+    <text x="1060" y="480" text-anchor="middle" font-family="monospace" font-size="16" fill="#00ff88" font-weight="bold" opacity="0" filter="url(#glow-green)">
+      CONTEXT READY
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="12.8s" fill="freeze"/>
+    </text>
+  </g>
+
+  <!-- Bottom scan line -->
+  <rect x="0" y="540" width="1200" height="2" fill="url(#scan-line)" opacity="0">
+    <animate attributeName="opacity" values="0;0.5;0" dur="3s" begin="13.5s" repeatCount="indefinite"/>
+    <animate attributeName="y" values="540;560;540" dur="3s" begin="13.5s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Bottom tag line -->
+  <text x="600" y="580" text-anchor="middle" font-family="monospace" font-size="15" fill="#4a5568" opacity="0">
+    contextception — know what matters before you change it
+    <animate attributeName="opacity" values="0;0.6" dur="0.5s" begin="13s" fill="freeze"/>
+  </text>
+</svg>

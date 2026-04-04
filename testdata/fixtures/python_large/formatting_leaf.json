@@ -1,0 +1,14 @@
+{
+  "subject": "webapp/utils/formatting.py",
+  "must_read": [],
+  "must_read_forbidden": [
+    "tests/test_utils.py"
+  ],
+  "related": [
+    "webapp/utils/validation.py"
+  ],
+  "tests": [],
+  "ignore_must_contain": [
+    "tests/test_utils.py"
+  ]
+}

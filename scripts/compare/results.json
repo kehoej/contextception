@@ -1,0 +1,1884 @@
+{
+  "repos": {
+    "excalidraw": {
+      "archetype_count": 9,
+      "files": [
+        {
+          "file": "packages/element/src/store.ts",
+          "archetype": "Service/Controller",
+          "indegree": 2,
+          "outdegree": 9,
+          "cc": {
+            "must_read_count": 9,
+            "likely_modify_count": 3,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1031,
+            "total_files": 12,
+            "must_read_files": [
+              "packages/common/src/index.ts",
+              "packages/common/src/utility-types.ts",
+              "packages/element/src/types.ts",
+              "packages/element/src/mutateElement.ts",
+              "packages/element/src/duplicate.ts",
+              "packages/element/src/delta.ts",
+              "packages/excalidraw/types.ts",
+              "packages/element/src/index.ts",
+              "packages/excalidraw/components/App.tsx"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 35,
+            "tokens": 3344,
+            "recall": 0.222,
+            "precision": 0.057
+          },
+          "aider_8192": {
+            "file_count": 78,
+            "tokens": 6885,
+            "recall": 0.222,
+            "precision": 0.026
+          }
+        },
+        {
+          "file": "packages/excalidraw/types.ts",
+          "archetype": "Model/Schema",
+          "indegree": 160,
+          "outdegree": 16,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1556,
+            "total_files": 25,
+            "must_read_files": [
+              "packages/common/src/index.ts",
+              "packages/math/src/index.ts",
+              "packages/common/src/utility-types.ts",
+              "packages/element/src/types.ts",
+              "packages/element/src/index.ts",
+              "packages/excalidraw/i18n.ts",
+              "packages/excalidraw/charts/index.ts",
+              "packages/excalidraw/data/filesystem.ts",
+              "packages/excalidraw/clipboard.ts",
+              "packages/excalidraw/components/App.tsx"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 34,
+            "tokens": 3254,
+            "recall": 0.2,
+            "precision": 0.059
+          },
+          "aider_8192": {
+            "file_count": 78,
+            "tokens": 6868,
+            "recall": 0.3,
+            "precision": 0.038
+          }
+        },
+        {
+          "file": "packages/excalidraw/components/TTDDialog/hooks/useMermaidRenderer.ts",
+          "archetype": "Middleware/Plugin",
+          "indegree": 1,
+          "outdegree": 9,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 3,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 956,
+            "total_files": 13,
+            "must_read_files": [
+              "packages/element/src/types.ts",
+              "packages/excalidraw/types.ts",
+              "packages/excalidraw/components/TTDDialog/types.ts",
+              "packages/excalidraw/components/TTDDialog/utils/chat.ts",
+              "packages/excalidraw/components/TTDDialog/common.ts",
+              "packages/excalidraw/editor-jotai.ts",
+              "packages/excalidraw/components/TTDDialog/TTDContext.tsx",
+              "packages/excalidraw/components/TTDDialog/TextToDiagram.tsx",
+              "packages/excalidraw/components/TTDDialog/utils/mermaidValidation.ts",
+              "packages/excalidraw/context/ui-appState.ts"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 34,
+            "tokens": 3257,
+            "recall": 0.3,
+            "precision": 0.088
+          },
+          "aider_8192": {
+            "file_count": 78,
+            "tokens": 6885,
+            "recall": 0.3,
+            "precision": 0.038
+          }
+        },
+        {
+          "file": "packages/common/src/index.ts",
+          "archetype": "High Fan-in Utility",
+          "indegree": 224,
+          "outdegree": 15,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 4,
+            "confidence": 1,
+            "tokens": 1097,
+            "total_files": 29,
+            "must_read_files": [
+              "packages/common/debug.ts",
+              "packages/common/src/bounds.ts",
+              "packages/common/src/colors.ts",
+              "packages/common/src/constants.ts",
+              "packages/common/src/utils.ts",
+              "packages/common/src/editorInterface.ts",
+              "packages/common/src/binary-heap.ts",
+              "packages/common/src/emitter.ts",
+              "packages/common/src/font-metadata.ts",
+              "packages/common/src/keys.ts"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 34,
+            "tokens": 3254,
+            "recall": 0.2,
+            "precision": 0.059
+          },
+          "aider_8192": {
+            "file_count": 78,
+            "tokens": 6904,
+            "recall": 0.5,
+            "precision": 0.064
+          }
+        },
+        {
+          "file": "examples/with-nextjs/src/app/page.tsx",
+          "archetype": "Page/Route/Endpoint",
+          "indegree": 0,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 0,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 0.5,
+            "tokens": 166,
+            "total_files": 0,
+            "must_read_files": []
+          },
+          "aider_4096": {
+            "file_count": 35,
+            "tokens": 3347,
+            "recall": null,
+            "precision": null
+          },
+          "aider_8192": {
+            "file_count": 78,
+            "tokens": 6868,
+            "recall": null,
+            "precision": null
+          }
+        },
+        {
+          "file": "examples/with-script-in-browser/utils.ts",
+          "archetype": "Leaf Component",
+          "indegree": 0,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 1,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 296,
+            "total_files": 1,
+            "must_read_files": [
+              "packages/excalidraw/index.tsx"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 35,
+            "tokens": 3344,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 78,
+            "tokens": 6885,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "excalidraw-app/app_constants.ts",
+          "archetype": "Config/Constants",
+          "indegree": 16,
+          "outdegree": 0,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1166,
+            "total_files": 25,
+            "must_read_files": [
+              "excalidraw-app/data/TTDStorage.ts",
+              "excalidraw-app/data/firebase.ts",
+              "excalidraw-app/components/DebugCanvas.tsx",
+              "excalidraw-app/data/index.ts",
+              "excalidraw-app/data/tabSync.ts",
+              "excalidraw-app/data/localStorage.ts",
+              "excalidraw-app/data/LocalData.ts",
+              "excalidraw-app/collab/Collab.tsx",
+              "excalidraw-app/components/AppMainMenu.tsx",
+              "excalidraw-app/App.tsx"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 34,
+            "tokens": 3254,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 79,
+            "tokens": 6903,
+            "recall": 0.1,
+            "precision": 0.013
+          }
+        },
+        {
+          "file": "packages/element/src/index.ts",
+          "archetype": "Barrel/Index",
+          "indegree": 103,
+          "outdegree": 47,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 2185,
+            "total_files": 25,
+            "must_read_files": [
+              "packages/common/src/index.ts",
+              "packages/element/src/types.ts",
+              "packages/element/src/typeChecks.ts",
+              "packages/element/src/Scene.ts",
+              "packages/element/src/elbowArrow.ts",
+              "packages/element/src/bounds.ts",
+              "packages/element/src/collision.ts",
+              "packages/element/src/textElement.ts",
+              "packages/element/src/linearElementEditor.ts",
+              "packages/element/src/binding.ts"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 35,
+            "tokens": 3344,
+            "recall": 0.1,
+            "precision": 0.029
+          },
+          "aider_8192": {
+            "file_count": 79,
+            "tokens": 6929,
+            "recall": 0.1,
+            "precision": 0.013
+          }
+        },
+        {
+          "file": "excalidraw-app/tests/LanguageList.test.tsx",
+          "archetype": "Test File",
+          "indegree": 0,
+          "outdegree": 4,
+          "cc": {
+            "must_read_count": 4,
+            "likely_modify_count": 3,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 453,
+            "total_files": 7,
+            "must_read_files": [
+              "packages/excalidraw/i18n.ts",
+              "excalidraw-app/App.tsx",
+              "packages/excalidraw/tests/helpers/ui.ts",
+              "packages/excalidraw/tests/test-utils.ts"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 35,
+            "tokens": 3344,
+            "recall": 0.5,
+            "precision": 0.057
+          },
+          "aider_8192": {
+            "file_count": 78,
+            "tokens": 6891,
+            "recall": 0.5,
+            "precision": 0.026
+          }
+        }
+      ],
+      "repomix_tokens": 2456043,
+      "summary": {
+        "avg_cc_tokens": 990,
+        "avg_cc_files": 15.2,
+        "avg_aider_8k_recall": 0.253,
+        "avg_aider_4k_recall": 0.19,
+        "avg_aider_8k_precision": 0.027
+      }
+    },
+    "httpx": {
+      "archetype_count": 7,
+      "files": [
+        {
+          "file": "httpx/_models.py",
+          "archetype": "Model/Schema",
+          "indegree": 13,
+          "outdegree": 8,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1275,
+            "total_files": 25,
+            "must_read_files": [
+              "httpx/_exceptions.py",
+              "httpx/_transports/base.py",
+              "httpx/_status_codes.py",
+              "httpx/_decoders.py",
+              "httpx/_utils.py",
+              "httpx/_multipart.py",
+              "httpx/_urls.py",
+              "httpx/_auth.py",
+              "httpx/_types.py",
+              "httpx/_content.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 126,
+            "tokens": 3342,
+            "recall": 0.7,
+            "precision": 0.064
+          },
+          "aider_8192": {
+            "file_count": 229,
+            "tokens": 6591,
+            "recall": 0.9,
+            "precision": 0.046
+          }
+        },
+        {
+          "file": "httpx/_types.py",
+          "archetype": "High Fan-in Utility",
+          "indegree": 12,
+          "outdegree": 4,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 12,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1238,
+            "total_files": 22,
+            "must_read_files": [
+              "httpx/_utils.py",
+              "httpx/_multipart.py",
+              "httpx/_urls.py",
+              "httpx/_auth.py",
+              "httpx/_config.py",
+              "httpx/_content.py",
+              "httpx/_transports/default.py",
+              "httpx/_models.py",
+              "httpx/_client.py",
+              "httpx/__init__.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 121,
+            "tokens": 3058,
+            "recall": 0.7,
+            "precision": 0.063
+          },
+          "aider_8192": {
+            "file_count": 227,
+            "tokens": 6600,
+            "recall": 1.0,
+            "precision": 0.051
+          }
+        },
+        {
+          "file": "httpx/_api.py",
+          "archetype": "Page/Route/Endpoint",
+          "indegree": 1,
+          "outdegree": 5,
+          "cc": {
+            "must_read_count": 6,
+            "likely_modify_count": 1,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 479,
+            "total_files": 7,
+            "must_read_files": [
+              "httpx/_urls.py",
+              "httpx/_config.py",
+              "httpx/_types.py",
+              "httpx/_models.py",
+              "httpx/_client.py",
+              "httpx/__init__.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 122,
+            "tokens": 3314,
+            "recall": 1.0,
+            "precision": 0.055
+          },
+          "aider_8192": {
+            "file_count": 226,
+            "tokens": 6788,
+            "recall": 1.0,
+            "precision": 0.031
+          }
+        },
+        {
+          "file": "httpx/_auth.py",
+          "archetype": "Auth/Security",
+          "indegree": 3,
+          "outdegree": 3,
+          "cc": {
+            "must_read_count": 6,
+            "likely_modify_count": 3,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 686,
+            "total_files": 9,
+            "must_read_files": [
+              "httpx/_exceptions.py",
+              "httpx/_utils.py",
+              "httpx/_types.py",
+              "httpx/_models.py",
+              "httpx/_client.py",
+              "httpx/__init__.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 122,
+            "tokens": 3094,
+            "recall": 1.0,
+            "precision": 0.055
+          },
+          "aider_8192": {
+            "file_count": 228,
+            "tokens": 6593,
+            "recall": 1.0,
+            "precision": 0.031
+          }
+        },
+        {
+          "file": "httpx/_config.py",
+          "archetype": "Config/Constants",
+          "indegree": 5,
+          "outdegree": 3,
+          "cc": {
+            "must_read_count": 7,
+            "likely_modify_count": 5,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 803,
+            "total_files": 12,
+            "must_read_files": [
+              "httpx/_urls.py",
+              "httpx/_types.py",
+              "httpx/_api.py",
+              "httpx/_transports/default.py",
+              "httpx/_models.py",
+              "httpx/_client.py",
+              "httpx/__init__.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 121,
+            "tokens": 3245,
+            "recall": 0.857,
+            "precision": 0.058
+          },
+          "aider_8192": {
+            "file_count": 224,
+            "tokens": 7010,
+            "recall": 1.0,
+            "precision": 0.037
+          }
+        },
+        {
+          "file": "httpx/__init__.py",
+          "archetype": "Barrel/Index",
+          "indegree": 1,
+          "outdegree": 13,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 7,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 667,
+            "total_files": 17,
+            "must_read_files": [
+              "httpx/_status_codes.py",
+              "httpx/__version__.py",
+              "httpx/_exceptions.py",
+              "httpx/_auth.py",
+              "httpx/_urls.py",
+              "httpx/_config.py",
+              "httpx/_types.py",
+              "httpx/_content.py",
+              "httpx/_models.py",
+              "httpx/_client.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 122,
+            "tokens": 3481,
+            "recall": 0.8,
+            "precision": 0.073
+          },
+          "aider_8192": {
+            "file_count": 230,
+            "tokens": 6579,
+            "recall": 0.9,
+            "precision": 0.045
+          }
+        },
+        {
+          "file": "tests/__init__.py",
+          "archetype": "Test File",
+          "indegree": 0,
+          "outdegree": 0,
+          "cc": {
+            "must_read_count": 0,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 89,
+            "total_files": 0,
+            "must_read_files": []
+          },
+          "aider_4096": {
+            "file_count": 118,
+            "tokens": 3517,
+            "recall": null,
+            "precision": null
+          },
+          "aider_8192": {
+            "file_count": 232,
+            "tokens": 6948,
+            "recall": null,
+            "precision": null
+          }
+        }
+      ],
+      "repomix_tokens": 197791,
+      "summary": {
+        "avg_cc_tokens": 748,
+        "avg_cc_files": 13.1,
+        "avg_aider_8k_recall": 0.967,
+        "avg_aider_4k_recall": 0.843,
+        "avg_aider_8k_precision": 0.04
+      }
+    },
+    "spring-boot": {
+      "archetype_count": 9,
+      "files": [
+        {
+          "file": "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/CustomLayersProvider.java",
+          "archetype": "Service/Controller",
+          "indegree": 0,
+          "outdegree": 18,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 0,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 1158,
+            "total_files": 15,
+            "must_read_files": [
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractAotMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractDependencyFilterMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildImageForkMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildImageNoForkMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/CacheInfo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractRunMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildInfoMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/ArtifactsLibraries.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractPackagerMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildImageMojo.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 11,
+            "tokens": 4308,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 18,
+            "tokens": 8127,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/ElasticCommonSchemaStructuredLogFormatter.java",
+          "archetype": "Model/Schema",
+          "indegree": 27,
+          "outdegree": 18,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 3233,
+            "total_files": 30,
+            "must_read_files": [
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/DebugLogbackConfigurator.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/EnclosedInSquareBracketsConverter.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/ExtendedWhitespaceThrowableProxyConverter.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/LogbackConfigurator.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/json/JsonWriter.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/CorrelationIdConverter.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/Extractor.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/ColorConverter.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/DefaultLogbackConfiguration.java",
+              "core/spring-boot/src/main/java/org/springframework/boot/logging/logback/GraylogExtendedLogFormatStructuredLogFormatter.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 11,
+            "tokens": 4342,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 18,
+            "tokens": 8296,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractDependencyFilterMojo.java",
+          "archetype": "Middleware/Plugin",
+          "indegree": 41,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 2760,
+            "total_files": 30,
+            "must_read_files": [
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractAotMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildImageForkMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildImageNoForkMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/CacheInfo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/ClassPath.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractRunMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildInfoMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/ArtifactsLibraries.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/AbstractPackagerMojo.java",
+              "build-plugin/spring-boot-maven-plugin/src/main/java/org/springframework/boot/maven/BuildImageMojo.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 11,
+            "tokens": 4197,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 16,
+            "tokens": 8320,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfiguration.java",
+          "archetype": "High Fan-in Utility",
+          "indegree": 354,
+          "outdegree": 13,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 2883,
+            "total_files": 30,
+            "must_read_files": [
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/condition/ConditionalOnClass.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/condition/ConditionalOnMissingBean.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfigurationMetadata.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfigurationImportFilter.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AbstractDependsOnBeanFactoryPostProcessor.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfigurationImportEvent.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfigurationImportListener.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfigurationMetadataLoader.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfigurationExcludeFilter.java",
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/AutoConfigurationImportSelector.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 11,
+            "tokens": 4352,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 17,
+            "tokens": 8266,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/WelcomePageNotAcceptableHandlerMapping.java",
+          "archetype": "Page/Route/Endpoint",
+          "indegree": 0,
+          "outdegree": 11,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 12,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 1843,
+            "total_files": 27,
+            "must_read_files": [
+              "core/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/template/TemplateAvailabilityProviders.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/WebMvcRegistrations.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/ProblemDetailsExceptionHandler.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/DispatcherServletPath.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/DispatcherServletRegistrationBean.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/JspTemplateAvailabilityProvider.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/WebMvcProperties.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/WebMvcObservationAutoConfiguration.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/DispatcherServletAutoConfiguration.java",
+              "module/spring-boot-webmvc/src/main/java/org/springframework/boot/webmvc/autoconfigure/WebMvcAutoConfiguration.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 10,
+            "tokens": 4279,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 19,
+            "tokens": 8690,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/SecurityContext.java",
+          "archetype": "Auth/Security",
+          "indegree": 17,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 1960,
+            "total_files": 30,
+            "must_read_files": [
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/EndpointId.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/Access.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/ExposableEndpoint.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/EndpointFilter.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/EndpointAccessResolver.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/ApiVersion.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/EndpointsSupplier.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/InvalidEndpointRequestException.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/AbstractExposableEndpoint.java",
+              "module/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/InvocationContext.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 11,
+            "tokens": 4316,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 19,
+            "tokens": 8517,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "build-plugin/spring-boot-gradle-plugin/src/main/java/org/springframework/boot/gradle/util/package-info.java",
+          "archetype": "Leaf Component",
+          "indegree": 1,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 1,
+            "likely_modify_count": 1,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 385,
+            "total_files": 2,
+            "must_read_files": [
+              "build-plugin/spring-boot-gradle-plugin/src/main/java/org/springframework/boot/gradle/util/VersionExtractor.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 11,
+            "tokens": 4334,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 19,
+            "tokens": 8711,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/HttpClientSettings.java",
+          "archetype": "Config/Constants",
+          "indegree": 47,
+          "outdegree": 11,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 3363,
+            "total_files": 30,
+            "must_read_files": [
+              "core/spring-boot/src/main/java/org/springframework/boot/ssl/SslBundle.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/ClientHttpRequestFactoryRuntimeHints.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/Empty.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/HttpComponentsRedirectStrategy.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/ClientHttpRequestFactoryBuilder.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/AbstractClientHttpRequestFactoryBuilder.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/HttpComponentsClientHttpRequestFactoryBuilder.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/HttpComponentsHttpAsyncClientBuilder.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/HttpComponentsHttpClientBuilder.java",
+              "module/spring-boot-http-client/src/main/java/org/springframework/boot/http/client/HttpComponentsSslBundleTlsStrategy.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 11,
+            "tokens": 3668,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 18,
+            "tokens": 8447,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "build-plugin/spring-boot-gradle-plugin/src/dockerTest/java/org/springframework/boot/gradle/tasks/bundling/BootBuildImageIntegrationTests.java",
+          "archetype": "Test File",
+          "indegree": 0,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 2,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1396,
+            "total_files": 12,
+            "must_read_files": [
+              "buildpack/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/docker/type/Image.java",
+              "buildpack/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/io/FilePermissions.java",
+              "test-support/spring-boot-docker-test-support/src/main/java/org/springframework/boot/testsupport/container/DisabledIfDockerUnavailable.java",
+              "buildpack/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/docker/transport/DockerEngineException.java",
+              "buildpack/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/docker/type/ImageReference.java",
+              "test-support/spring-boot-test-support/src/main/java/org/springframework/boot/testsupport/junit/DisabledOnOs.java",
+              "test-support/spring-boot-gradle-test-support/src/main/java/org/springframework/boot/testsupport/gradle/testkit/GradleBuild.java",
+              "build-plugin/spring-boot-gradle-plugin/src/test/java/org/springframework/boot/gradle/junit/GradleCompatibility.java",
+              "buildpack/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/docker/type/VolumeName.java",
+              "buildpack/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/docker/DockerApi.java"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 10,
+            "tokens": 4190,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 19,
+            "tokens": 8730,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        }
+      ],
+      "repomix_tokens": 9792630,
+      "summary": {
+        "avg_cc_tokens": 2109,
+        "avg_cc_files": 22.9,
+        "avg_aider_8k_recall": 0.0,
+        "avg_aider_4k_recall": 0.0,
+        "avg_aider_8k_precision": 0.0
+      }
+    },
+    "terraform": {
+      "archetype_count": 9,
+      "files": [
+        {
+          "file": "internal/builtin/providers/terraform/data_source_state.go",
+          "archetype": "Service/Controller",
+          "indegree": 6,
+          "outdegree": 7,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 6,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 894,
+            "total_files": 21,
+            "must_read_files": [
+              "internal/tfdiags/compare.go",
+              "internal/providers/addressed_types.go",
+              "internal/configs/configschema/coerce_value.go",
+              "internal/backend/backend.go",
+              "internal/backend/remote/backend.go",
+              "internal/backend/init/init.go",
+              "internal/builtin/providers/factories.go",
+              "internal/builtin/providers/terraform/provider.go",
+              "internal/builtin/providers/terraform/resource_data.go",
+              "internal/builtin/providers/terraform/functions.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 65,
+            "tokens": 3676,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 118,
+            "tokens": 6887,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "internal/providers/addressed_types.go",
+          "archetype": "Model/Schema",
+          "indegree": 148,
+          "outdegree": 2,
+          "cc": {
+            "must_read_count": 9,
+            "likely_modify_count": 15,
+            "test_count": 3,
+            "confidence": 1,
+            "tokens": 1103,
+            "total_files": 27,
+            "must_read_files": [
+              "internal/addrs/action.go",
+              "internal/providers/mock.go",
+              "internal/providers/doc.go",
+              "internal/providers/factory.go",
+              "internal/providers/schema_cache.go",
+              "internal/providers/schemas.go",
+              "internal/providers/provider.go",
+              "internal/providers/functions.go",
+              "internal/providers/ephemeral.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 63,
+            "tokens": 3616,
+            "recall": 0.111,
+            "precision": 0.016
+          },
+          "aider_8192": {
+            "file_count": 118,
+            "tokens": 6935,
+            "recall": 0.111,
+            "precision": 0.008
+          }
+        },
+        {
+          "file": "internal/stacks/stackruntime/hooks/callbacks.go",
+          "archetype": "Middleware/Plugin",
+          "indegree": 15,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1190,
+            "total_files": 25,
+            "must_read_files": [
+              "internal/stacks/stackruntime/internal/stackeval/applying.go",
+              "internal/stacks/stackruntime/internal/stackeval/component_instance.go",
+              "internal/rpcapi/stacks.go",
+              "internal/stacks/stackruntime/hooks/componentinstancestatus_string.go",
+              "internal/stacks/stackruntime/hooks/doc.go",
+              "internal/stacks/stackruntime/hooks/provisionerstatus_string.go",
+              "internal/stacks/stackruntime/hooks/resourceinstancestatus_string.go",
+              "internal/stacks/stackruntime/hooks/component_instance.go",
+              "internal/stacks/stackruntime/hooks/resource_instance.go",
+              "internal/stacks/stackruntime/hooks/component.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 62,
+            "tokens": 3680,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 117,
+            "tokens": 6880,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "internal/tfdiags/compare.go",
+          "archetype": "High Fan-in Utility",
+          "indegree": 434,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 1103,
+            "total_files": 30,
+            "must_read_files": [
+              "internal/tfdiags/contextual.go",
+              "internal/tfdiags/diagnostic_extra.go",
+              "internal/tfdiags/testing.go",
+              "internal/tfdiags/consolidate_warnings.go",
+              "internal/tfdiags/diagnostic.go",
+              "internal/tfdiags/diagnostic_base.go",
+              "internal/tfdiags/diagnostics.go",
+              "internal/tfdiags/doc.go",
+              "internal/tfdiags/error.go",
+              "internal/tfdiags/config_traversals.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 65,
+            "tokens": 3775,
+            "recall": 0.2,
+            "precision": 0.031
+          },
+          "aider_8192": {
+            "file_count": 128,
+            "tokens": 6840,
+            "recall": 0.5,
+            "precision": 0.039
+          }
+        },
+        {
+          "file": "internal/rpcapi/dependencies.go",
+          "archetype": "Page/Route/Endpoint",
+          "indegree": 0,
+          "outdegree": 14,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 3,
+            "confidence": 0.93,
+            "tokens": 1096,
+            "total_files": 28,
+            "must_read_files": [
+              "internal/tfdiags/compare.go",
+              "internal/addrs/action.go",
+              "internal/providers/addressed_types.go",
+              "version/version.go",
+              "internal/logging/logging.go",
+              "internal/getproviders/didyoumean.go",
+              "internal/depsfile/locks.go",
+              "internal/rpcapi/cli.go",
+              "internal/providercache/cached_provider.go",
+              "internal/rpcapi/terraform1/dependencies/dependencies.pb.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 63,
+            "tokens": 3605,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 123,
+            "tokens": 6884,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "internal/backend/remote-state/oci/auth.go",
+          "archetype": "Auth/Security",
+          "indegree": 9,
+          "outdegree": 2,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 9,
+            "test_count": 3,
+            "confidence": 1,
+            "tokens": 996,
+            "total_files": 22,
+            "must_read_files": [
+              "version/version.go",
+              "internal/backend/init/init.go",
+              "internal/backend/remote-state/oci/constants.go",
+              "internal/backend/remote-state/oci/multipart_upload.go",
+              "internal/backend/remote-state/oci/retry.go",
+              "internal/backend/remote-state/oci/log.go",
+              "internal/backend/remote-state/oci/util.go",
+              "internal/backend/remote-state/oci/client.go",
+              "internal/backend/remote-state/oci/backend_state.go",
+              "internal/backend/remote-state/oci/backend.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 61,
+            "tokens": 3667,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 117,
+            "tokens": 7062,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "internal/configs/util.go",
+          "archetype": "Leaf Component",
+          "indegree": 0,
+          "outdegree": 2,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 1,
+            "test_count": 4,
+            "confidence": 1,
+            "tokens": 635,
+            "total_files": 15,
+            "must_read_files": [
+              "internal/configs/action.go",
+              "internal/configs/state_store.go",
+              "internal/configs/source_bundle_parser.go",
+              "internal/configs/module_call.go",
+              "internal/configs/named_values.go",
+              "internal/configs/module_merge.go",
+              "internal/configs/mock_provider.go",
+              "internal/configs/config.go",
+              "internal/configs/backend.go",
+              "internal/configs/configtesting/synth_body.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 65,
+            "tokens": 3840,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 121,
+            "tokens": 7072,
+            "recall": 0.1,
+            "precision": 0.008
+          }
+        },
+        {
+          "file": "internal/command/workdir/backend_config_state.go",
+          "archetype": "Config/Constants",
+          "indegree": 16,
+          "outdegree": 3,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 1174,
+            "total_files": 30,
+            "must_read_files": [
+              "internal/plans/action.go",
+              "internal/configs/configschema/coerce_value.go",
+              "internal/command/workdir/statestore_config_state.go",
+              "internal/command/workdir/dir.go",
+              "internal/command/workdir/doc.go",
+              "internal/command/workdir/normalize_path.go",
+              "internal/command/workdir/plugin_dirs.go",
+              "internal/command/workdir/testing.go",
+              "internal/command/workdir/config_state.go",
+              "internal/command/workdir/backend_state.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 64,
+            "tokens": 3767,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 116,
+            "tokens": 6600,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "internal/addrs/action_test.go",
+          "archetype": "Test File",
+          "indegree": 0,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 1,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 275,
+            "total_files": 1,
+            "must_read_files": [
+              "internal/addrs/action.go"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 62,
+            "tokens": 3612,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 117,
+            "tokens": 6852,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        }
+      ],
+      "repomix_tokens": 5646579,
+      "summary": {
+        "avg_cc_tokens": 941,
+        "avg_cc_files": 22.1,
+        "avg_aider_8k_recall": 0.079,
+        "avg_aider_4k_recall": 0.035,
+        "avg_aider_8k_precision": 0.006
+      }
+    },
+    "tokio": {
+      "archetype_count": 7,
+      "files": [
+        {
+          "file": "tokio/src/sync/rwlock/write_guard.rs",
+          "archetype": "Middleware/Plugin",
+          "indegree": 1,
+          "outdegree": 3,
+          "cc": {
+            "must_read_count": 7,
+            "likely_modify_count": 6,
+            "test_count": 2,
+            "confidence": 1,
+            "tokens": 857,
+            "total_files": 15,
+            "must_read_files": [
+              "tokio/src/sync/batch_semaphore.rs",
+              "tokio/src/sync/rwlock/read_guard.rs",
+              "tokio/src/sync/rwlock/write_guard_mapped.rs",
+              "tokio/src/sync/rwlock/owned_read_guard.rs",
+              "tokio/src/sync/rwlock/owned_write_guard_mapped.rs",
+              "tokio/src/sync/rwlock/owned_write_guard.rs",
+              "tokio/src/sync/rwlock.rs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 30,
+            "tokens": 3222,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 63,
+            "tokens": 7088,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "tokio/src/io/mod.rs",
+          "archetype": "High Fan-in Utility",
+          "indegree": 87,
+          "outdegree": 20,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 1,
+            "confidence": 0.81,
+            "tokens": 1467,
+            "total_files": 26,
+            "must_read_files": [
+              "tokio/src/io/util/mod.rs",
+              "tokio/src/io/blocking.rs",
+              "tokio/src/blocking.rs",
+              "tokio/src/io/stdio_common.rs",
+              "tokio/src/io/seek.rs",
+              "tokio/src/io/split.rs",
+              "tokio/src/io/async_buf_read.rs",
+              "tokio/src/io/async_fd.rs",
+              "tokio/src/io/interest.rs",
+              "tokio/src/io/ready.rs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 31,
+            "tokens": 3252,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 64,
+            "tokens": 6982,
+            "recall": 0.1,
+            "precision": 0.016
+          }
+        },
+        {
+          "file": "tokio-util/src/sync/cancellation_token.rs",
+          "archetype": "Auth/Security",
+          "indegree": 1,
+          "outdegree": 5,
+          "cc": {
+            "must_read_count": 9,
+            "likely_modify_count": 7,
+            "test_count": 4,
+            "confidence": 1,
+            "tokens": 860,
+            "total_files": 20,
+            "must_read_files": [
+              "tokio-util/src/util/mod.rs",
+              "tokio-util/src/loom.rs",
+              "tokio-util/src/sync/reusable_box.rs",
+              "tokio-util/src/sync/cancellation_token/tree_node.rs",
+              "tokio-util/src/sync/mpsc.rs",
+              "tokio-util/src/sync/poll_semaphore.rs",
+              "tokio-util/src/sync/mod.rs",
+              "tokio-util/src/sync/cancellation_token/guard.rs",
+              "tokio-util/src/sync/cancellation_token/guard_ref.rs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 31,
+            "tokens": 3233,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 61,
+            "tokens": 7012,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "tokio-util/src/cfg.rs",
+          "archetype": "Leaf Component",
+          "indegree": 1,
+          "outdegree": 0,
+          "cc": {
+            "must_read_count": 7,
+            "likely_modify_count": 7,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 457,
+            "total_files": 14,
+            "must_read_files": [
+              "tokio-util/src/loom.rs",
+              "tokio-util/src/future.rs",
+              "tokio-util/src/compat.rs",
+              "tokio-util/src/context.rs",
+              "tokio-util/src/tracing.rs",
+              "tokio-util/src/either.rs",
+              "tokio-util/src/lib.rs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 31,
+            "tokens": 3241,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 62,
+            "tokens": 7216,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "tokio/src/fs/open_options/mock_open_options.rs",
+          "archetype": "Config/Constants",
+          "indegree": 2,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 3,
+            "likely_modify_count": 2,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 657,
+            "total_files": 10,
+            "must_read_files": [
+              "tokio/src/fs/mocks.rs",
+              "tokio/src/fs/open_options/uring_open_options.rs",
+              "tokio/src/fs/open_options.rs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 31,
+            "tokens": 3233,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 61,
+            "tokens": 7011,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "tokio/src/loom/mod.rs",
+          "archetype": "Barrel/Index",
+          "indegree": 63,
+          "outdegree": 2,
+          "cc": {
+            "must_read_count": 2,
+            "likely_modify_count": 15,
+            "test_count": 3,
+            "confidence": 1,
+            "tokens": 1029,
+            "total_files": 20,
+            "must_read_files": [
+              "tokio/src/loom/mocked.rs",
+              "tokio/src/loom/std/mod.rs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 31,
+            "tokens": 3241,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 62,
+            "tokens": 7001,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "tests-build/tests/fail/macros_core_no_default.rs",
+          "archetype": "Test File",
+          "indegree": 0,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 1,
+            "likely_modify_count": 1,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 357,
+            "total_files": 2,
+            "must_read_files": [
+              "tests-build/src/lib.rs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 30,
+            "tokens": 3231,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 63,
+            "tokens": 6966,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        }
+      ],
+      "repomix_tokens": 1445790,
+      "summary": {
+        "avg_cc_tokens": 812,
+        "avg_cc_files": 15.3,
+        "avg_aider_8k_recall": 0.014,
+        "avg_aider_4k_recall": 0.0,
+        "avg_aider_8k_precision": 0.002
+      }
+    },
+    "zulip": {
+      "archetype_count": 10,
+      "files": [
+        {
+          "file": "web/src/click_handlers.ts",
+          "archetype": "Service/Controller",
+          "indegree": 1,
+          "outdegree": 35,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 4,
+            "test_count": 0,
+            "confidence": 0.95,
+            "tokens": 596,
+            "total_files": 14,
+            "must_read_files": [
+              "web/src/user_settings.ts",
+              "web/src/flatpickr.ts",
+              "web/src/util.ts",
+              "web/src/popover_menus.ts",
+              "web/src/settings_config.ts",
+              "web/src/message_store.ts",
+              "web/src/hash_util.ts",
+              "web/src/recent_view_ui.ts",
+              "web/src/message_edit.ts",
+              "web/src/message_view.ts"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 67,
+            "tokens": 4413,
+            "recall": 0.1,
+            "precision": 0.015
+          },
+          "aider_8192": {
+            "file_count": 117,
+            "tokens": 7353,
+            "recall": 0.1,
+            "precision": 0.009
+          }
+        },
+        {
+          "file": "zerver/models/__init__.py",
+          "archetype": "Model/Schema",
+          "indegree": 357,
+          "outdegree": 28,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1545,
+            "total_files": 25,
+            "must_read_files": [
+              "zerver/models/recipients.py",
+              "zerver/models/clients.py",
+              "zerver/models/devices.py",
+              "zerver/models/groups.py",
+              "zerver/models/linkifiers.py",
+              "zerver/models/realm_audit_logs.py",
+              "zerver/models/streams.py",
+              "zerver/models/users.py",
+              "zerver/models/scheduled_jobs.py",
+              "zerver/models/realms.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 65,
+            "tokens": 4229,
+            "recall": 0.1,
+            "precision": 0.016
+          },
+          "aider_8192": {
+            "file_count": 119,
+            "tokens": 7307,
+            "recall": 0.2,
+            "precision": 0.017
+          }
+        },
+        {
+          "file": "zerver/decorator.py",
+          "archetype": "Middleware/Plugin",
+          "indegree": 136,
+          "outdegree": 15,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1611,
+            "total_files": 25,
+            "must_read_files": [
+              "zerver/lib/exceptions.py",
+              "zerver/lib/response.py",
+              "zerver/lib/timestamp.py",
+              "zerver/lib/queue.py",
+              "zerver/lib/typed_endpoint.py",
+              "zerver/lib/request.py",
+              "zerver/lib/webhooks/common.py",
+              "zerver/models/users.py",
+              "zerver/lib/users.py",
+              "zerver/models/__init__.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 67,
+            "tokens": 4237,
+            "recall": 0.4,
+            "precision": 0.062
+          },
+          "aider_8192": {
+            "file_count": 119,
+            "tokens": 7393,
+            "recall": 0.5,
+            "precision": 0.043
+          }
+        },
+        {
+          "file": "zerver/lib/exceptions.py",
+          "archetype": "High Fan-in Utility",
+          "indegree": 177,
+          "outdegree": 0,
+          "cc": {
+            "must_read_count": 0,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 964,
+            "total_files": 15,
+            "must_read_files": []
+          },
+          "aider_4096": {
+            "file_count": 64,
+            "tokens": 4302,
+            "recall": null,
+            "precision": null
+          },
+          "aider_8192": {
+            "file_count": 117,
+            "tokens": 7159,
+            "recall": null,
+            "precision": null
+          }
+        },
+        {
+          "file": "zerver/webhooks/statuspage/view.py",
+          "archetype": "Page/Route/Endpoint",
+          "indegree": 0,
+          "outdegree": 7,
+          "cc": {
+            "must_read_count": 7,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 439,
+            "total_files": 7,
+            "must_read_files": [
+              "zerver/models/__init__.py",
+              "zerver/lib/exceptions.py",
+              "zerver/lib/response.py",
+              "zerver/lib/typed_endpoint.py",
+              "zerver/lib/validator.py",
+              "zerver/lib/webhooks/common.py",
+              "zerver/decorator.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 71,
+            "tokens": 4016,
+            "recall": 0.429,
+            "precision": 0.044
+          },
+          "aider_8192": {
+            "file_count": 115,
+            "tokens": 7052,
+            "recall": 0.571,
+            "precision": 0.036
+          }
+        },
+        {
+          "file": "zerver/views/auth.py",
+          "archetype": "Auth/Security",
+          "indegree": 7,
+          "outdegree": 32,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 8,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1592,
+            "total_files": 18,
+            "must_read_files": [
+              "version.py",
+              "zerver/lib/exceptions.py",
+              "zerver/lib/response.py",
+              "zerver/lib/typed_endpoint.py",
+              "zerver/lib/rate_limiter.py",
+              "zerver/models/users.py",
+              "zerver/decorator.py",
+              "zerver/forms.py",
+              "zproject/backends.py",
+              "zerver/models/__init__.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 71,
+            "tokens": 3900,
+            "recall": 0.2,
+            "precision": 0.029
+          },
+          "aider_8192": {
+            "file_count": 115,
+            "tokens": 7123,
+            "recall": 0.3,
+            "precision": 0.027
+          }
+        },
+        {
+          "file": "tools/setup/emoji/emoji_setup_utils.py",
+          "archetype": "Leaf Component",
+          "indegree": 0,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 1,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 162,
+            "total_files": 1,
+            "must_read_files": [
+              "zerver/lib/emoji_utils.py"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 75,
+            "tokens": 4045,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 117,
+            "tokens": 7244,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "web/src/settings_config.ts",
+          "archetype": "Config/Constants",
+          "indegree": 54,
+          "outdegree": 8,
+          "cc": {
+            "must_read_count": 8,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1267,
+            "total_files": 23,
+            "must_read_files": [
+              "web/src/sub_store.ts",
+              "web/src/i18n.ts",
+              "web/src/user_settings.ts",
+              "web/src/base_page_params.ts",
+              "web/src/realm_user_settings_defaults.ts",
+              "web/src/state_data.ts",
+              "web/src/util.ts",
+              "web/src/group_permission_settings.ts"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 63,
+            "tokens": 4338,
+            "recall": 0.25,
+            "precision": 0.033
+          },
+          "aider_8192": {
+            "file_count": 117,
+            "tokens": 7316,
+            "recall": 0.25,
+            "precision": 0.018
+          }
+        },
+        {
+          "file": "analytics/__init__.py",
+          "archetype": "Barrel/Index",
+          "indegree": 0,
+          "outdegree": 0,
+          "cc": {
+            "must_read_count": 0,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 105,
+            "total_files": 0,
+            "must_read_files": []
+          },
+          "aider_4096": {
+            "file_count": 75,
+            "tokens": 4096,
+            "recall": null,
+            "precision": null
+          },
+          "aider_8192": {
+            "file_count": 116,
+            "tokens": 7199,
+            "recall": null,
+            "precision": null
+          }
+        },
+        {
+          "file": "analytics/tests/__init__.py",
+          "archetype": "Test File",
+          "indegree": 0,
+          "outdegree": 0,
+          "cc": {
+            "must_read_count": 0,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 92,
+            "total_files": 0,
+            "must_read_files": []
+          },
+          "aider_4096": {
+            "file_count": 66,
+            "tokens": 4357,
+            "recall": null,
+            "precision": null
+          },
+          "aider_8192": {
+            "file_count": 114,
+            "tokens": 7224,
+            "recall": null,
+            "precision": null
+          }
+        }
+      ],
+      "repomix_tokens": 17607132,
+      "summary": {
+        "avg_cc_tokens": 837,
+        "avg_cc_files": 12.8,
+        "avg_aider_8k_recall": 0.274,
+        "avg_aider_4k_recall": 0.211,
+        "avg_aider_8k_precision": 0.021
+      }
+    }
+  },
+  "aggregate": {
+    "total_files_analyzed": 51,
+    "total_repos": 6,
+    "avg_cc_tokens": 1091,
+    "avg_cc_files": 17.0,
+    "avg_aider_4k_recall": 0.182,
+    "avg_aider_8k_recall": 0.229,
+    "avg_aider_4k_precision": 0.021,
+    "avg_aider_8k_precision": 0.015
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "subject": "packages/web/src/app.ts",
+  "must_read": [
+    "packages/shared/src/index.ts",
+    "packages/api/src/index.ts",
+    "packages/web/src/pages/home.ts",
+    "packages/web/src/pages/users.ts",
+    "packages/web/src/index.ts"
+  ],
+  "must_read_forbidden": [
+    "packages/web/tests/app.test.ts"
+  ],
+  "related": [
+    "packages/api/src/routes/products.ts",
+    "packages/api/src/routes/users.ts",
+    "packages/shared/src/types.ts",
+    "packages/web/src/components/UserList.ts",
+    "packages/api/src/server.ts",
+    "packages/shared/src/utils.ts"
+  ],
+  "tests": ["packages/web/tests/app.test.ts"],
+  "ignore_must_contain": [
+    "packages/web/tests/app.test.ts"
+  ],
+  "external": ["react"]
+}

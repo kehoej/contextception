@@ -31,7 +31,7 @@ func New() *Extractor {
 	return &Extractor{parser: p}
 }
 
-func (e *Extractor) Language() string   { return "typescript" }
+func (e *Extractor) Language() string           { return "typescript" }
 func (e *Extractor) Clone() extractor.Extractor { return New() }
 func (e *Extractor) Extensions() []string {
 	return []string{".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"}

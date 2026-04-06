@@ -18,9 +18,9 @@ var (
 	rePackage = regexp.MustCompile(`^package\s+([\w.]+)\s*;`)
 
 	// Definition patterns.
-	reClassDecl     = regexp.MustCompile(`^(?:public\s+|protected\s+|private\s+|abstract\s+|final\s+|static\s+)*(?:class|interface|enum|record)\s+(\w+)`)
-	reMethodDecl    = regexp.MustCompile(`^(?:public\s+|protected\s+|private\s+|abstract\s+|final\s+|static\s+|synchronized\s+|native\s+|default\s+)*(?:[\w<>\[\],\s]+)\s+(\w+)\s*\(`)
-	reConstantDecl  = regexp.MustCompile(`^(?:public\s+|protected\s+|private\s+)?static\s+final\s+\S+\s+(\w+)\s*=`)
+	reClassDecl    = regexp.MustCompile(`^(?:public\s+|protected\s+|private\s+|abstract\s+|final\s+|static\s+)*(?:class|interface|enum|record)\s+(\w+)`)
+	reMethodDecl   = regexp.MustCompile(`^(?:public\s+|protected\s+|private\s+|abstract\s+|final\s+|static\s+|synchronized\s+|native\s+|default\s+)*(?:[\w<>\[\],\s]+)\s+(\w+)\s*\(`)
+	reConstantDecl = regexp.MustCompile(`^(?:public\s+|protected\s+|private\s+)?static\s+final\s+\S+\s+(\w+)\s*=`)
 )
 
 // Extractor extracts import facts from Java source files.

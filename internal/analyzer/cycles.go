@@ -6,7 +6,7 @@ import (
 
 const (
 	maxCycleDepth = 6 // maximum DFS depth to prevent performance issues
-	maxCycles     = 5  // maximum number of cycles to report
+	maxCycles     = 5 // maximum number of cycles to report
 )
 
 // detectCycles finds import cycles that the subject participates in.

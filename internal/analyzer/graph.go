@@ -866,7 +866,6 @@ func prioritizeByRustPrefix(siblings []string, subject string) []string {
 	return append(withPrefix, without...)
 }
 
-
 // enrichWithGitSignals populates churn and co-change data on candidates.
 // Failures are silently ignored (graceful degradation to structural-only).
 func enrichWithGitSignals(idx *db.Index, candidates map[string]*candidate, allPaths []string, subject string) {

@@ -139,7 +139,7 @@ func TestCompareFailIgnoreMissing(t *testing.T) {
 
 func TestCompareEdgeThreshold(t *testing.T) {
 	fix := &Fixture{
-		Subject:  "a.py",
+		Subject: "a.py",
 		MustRead: []string{"a.py", "b.py", "c.py", "d.py", "e.py", "f.py", "g.py", "h.py", "i.py", "j.py",
 			"k.py", "l.py", "m.py", "n.py", "o.py", "p.py", "q.py", "r.py", "s.py", "t.py"},
 	}

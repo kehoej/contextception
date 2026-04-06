@@ -30,7 +30,7 @@ import os
 		"myapp/utils.py": `import json
 from . import models
 `,
-		"myapp/base.py":        "# no imports\n",
+		"myapp/base.py":         "# no imports\n",
 		"myapp/sub/__init__.py": "",
 		"myapp/sub/handler.py": `from ..models import User
 from . import helpers
@@ -330,8 +330,8 @@ func TestParallelIndexDeterminism(t *testing.T) {
 	root := createTestProject(t)
 
 	type snapshot struct {
-		fileCount      int
-		edgeCount      int
+		fileCount       int
+		edgeCount       int
 		unresolvedCount int
 	}
 

@@ -8,7 +8,7 @@ import "time"
 type FileGrade struct {
 	File         string   `json:"file"`
 	Archetype    string   `json:"archetype"`
-	MustRead     float64  `json:"must_read"`      // 1-4
+	MustRead     float64  `json:"must_read"`       // 1-4
 	LikelyModify float64  `json:"likely_modify"`   // 1-4
 	Tests        float64  `json:"tests"`           // 1-4
 	Related      float64  `json:"related"`         // 1-4
@@ -36,9 +36,9 @@ type Issue struct {
 
 // FeatureTest represents a single feature matrix test result.
 type FeatureTest struct {
-	Group    string `json:"group"`    // e.g., "modes", "token_budget", "caps"
+	Group    string `json:"group"` // e.g., "modes", "token_budget", "caps"
 	Name     string `json:"name"`
-	Status   string `json:"status"`   // "pass", "fail", "skip"
+	Status   string `json:"status"` // "pass", "fail", "skip"
 	Expected string `json:"expected,omitempty"`
 	Actual   string `json:"actual,omitempty"`
 	Duration int64  `json:"duration_ms"`
@@ -47,18 +47,18 @@ type FeatureTest struct {
 
 // TestReport is the top-level report for a full test suite run.
 type TestReport struct {
-	RepoID       string        `json:"repo_id"`
-	RepoURL      string        `json:"repo_url"`
-	Timestamp    time.Time     `json:"timestamp"`
-	Language     string        `json:"language"`
-	FileCount    int           `json:"file_count"`
-	EdgeCount    int           `json:"edge_count"`
-	IndexTimeMs  int64         `json:"index_time_ms"`
-	Files        []FileGrade   `json:"files"`
-	Sections     SectionGrades `json:"sections"`
-	Overall      float64       `json:"overall"`
-	LetterGrade  string        `json:"letter_grade"`
-	Issues       []Issue       `json:"issues"`
+	RepoID       string               `json:"repo_id"`
+	RepoURL      string               `json:"repo_url"`
+	Timestamp    time.Time            `json:"timestamp"`
+	Language     string               `json:"language"`
+	FileCount    int                  `json:"file_count"`
+	EdgeCount    int                  `json:"edge_count"`
+	IndexTimeMs  int64                `json:"index_time_ms"`
+	Files        []FileGrade          `json:"files"`
+	Sections     SectionGrades        `json:"sections"`
+	Overall      float64              `json:"overall"`
+	LetterGrade  string               `json:"letter_grade"`
+	Issues       []Issue              `json:"issues"`
 	FeatureTests []FeatureTest        `json:"feature_tests,omitempty"`
 	Archetypes   []ArchetypeCandidate `json:"archetypes,omitempty"`
 }

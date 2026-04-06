@@ -155,7 +155,7 @@ import os
 		"myapp/utils.py": `import json
 from . import models
 `,
-		"myapp/base.py":        "# no imports\n",
+		"myapp/base.py":         "# no imports\n",
 		"myapp/sub/__init__.py": "",
 		"myapp/sub/handler.py": `from ..models import User
 from . import helpers
@@ -574,10 +574,10 @@ func TestHubPyInRelated(t *testing.T) {
 	root := t.TempDir()
 
 	files := map[string]string{
-		"pkg/__init__.py": "",
+		"pkg/__init__.py":   "",
 		"pkg/subject.py":    "from . import direct_dep\n",
 		"pkg/direct_dep.py": "from . import hub\n",
-		"pkg/hub.py": "# hub\n",
+		"pkg/hub.py":        "# hub\n",
 	}
 
 	for i := 1; i <= 5; i++ {
@@ -989,7 +989,7 @@ func createConfigProject(t *testing.T) string {
 from . import vendor_lib
 from . import gen_models
 `,
-		"pkg/models.py":    "# models\n",
+		"pkg/models.py":     "# models\n",
 		"pkg/vendor_lib.py": "# vendor lib\n",
 		"pkg/gen_models.py": "# generated models\n",
 		"vendor/dep.py": `from pkg import models
@@ -2315,8 +2315,8 @@ func TestExtractSubjectStemGoPlatform(t *testing.T) {
 		{"exec_linux.go", "exec"},
 		{"exec_darwin_amd64.go", "exec"},
 		{"handler.go", "handler"},
-		{"models.py", "models"},      // Non-Go: no stripping
-		{"app.test.ts", "app.test"},   // Non-Go: no stripping
+		{"models.py", "models"},     // Non-Go: no stripping
+		{"app.test.ts", "app.test"}, // Non-Go: no stripping
 	}
 	for _, tt := range tests {
 		t.Run(tt.base, func(t *testing.T) {
@@ -2334,7 +2334,7 @@ func TestExtractSubjectStemGoPlatform(t *testing.T) {
 func TestBlastRadiusUsesPackageLevelCount(t *testing.T) {
 	cats := categories{
 		TotalLikelyModify:    3,
-		ReverseImporterCount: 1, // near-zero file-level importers
+		ReverseImporterCount: 1,  // near-zero file-level importers
 		PackageImporterCount: 60, // but package has 60 importers
 	}
 	br := computeBlastRadius(cats, 0, false, Caps{}.resolve())
@@ -4145,7 +4145,7 @@ func TestHasTestDirComponent(t *testing.T) {
 		{"some/nested/tests/dir", true},
 		{"src/main/java", false},
 		{"testing/helpers", false}, // "testing" != "test"
-		{"contest/data", false},   // "contest" != "test"
+		{"contest/data", false},    // "contest" != "test"
 		{"Lib/asyncio", false},
 		{".", false},
 	}
@@ -4497,12 +4497,12 @@ func TestNormalizePyStem(t *testing.T) {
 	}{
 		{"dbapi2", "dbapi"},
 		{"sha256", "sha"},
-		{"v2", ""},        // result too short
-		{"config", ""},    // no trailing digits
-		{"123", ""},       // all digits, result empty
+		{"v2", ""},     // result too short
+		{"config", ""}, // no trailing digits
+		{"123", ""},    // all digits, result empty
 		{"ab1", "ab"},
 		{"", ""},
-		{"a1", ""},        // result "a" is < 2 chars
+		{"a1", ""}, // result "a" is < 2 chars
 	}
 	for _, tt := range tests {
 		got := normalizePyStem(tt.input)
@@ -4621,4 +4621,3 @@ func TestNestedTestDirMatchNormStillRequiresDirMatch(t *testing.T) {
 }
 
 // --- pythonTestDirs tests ---
-

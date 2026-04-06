@@ -533,11 +533,11 @@ func TestIsPlatformSpecific(t *testing.T) {
 		{"apparmor_default.go", false},
 		{"pkg.go", false},
 		{"doc.go", false},
-		{"util_test.go", false},   // _test is not a platform
-		{"a_b_linux.go", true},    // linux suffix
-		{"file_js.go", true},      // js is a GOOS
-		{"file_wasm.go", true},    // wasm is a GOARCH
-		{"file_wasip1.go", true},  // wasip1 is a GOOS
+		{"util_test.go", false},  // _test is not a platform
+		{"a_b_linux.go", true},   // linux suffix
+		{"file_js.go", true},     // js is a GOOS
+		{"file_wasm.go", true},   // wasm is a GOARCH
+		{"file_wasip1.go", true}, // wasip1 is a GOOS
 	}
 
 	for _, tt := range tests {

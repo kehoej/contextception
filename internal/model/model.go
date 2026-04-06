@@ -5,8 +5,8 @@ import "github.com/kehoej/contextception/schema"
 
 // ImportFact represents a single import extracted from a source file.
 type ImportFact struct {
-	Specifier     string   // e.g. "foo.bar" or ".utils"
-	ImportType    string   // "absolute", "relative"
+	Specifier     string // e.g. "foo.bar" or ".utils"
+	ImportType    string // "absolute", "relative"
 	LineNumber    int
 	ImportedNames []string // e.g. ["baz", "qux"] for "from foo.bar import baz, qux"
 }

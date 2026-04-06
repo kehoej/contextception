@@ -1035,9 +1035,9 @@ func TestParseSingleLineArray(t *testing.T) {
 		{`members = ["xtask/", "lib/*", "crates/*"]`, []string{"xtask/", "lib/*", "crates/*"}},
 		{`members = ["single"]`, []string{"single"}},
 		{`members = []`, nil},
-		{`resolver = "2"`, nil},           // no array
+		{`resolver = "2"`, nil},                    // no array
 		{`exclude = ["bench"]`, []string{"bench"}}, // works on any key
-		{`members = [`, nil},              // multi-line opening, not a single-line array
+		{`members = [`, nil},                       // multi-line opening, not a single-line array
 	}
 	for _, tt := range tests {
 		t.Run(tt.line, func(t *testing.T) {

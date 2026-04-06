@@ -28,9 +28,9 @@ var tsExtensions = []string{
 // Resolver resolves TypeScript/JavaScript import specifiers to repository files.
 type Resolver struct {
 	repoRoot      string
-	tsconfigCache map[string]*tsconfig  // dir → parsed tsconfig (nil = no tsconfig found)
+	tsconfigCache map[string]*tsconfig // dir → parsed tsconfig (nil = no tsconfig found)
 	cacheMu       sync.RWMutex         // protects tsconfigCache for concurrent access
-	workspace     *workspaceConfig      // nil if not a monorepo
+	workspace     *workspaceConfig     // nil if not a monorepo
 }
 
 // New creates a new TypeScript resolver for the given repository root.

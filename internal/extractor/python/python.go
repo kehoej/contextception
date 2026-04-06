@@ -27,9 +27,9 @@ func New() *Extractor {
 	return &Extractor{}
 }
 
-func (e *Extractor) Language() string              { return "python" }
-func (e *Extractor) Clone() extractor.Extractor    { return New() }
-func (e *Extractor) Extensions() []string { return []string{".py"} }
+func (e *Extractor) Language() string           { return "python" }
+func (e *Extractor) Clone() extractor.Extractor { return New() }
+func (e *Extractor) Extensions() []string       { return []string{".py"} }
 
 // Extract parses Python source and returns all import facts.
 func (e *Extractor) Extract(filePath string, content []byte) ([]model.ImportFact, error) {

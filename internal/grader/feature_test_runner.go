@@ -28,7 +28,7 @@ func RunFeatureTests(idx *db.Index, repoRoot, testFile string, cfg *config.Confi
 // runModeTests verifies plan/implement/review cap adjustments.
 func runModeTests(idx *db.Index, repoRoot, file string, cfg *config.Config) []FeatureTest {
 	modes := []struct {
-		name                                    string
+		name                                   string
 		mustRead, likelyModify, tests, related int
 	}{
 		{"plan", 15, 5, 3, 15},
@@ -41,8 +41,8 @@ func runModeTests(idx *db.Index, repoRoot, file string, cfg *config.Config) []Fe
 		start := time.Now()
 		a := analyzer.New(idx, analyzer.Config{
 			RepoConfig: cfg,
-			RepoRoot: repoRoot,
-			Caps:     analyzer.Caps{Mode: m.name},
+			RepoRoot:   repoRoot,
+			Caps:       analyzer.Caps{Mode: m.name},
 		})
 		out, err := a.Analyze(file)
 		dur := time.Since(start).Milliseconds()
@@ -87,8 +87,8 @@ func runTokenBudgetTests(idx *db.Index, repoRoot, file string, cfg *config.Confi
 		start := time.Now()
 		a := analyzer.New(idx, analyzer.Config{
 			RepoConfig: cfg,
-			RepoRoot: repoRoot,
-			Caps:     analyzer.Caps{TokenBudget: budget},
+			RepoRoot:   repoRoot,
+			Caps:       analyzer.Caps{TokenBudget: budget},
 		})
 		out, err := a.Analyze(file)
 		dur := time.Since(start).Milliseconds()
@@ -124,7 +124,7 @@ func runTokenBudgetTests(idx *db.Index, repoRoot, file string, cfg *config.Confi
 // runCapTests verifies explicit cap parameters are honored.
 func runCapTests(idx *db.Index, repoRoot, file string, cfg *config.Config) []FeatureTest {
 	caps := []struct {
-		name                               string
+		name                                   string
 		mustRead, likelyModify, tests, related int
 	}{
 		{"small_caps", 3, 3, 2, 2},
@@ -136,7 +136,7 @@ func runCapTests(idx *db.Index, repoRoot, file string, cfg *config.Config) []Fea
 		start := time.Now()
 		a := analyzer.New(idx, analyzer.Config{
 			RepoConfig: cfg,
-			RepoRoot: repoRoot,
+			RepoRoot:   repoRoot,
 			Caps: analyzer.Caps{
 				MaxMustRead:     c.mustRead,
 				MaxLikelyModify: c.likelyModify,
@@ -261,7 +261,7 @@ func runCITests(idx *db.Index, repoRoot, file string, cfg *config.Config) []Feat
 	start := time.Now()
 	a := analyzer.New(idx, analyzer.Config{
 		RepoConfig: cfg,
-		RepoRoot: repoRoot,
+		RepoRoot:   repoRoot,
 	})
 	out, err := a.Analyze(file)
 	dur := time.Since(start).Milliseconds()
@@ -363,7 +363,7 @@ func runSchemaTests(idx *db.Index, repoRoot, file string, cfg *config.Config) []
 	start := time.Now()
 	a := analyzer.New(idx, analyzer.Config{
 		RepoConfig: cfg,
-		RepoRoot: repoRoot,
+		RepoRoot:   repoRoot,
 	})
 	out, err := a.Analyze(file)
 	dur := time.Since(start).Milliseconds()

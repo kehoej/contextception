@@ -15,9 +15,9 @@ const maxSamePackageFiles = 1
 
 // Resolver resolves Go import paths to repository files using go.mod.
 type Resolver struct {
-	repoRoot    string
-	modulePath  string              // from go.mod (e.g., "github.com/kehoej/contextception")
-	modules     []moduleEntry       // all modules (primary + go.work use directives)
+	repoRoot   string
+	modulePath string        // from go.mod (e.g., "github.com/kehoej/contextception")
+	modules    []moduleEntry // all modules (primary + go.work use directives)
 }
 
 // moduleEntry represents a Go module found in the repo.

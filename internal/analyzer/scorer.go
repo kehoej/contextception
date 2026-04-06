@@ -7,7 +7,7 @@ import (
 // Scoring weights per ADR-0009 MVP.
 const (
 	weightIndegree   = 4.0
-	weightDistance    = 3.0
+	weightDistance   = 3.0
 	weightEntrypoint = 1.0
 	weightAPISurface = 1.5
 	proximityBonus   = 2.0

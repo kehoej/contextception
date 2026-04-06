@@ -402,12 +402,12 @@ func TestExtractDefinitionsTypeScript(t *testing.T) {
 	ext := New()
 
 	tests := []struct {
-		name        string
-		content     string
-		symbols     []string
-		wantExact   []string  // nil means check wantPrefix instead
-		wantPrefix  string    // non-empty means check first element HasPrefix
-		wantNil     bool      // true when result must be nil
+		name       string
+		content    string
+		symbols    []string
+		wantExact  []string // nil means check wantPrefix instead
+		wantPrefix string   // non-empty means check first element HasPrefix
+		wantNil    bool     // true when result must be nil
 	}{
 		{
 			name:      "function",

@@ -21,12 +21,12 @@ func createTestProject(t *testing.T) string {
 	root := t.TempDir()
 
 	files := map[string]string{
-		"setup.py":          "# setup\n",
-		"myapp/__init__.py": "from .models import User\n",
-		"myapp/main.py":     "from .models import User\nfrom .utils import helper\nimport os\n",
-		"myapp/models.py":   "from .base import BaseModel\n\nclass User(BaseModel):\n    pass\n",
-		"myapp/utils.py":    "from . import models\n",
-		"myapp/base.py":     "# no imports\n",
+		"setup.py":           "# setup\n",
+		"myapp/__init__.py":  "from .models import User\n",
+		"myapp/main.py":      "from .models import User\nfrom .utils import helper\nimport os\n",
+		"myapp/models.py":    "from .base import BaseModel\n\nclass User(BaseModel):\n    pass\n",
+		"myapp/utils.py":     "from . import models\n",
+		"myapp/base.py":      "# no imports\n",
 		"tests/test_main.py": "from myapp.main import something\n",
 	}
 

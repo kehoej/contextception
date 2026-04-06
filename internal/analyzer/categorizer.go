@@ -32,7 +32,7 @@ type Caps struct {
 
 // modePresets maps workflow mode names to their default caps.
 var modePresets = map[string][4]int{
-	"plan":      {15, 5, 3, 15},  // must_read, likely_modify, tests, related
+	"plan":      {15, 5, 3, 15}, // must_read, likely_modify, tests, related
 	"implement": {10, 20, 5, 5},
 	"review":    {5, 10, 10, 5},
 }
@@ -130,8 +130,8 @@ type likelyModifyCandidate struct {
 	path       string
 	confidence string // "high", "medium", "low"
 	signals    []string
-	confRank   int     // 0=high, 1=medium, 2=low (for sorting)
-	score      float64 // for tiebreaking within same confidence
+	confRank   int      // 0=high, 1=medium, 2=low (for sorting)
+	score      float64  // for tiebreaking within same confidence
 	symbols    []string // imported symbol names connecting to subject
 	role       string   // file role hint (barrel, foundation, etc.)
 }
@@ -150,17 +150,17 @@ type testCandidate struct {
 }
 
 type categories struct {
-	MustRead               []string               // flat paths, subject excluded
+	MustRead               []string                // flat paths, subject excluded
 	LikelyModify           []likelyModifyCandidate // with signals
 	Related                []relatedCandidate      // with signals and score
-	Tests                  []testCandidate        // test file paths with direct/dependency tier
-	TotalTests             int                    // total test candidates before capping
-	TotalLikelyModify      int                    // total likely_modify candidates before capping
-	TotalRelated           int                    // total related candidates before capping
-	ReverseImporterCount   int                    // count of distance-1 reverse importers (for blast_radius)
-	PackageImporterCount   int                    // package-level reverse importers (Go only, for blast_radius)
-	LikelyModifyD2LowCount int                   // count of distance-2 LOW likely_modify candidates (for blast_radius discount)
-	TestCandidateCount     int                    // test files in candidate pool before filtering
+	Tests                  []testCandidate         // test file paths with direct/dependency tier
+	TotalTests             int                     // total test candidates before capping
+	TotalLikelyModify      int                     // total likely_modify candidates before capping
+	TotalRelated           int                     // total related candidates before capping
+	ReverseImporterCount   int                     // count of distance-1 reverse importers (for blast_radius)
+	PackageImporterCount   int                     // package-level reverse importers (Go only, for blast_radius)
+	LikelyModifyD2LowCount int                     // count of distance-2 LOW likely_modify candidates (for blast_radius discount)
+	TestCandidateCount     int                     // test files in candidate pool before filtering
 }
 
 // categorize assigns scored candidates into must_read, likely_modify, related, and tests.
@@ -176,9 +176,9 @@ func categorize(scored []scoredCandidate, subject string, cfg *config.Config, ca
 
 	var mustRead []string
 	var testCandidates []scoredCandidate
-	var forwardImports []string           // distance-1, IsImport=true
+	var forwardImports []string            // distance-1, IsImport=true
 	var samePackageSiblings []string       // distance-1, IsSamePackageSibling=true (Go only)
-	var reverseOnly []string              // distance-1, IsImporter=true but NOT IsImport
+	var reverseOnly []string               // distance-1, IsImporter=true but NOT IsImport
 	var twoHopCandidates []scoredCandidate // collected for tier-based filling
 
 	for _, sc := range scored {
@@ -448,8 +448,8 @@ func categorize(scored []scoredCandidate, subject string, cfg *config.Config, ca
 				// same directory or direct child directory.
 				tcDir := path.Dir(tc.Path)
 				if path.Base(tc.Path) == "tests.rs" && isSameCrate {
-					adjacent := tcDir == subjectDir ||          // same dir
-						path.Dir(tcDir) == subjectDir           // direct child dir
+					adjacent := tcDir == subjectDir || // same dir
+						path.Dir(tcDir) == subjectDir // direct child dir
 					if !adjacent {
 						continue // Unrelated submodule test.
 					}

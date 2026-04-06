@@ -24,14 +24,14 @@ const (
 	ArchTest       = "Test File"
 
 	// Extended archetypes (new).
-	ArchDBMigration    = "Database/Migration"
-	ArchValidation     = "Serialization/Validation"
-	ArchErrorHandling  = "Error Handling"
-	ArchCLICommand     = "CLI/Command"
-	ArchEventMessage   = "Event/Message"
-	ArchInterface      = "Interface/Contract"
-	ArchOrchestrator   = "Orchestrator"
-	ArchHotspot        = "Hotspot"
+	ArchDBMigration   = "Database/Migration"
+	ArchValidation    = "Serialization/Validation"
+	ArchErrorHandling = "Error Handling"
+	ArchCLICommand    = "CLI/Command"
+	ArchEventMessage  = "Event/Message"
+	ArchInterface     = "Interface/Contract"
+	ArchOrchestrator  = "Orchestrator"
+	ArchHotspot       = "Hotspot"
 )
 
 // ArchetypeCandidate represents a detected file for an archetype slot.

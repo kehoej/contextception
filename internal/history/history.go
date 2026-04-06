@@ -187,10 +187,10 @@ func (s *Store) RecordRun(report *model.ChangeReport, commitSHA, branch string) 
 
 // BlastRadiusTrend returns blast radius levels over time.
 type BlastRadiusTrend struct {
-	Date    string `json:"date"`
-	Level   string `json:"level"`
-	Files   int    `json:"files"`
-	Branch  string `json:"branch,omitempty"`
+	Date   string `json:"date"`
+	Level  string `json:"level"`
+	Files  int    `json:"files"`
+	Branch string `json:"branch,omitempty"`
 }
 
 // GetBlastRadiusTrend returns the last N analysis runs' blast radius.
@@ -221,9 +221,9 @@ func (s *Store) GetBlastRadiusTrend(limit int, branch string) ([]BlastRadiusTren
 
 // HotspotFrequency represents how often a file appears as a hotspot.
 type HotspotFrequency struct {
-	File      string `json:"file"`
-	Count     int    `json:"count"`
-	LastSeen  string `json:"last_seen"`
+	File     string `json:"file"`
+	Count    int    `json:"count"`
+	LastSeen string `json:"last_seen"`
 }
 
 // GetHotspotEvolution returns files that appear most frequently as hotspots.

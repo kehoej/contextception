@@ -5,23 +5,23 @@ package schema
 
 // AnalysisOutput is the top-level output of the analysis engine (v3.2).
 type AnalysisOutput struct {
-	SchemaVersion  string                         `json:"schema_version"`
-	Subject        string                         `json:"subject"`
-	Confidence     float64                        `json:"confidence"`
-	ConfidenceNote string                         `json:"confidence_note,omitempty"`
-	External       []string                       `json:"external"`
-	MustRead       []MustReadEntry                `json:"must_read"`
-	MustReadNote   string                         `json:"must_read_note,omitempty"`
+	SchemaVersion    string                         `json:"schema_version"`
+	Subject          string                         `json:"subject"`
+	Confidence       float64                        `json:"confidence"`
+	ConfidenceNote   string                         `json:"confidence_note,omitempty"`
+	External         []string                       `json:"external"`
+	MustRead         []MustReadEntry                `json:"must_read"`
+	MustReadNote     string                         `json:"must_read_note,omitempty"`
 	LikelyModify     map[string][]LikelyModifyEntry `json:"likely_modify"`
 	LikelyModifyNote string                         `json:"likely_modify_note,omitempty"`
 	Tests            []TestEntry                    `json:"tests"`
 	TestsNote        string                         `json:"tests_note,omitempty"`
-	Related        map[string][]RelatedEntry      `json:"related"`
-	RelatedNote    string                         `json:"related_note,omitempty"`
-	BlastRadius    *BlastRadius                   `json:"blast_radius,omitempty"`
-	Hotspots       []string                       `json:"hotspots,omitempty"`
-	CircularDeps   [][]string                     `json:"circular_deps,omitempty"`
-	Stats          *IndexStats                    `json:"stats,omitempty"`
+	Related          map[string][]RelatedEntry      `json:"related"`
+	RelatedNote      string                         `json:"related_note,omitempty"`
+	BlastRadius      *BlastRadius                   `json:"blast_radius,omitempty"`
+	Hotspots         []string                       `json:"hotspots,omitempty"`
+	CircularDeps     [][]string                     `json:"circular_deps,omitempty"`
+	Stats            *IndexStats                    `json:"stats,omitempty"`
 }
 
 // MustReadEntry represents a file in the must_read list with optional symbols and stable flag.

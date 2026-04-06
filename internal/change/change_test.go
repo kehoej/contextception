@@ -122,10 +122,10 @@ func TestParseGitStatus(t *testing.T) {
 		{"M", "modified"},
 		{"R100", "renamed"},
 		{"R050", "renamed"},
-		{"C", "modified"},   // unknown defaults to modified
-		{"T", "modified"},   // type change defaults to modified
-		{"", "modified"},    // empty defaults to modified
-		{"X", "modified"},   // unknown letter defaults to modified
+		{"C", "modified"}, // unknown defaults to modified
+		{"T", "modified"}, // type change defaults to modified
+		{"", "modified"},  // empty defaults to modified
+		{"X", "modified"}, // unknown letter defaults to modified
 	}
 
 	for _, tc := range tests {

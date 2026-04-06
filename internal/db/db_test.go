@@ -829,10 +829,10 @@ func TestGetJavaSiblingsInDir(t *testing.T) {
 		{"src/main/java/com/example/KafkaProducer.java", "java"},
 		{"src/main/java/com/example/KafkaConsumer.java", "java"},
 		{"src/main/java/com/example/Utils.java", "java"},
-		{"src/main/java/com/example/KafkaProducerTest.java", "java"},       // test file (suffix)
-		{"src/main/java/com/example/TestKafkaProducer.java", "java"},       // test file (prefix)
-		{"src/main/java/com/example/inner/Nested.java", "java"},            // subdirectory
-		{"src/test/java/com/example/KafkaProducerTests.java", "java"},      // test dir
+		{"src/main/java/com/example/KafkaProducerTest.java", "java"},  // test file (suffix)
+		{"src/main/java/com/example/TestKafkaProducer.java", "java"},  // test file (prefix)
+		{"src/main/java/com/example/inner/Nested.java", "java"},       // subdirectory
+		{"src/test/java/com/example/KafkaProducerTests.java", "java"}, // test dir
 	}
 	for _, f := range files {
 		if err = InsertFileTx(tx, f.path, "hash", 0, f.lang, 100); err != nil {
@@ -887,9 +887,9 @@ func TestGetRustSiblingsInDir(t *testing.T) {
 		{"crates/bevy_ecs/src/system/function_system.rs", "rust"},
 		{"crates/bevy_ecs/src/system/system_param.rs", "rust"},
 		{"crates/bevy_ecs/src/system/mod.rs", "rust"},
-		{"crates/bevy_ecs/src/system/function_system_test.rs", "rust"},  // test file (suffix)
-		{"crates/bevy_ecs/src/system/test_helpers.rs", "rust"},          // test file (prefix)
-		{"crates/bevy_ecs/src/system/commands/mod.rs", "rust"},          // subdirectory
+		{"crates/bevy_ecs/src/system/function_system_test.rs", "rust"}, // test file (suffix)
+		{"crates/bevy_ecs/src/system/test_helpers.rs", "rust"},         // test file (prefix)
+		{"crates/bevy_ecs/src/system/commands/mod.rs", "rust"},         // subdirectory
 	}
 	for _, f := range files {
 		if err = InsertFileTx(tx, f.path, "hash", 0, f.lang, 100); err != nil {

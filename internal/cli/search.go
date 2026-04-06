@@ -45,10 +45,10 @@ Examples:
 }
 
 type searchResultJSON struct {
-	Query   string             `json:"query"`
-	Type    string             `json:"type"`
-	Results []searchEntryJSON  `json:"results"`
-	Count   int                `json:"count"`
+	Query   string            `json:"query"`
+	Type    string            `json:"type"`
+	Results []searchEntryJSON `json:"results"`
+	Count   int               `json:"count"`
 }
 
 type searchEntryJSON struct {

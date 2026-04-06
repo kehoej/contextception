@@ -15,9 +15,9 @@ type SearchResult struct {
 
 // EntrypointFile represents a file with structural graph signals.
 type EntrypointFile struct {
-	Path     string
-	Language string
-	Indegree int
+	Path      string
+	Language  string
+	Indegree  int
 	Outdegree int
 }
 

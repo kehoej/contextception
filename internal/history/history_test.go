@@ -33,13 +33,13 @@ func TestRecordAndQuery(t *testing.T) {
 			Modified:      2,
 			HighRiskFiles: 1,
 		},
-		BlastRadius: &model.BlastRadius{Level: "high", Detail: "test", Fragility: 0.5},
-		Hotspots:    []string{"src/main.py"},
-		TestGaps:    []string{"src/utils.py"},
-		Coupling:    []model.CouplingPair{{FileA: "src/main.py", FileB: "src/utils.py", Direction: "a_imports_b"}},
-		MustRead:    []model.MustReadEntry{},
+		BlastRadius:  &model.BlastRadius{Level: "high", Detail: "test", Fragility: 0.5},
+		Hotspots:     []string{"src/main.py"},
+		TestGaps:     []string{"src/utils.py"},
+		Coupling:     []model.CouplingPair{{FileA: "src/main.py", FileB: "src/utils.py", Direction: "a_imports_b"}},
+		MustRead:     []model.MustReadEntry{},
 		LikelyModify: map[string][]model.LikelyModifyEntry{},
-		Tests:       []model.TestEntry{},
+		Tests:        []model.TestEntry{},
 	}
 
 	id, err := store.RecordRun(report, "abc123", "feature")

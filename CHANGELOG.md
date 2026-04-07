@@ -5,6 +5,32 @@ All notable changes to Contextception will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Automatic update notifications:** checks for new versions once per day (cached) and prints a one-line notification to stderr when an update is available
+- **`contextception update` command:** detects install method (Homebrew, go install, direct download) and updates accordingly, with SHA256 checksum verification
+- **Global configuration:** platform-native config at `os.UserConfigDir()/contextception/config.yaml` for update settings
+- **Update suppression:** `--no-update-check` flag, `CONTEXTCEPTION_NO_UPDATE_CHECK=1` env var, or `update.check: false` in global config
+
+## [1.0.2] - 2026-04-07
+
+### Changed
+
+- Upgrade Go from 1.24 to 1.25
+- Migrate golangci-lint from v1 to v2 (v2.11.4)
+- Bump go-sdk from v1.3.0 to v1.5.0
+- Bump modernc.org/sqlite from v1.45.0 to v1.48.1
+- Replace `WriteString(Sprintf(...))` with `fmt.Fprintf` for efficiency
+- Use tagged switch statements where appropriate
+
+## [1.0.1] - 2026-04-06
+
+### Changed
+
+- Fix gofmt -s formatting across 30 files
+
 ## [1.0.0] - 2026-03-25
 
 ### Added

@@ -32,6 +32,9 @@ type Cache struct {
 type CheckResult struct {
 	// Notification is non-empty when the user should be told about a new version.
 	Notification string
+	// RefreshDone is closed when the background cache refresh completes.
+	// Nil if no refresh was needed. Callers can select on this to wait.
+	RefreshDone <-chan struct{}
 }
 
 // cacheFilePath returns the path of the update-check cache file for the given
@@ -165,6 +168,10 @@ func refreshCache(configDir, apiURL string) {
 //  3. Compare cached latest vs currentVersion.
 //  4. Apply notification-suppression rules.
 //  5. If notifying, update the cache and return a non-empty CheckResult.Notification.
+//
+// If the cache is stale, RefreshDone will be a non-nil channel that closes when
+// the background refresh completes. Callers can optionally wait on it to ensure
+// the cache is populated before the process exits.
 func CheckForUpdate(currentVersion, configDir, apiURL string) CheckResult {
 	// Dev and empty builds are never notified.
 	if currentVersion == "" || currentVersion == "dev" {
@@ -176,24 +183,31 @@ func CheckForUpdate(currentVersion, configDir, apiURL string) CheckResult {
 		c = &Cache{}
 	}
 
+	var result CheckResult
+
 	// Refresh cache in background when stale.
 	if time.Since(c.CheckedAt) > checkInterval {
-		go refreshCache(configDir, apiURL)
+		done := make(chan struct{})
+		result.RefreshDone = done
+		go func() {
+			defer close(done)
+			refreshCache(configDir, apiURL)
+		}()
 	}
 
 	// Nothing to compare yet.
 	if c.LatestVersion == "" {
-		return CheckResult{}
+		return result
 	}
 
 	// Is the cached version actually newer?
 	if !IsNewer(currentVersion, c.LatestVersion) {
-		return CheckResult{}
+		return result
 	}
 
 	// Notification suppression: same version notified within 7 days.
 	if c.NotifiedVersion == c.LatestVersion && time.Since(c.NotifiedAt) < notifyInterval {
-		return CheckResult{}
+		return result
 	}
 
 	// We will notify. Persist the notification record.
@@ -201,9 +215,9 @@ func CheckForUpdate(currentVersion, configDir, apiURL string) CheckResult {
 	c.NotifiedVersion = c.LatestVersion
 	_ = writeCache(configDir, c)
 
-	msg := fmt.Sprintf(
+	result.Notification = fmt.Sprintf(
 		"A new version of contextception is available (%s). Run 'contextception update' to upgrade.",
 		c.LatestVersion,
 	)
-	return CheckResult{Notification: msg}
+	return result
 }

@@ -21,6 +21,7 @@ var (
 	repoCfg            *config.Config
 	noUpdateCheck      bool
 	updateNotification string
+	updateRefreshDone  <-chan struct{}
 )
 
 // NewRootCmd creates the root cobra command with all subcommands.
@@ -39,6 +40,7 @@ func NewRootCmd() *cobra.Command {
 					if globalCfg.Update.Check {
 						result := update.CheckForUpdate(version.Version, configDir, "")
 						updateNotification = result.Notification
+						updateRefreshDone = result.RefreshDone
 					}
 				}
 			}
@@ -90,6 +92,11 @@ func NewRootCmd() *cobra.Command {
 			return nil
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+			// Wait for background cache refresh to finish before exiting,
+			// so the cache is populated for the next run.
+			if updateRefreshDone != nil {
+				<-updateRefreshDone
+			}
 			if updateNotification != "" {
 				fmt.Fprintln(os.Stderr, updateNotification)
 			}

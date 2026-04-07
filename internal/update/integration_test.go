@@ -24,8 +24,10 @@ func TestFullUpdateCheckFlow(t *testing.T) {
 		t.Errorf("first run should not notify (empty cache), got %q", result.Notification)
 	}
 
-	// Wait for background refresh goroutine.
-	time.Sleep(500 * time.Millisecond)
+	// Wait for background refresh goroutine using the channel.
+	if result.RefreshDone != nil {
+		<-result.RefreshDone
+	}
 
 	// Second run: cache now has v2.0.0. Should notify.
 	result = CheckForUpdate("v1.0.2", configDir, srv.URL)

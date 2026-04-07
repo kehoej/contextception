@@ -16,6 +16,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"golang.org/x/mod/semver"
 )
 
 // InstallMethod describes how the binary was installed.
@@ -286,6 +288,15 @@ const defaultBaseURL = "https://github.com/kehoej/contextception/releases/downlo
 // baseURL is a template with {tag} and {name} placeholders. Pass an empty
 // string to use the default GitHub releases URL.
 func SelfUpdate(binaryPath, newVersion, baseURL string) error {
+	// Validate version string to prevent URL injection.
+	v := newVersion
+	if !strings.HasPrefix(v, "v") {
+		v = "v" + v
+	}
+	if !semver.IsValid(v) {
+		return fmt.Errorf("invalid version: %s", newVersion)
+	}
+
 	if baseURL == "" {
 		baseURL = defaultBaseURL
 	}

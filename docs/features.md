@@ -332,6 +332,7 @@ contextception reindex                  Full rebuild of the index
 contextception extensions                List supported file extensions
 contextception status                   Index status and diagnostics
 contextception mcp                      Start MCP server (stdio transport)
+contextception update                   Check for and install the latest version
 ```
 
 ### Global flags
@@ -341,6 +342,7 @@ contextception mcp                      Start MCP server (stdio transport)
 | `--repo <path>` | Repository root (default: auto-detected via git) |
 | `-v, --verbose` | Verbose output |
 | `--version` | Display version |
+| `--no-update-check` | Disable automatic update version check |
 
 ### Analysis flags (analyze, analyze-change)
 
@@ -512,6 +514,19 @@ generated:
 | `generated` | string[] | Directory prefixes for generated code (excluded from analysis) |
 
 All paths must be relative. Unrecognized YAML keys are rejected.
+
+### Global configuration
+
+A separate global config controls update behavior. Located at `<config-dir>/contextception/config.yaml` where `<config-dir>` is the platform config directory (`~/Library/Application Support` on macOS, `~/.config` on Linux, `%AppData%` on Windows).
+
+```yaml
+update:
+  check: true    # set to false to disable automatic update checks
+```
+
+The global config is tolerant: missing files and unknown fields are ignored, and defaults are used. This is separate from the per-repo config above.
+
+The update check can also be disabled per-invocation with `--no-update-check` or the `CONTEXTCEPTION_NO_UPDATE_CHECK=1` environment variable.
 
 ---
 

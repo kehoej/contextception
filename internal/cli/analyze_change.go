@@ -183,12 +183,12 @@ func formatChangeReport(report *model.ChangeReport) string {
 	var b strings.Builder
 
 	// Header
-	b.WriteString(fmt.Sprintf("PR Impact Report: %s\n", report.RefRange))
+	fmt.Fprintf(&b, "PR Impact Report: %s\n", report.RefRange)
 	b.WriteString(strings.Repeat("=", 50) + "\n\n")
 
 	// Summary
 	s := report.Summary
-	b.WriteString(fmt.Sprintf("Changed Files: %d", s.TotalFiles))
+	fmt.Fprintf(&b, "Changed Files: %d", s.TotalFiles)
 	parts := []string{}
 	if s.Added > 0 {
 		parts = append(parts, fmt.Sprintf("%d added", s.Added))
@@ -208,49 +208,50 @@ func formatChangeReport(report *model.ChangeReport) string {
 	b.WriteString("\n")
 
 	if s.TestFiles > 0 {
-		b.WriteString(fmt.Sprintf("Test Files:    %d\n", s.TestFiles))
+		fmt.Fprintf(&b, "Test Files:    %d\n", s.TestFiles)
 	}
 	if s.IndexedFiles < s.TotalFiles {
-		b.WriteString(fmt.Sprintf("Indexed:       %d of %d (new/deleted files may not be indexed)\n",
-			s.IndexedFiles, s.TotalFiles))
+		fmt.Fprintf(&b, "Indexed:       %d of %d (new/deleted files may not be indexed)\n",
+			s.IndexedFiles, s.TotalFiles)
 	}
 
 	// Blast Radius
 	if report.BlastRadius != nil {
-		b.WriteString(fmt.Sprintf("\nBlast Radius: %s\n", formatBlastLevel(report.BlastRadius.Level)))
-		b.WriteString(fmt.Sprintf("  %s\n", report.BlastRadius.Detail))
+		fmt.Fprintf(&b, "\nBlast Radius: %s\n", formatBlastLevel(report.BlastRadius.Level))
+		fmt.Fprintf(&b, "  %s\n", report.BlastRadius.Detail)
 		if report.BlastRadius.Fragility > 0 {
-			b.WriteString(fmt.Sprintf("  Fragility: %.2f\n", report.BlastRadius.Fragility))
+			fmt.Fprintf(&b, "  Fragility: %.2f\n", report.BlastRadius.Fragility)
 		}
 	}
 
 	// High-risk files
 	if s.HighRiskFiles > 0 {
-		b.WriteString(fmt.Sprintf("\nHigh-Risk Files (%d):\n", s.HighRiskFiles))
+		fmt.Fprintf(&b, "\nHigh-Risk Files (%d):\n", s.HighRiskFiles)
 		for _, f := range report.ChangedFiles {
 			if f.BlastRadius != nil && f.BlastRadius.Level == "high" {
-				b.WriteString(fmt.Sprintf("  %s [%s]\n", f.File, f.Status))
+				fmt.Fprintf(&b, "  %s [%s]\n", f.File, f.Status)
 			}
 		}
 	}
 
 	// Coupling
 	if len(report.Coupling) > 0 {
-		b.WriteString(fmt.Sprintf("\nCross-File Coupling (%d connections):\n", len(report.Coupling)))
+		fmt.Fprintf(&b, "\nCross-File Coupling (%d connections):\n", len(report.Coupling))
 		for _, c := range report.Coupling {
 			arrow := " -> "
-			if c.Direction == "mutual" {
+			switch c.Direction {
+			case "mutual":
 				arrow = " <-> "
-			} else if c.Direction == "b_imports_a" {
+			case "b_imports_a":
 				arrow = " <- "
 			}
-			b.WriteString(fmt.Sprintf("  %s%s%s\n", c.FileA, arrow, c.FileB))
+			fmt.Fprintf(&b, "  %s%s%s\n", c.FileA, arrow, c.FileB)
 		}
 	}
 
 	// Must Read
 	if len(report.MustRead) > 0 {
-		b.WriteString(fmt.Sprintf("\nMust Read (%d files):\n", len(report.MustRead)))
+		fmt.Fprintf(&b, "\nMust Read (%d files):\n", len(report.MustRead))
 		for _, entry := range report.MustRead {
 			line := "  " + entry.File
 			if len(entry.Symbols) > 0 {
@@ -275,27 +276,27 @@ func formatChangeReport(report *model.ChangeReport) string {
 
 	// Tests
 	if len(report.Tests) > 0 {
-		b.WriteString(fmt.Sprintf("\nTest Coverage (%d files):\n", len(report.Tests)))
+		fmt.Fprintf(&b, "\nTest Coverage (%d files):\n", len(report.Tests))
 		direct := 0
 		for _, t := range report.Tests {
 			if t.Direct {
 				direct++
 			}
 		}
-		b.WriteString(fmt.Sprintf("  %d direct, %d dependency\n", direct, len(report.Tests)-direct))
+		fmt.Fprintf(&b, "  %d direct, %d dependency\n", direct, len(report.Tests)-direct)
 	}
 
 	// Test Gaps
 	if len(report.TestGaps) > 0 {
-		b.WriteString(fmt.Sprintf("\nTest Gaps (%d files with no direct tests):\n", len(report.TestGaps)))
+		fmt.Fprintf(&b, "\nTest Gaps (%d files with no direct tests):\n", len(report.TestGaps))
 		for _, f := range report.TestGaps {
-			b.WriteString(fmt.Sprintf("  %s\n", f))
+			fmt.Fprintf(&b, "  %s\n", f)
 		}
 	}
 
 	// Hotspots
 	if len(report.Hotspots) > 0 {
-		b.WriteString(fmt.Sprintf("\nHotspots (%d files — high churn + high fan-in):\n", len(report.Hotspots)))
+		fmt.Fprintf(&b, "\nHotspots (%d files — high churn + high fan-in):\n", len(report.Hotspots))
 		for _, h := range report.Hotspots {
 			b.WriteString("  " + h + "\n")
 		}
@@ -303,7 +304,7 @@ func formatChangeReport(report *model.ChangeReport) string {
 
 	// Circular Dependencies
 	if len(report.CircularDeps) > 0 {
-		b.WriteString(fmt.Sprintf("\nCircular Dependencies (%d cycles):\n", len(report.CircularDeps)))
+		fmt.Fprintf(&b, "\nCircular Dependencies (%d cycles):\n", len(report.CircularDeps))
 		for _, cycle := range report.CircularDeps {
 			b.WriteString("  " + strings.Join(cycle, " -> ") + "\n")
 		}
@@ -311,8 +312,8 @@ func formatChangeReport(report *model.ChangeReport) string {
 
 	// Stats
 	if report.Stats != nil {
-		b.WriteString(fmt.Sprintf("\nIndex: %d files, %d edges, %d unresolved\n",
-			report.Stats.TotalFiles, report.Stats.TotalEdges, report.Stats.UnresolvedCount))
+		fmt.Fprintf(&b, "\nIndex: %d files, %d edges, %d unresolved\n",
+			report.Stats.TotalFiles, report.Stats.TotalEdges, report.Stats.UnresolvedCount)
 	}
 
 	return b.String()

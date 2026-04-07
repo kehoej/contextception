@@ -344,11 +344,14 @@ func categorize(scored []scoredCandidate, subject string, cfg *config.Config, ca
 		if strings.HasSuffix(subject, ".py") && path.Dir(sc.Path) == path.Dir(subject) {
 			signals = append(signals, "same_directory")
 		}
-		confRank := 2
-		if conf == "high" {
+		var confRank int
+		switch conf {
+		case "high":
 			confRank = 0
-		} else if conf == "medium" {
+		case "medium":
 			confRank = 1
+		default:
+			confRank = 2
 		}
 
 		likelyModifyCandidates = append(likelyModifyCandidates, likelyModifyCandidate{

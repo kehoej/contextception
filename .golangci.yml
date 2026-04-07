@@ -1,78 +1,96 @@
-run:
-  timeout: 3m
+version: "2"
 
 linters:
   enable:
     - errcheck
     - govet
     - staticcheck
-    - gosimple
     - ineffassign
     - unused
     - gosec
     - gocritic
     - misspell
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-      - shadow          # too noisy with idiomatic if err := ...; err != nil
-  staticcheck:
-    checks: ["all", "-SA9003"]  # exclude empty-branch check
-  gosec:
-    excludes:
-      - G104  # unhandled errors in deferred calls (too noisy)
-      - G202  # SQL string concatenation (table names are constants, not user input)
-      - G204  # subprocess launched with variable args (expected in CLI tool)
-      - G306  # file permissions > 0600 (test helper files use 0o644)
-  gocritic:
-    disabled-checks:
-      - appendAssign    # false positive with intentional new-slice idiom
-      - ifElseChain     # style preference, not a bug
-      - unlambda        # style preference
-      - elseif          # style preference
-      - badCond         # flags valid equality comparisons
+  settings:
+    errcheck:
+      check-type-assertions: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        - shadow          # too noisy with idiomatic if err := ...; err != nil
+    staticcheck:
+      checks:
+        - "all"
+        - "-SA9003"   # exclude empty-branch check
+        - "-QF1001"   # De Morgan's law rewrites — style preference
+        - "-ST1000"   # package comments — not enforced in this project
+        - "-ST1003"   # naming conventions (baseUrl vs baseURL) — existing serialized field names
+    gosec:
+      excludes:
+        - G104  # unhandled errors in deferred calls (too noisy)
+        - G202  # SQL string concatenation (table names are constants, not user input)
+        - G204  # subprocess launched with variable args (expected in CLI tool)
+        - G301  # directory permissions > 0750 (0o755 is standard for dirs)
+        - G302  # file permissions > 0600 (0o644 is standard for non-secret files)
+        - G304  # file inclusion via variable (expected in CLI tool that reads user files)
+        - G306  # file permissions > 0600 (test helper files use 0o644)
+        - G703  # path traversal via taint analysis (CLI tool reads user-specified paths)
+    gocritic:
+      disabled-checks:
+        - appendAssign    # false positive with intentional new-slice idiom
+        - ifElseChain     # style preference, not a bug
+        - unlambda        # style preference
+        - elseif          # style preference
+        - badCond         # flags valid equality comparisons
+  exclusions:
+    paths:
+      - testdata
+      - benchmarks
+    rules:
+      # Test files: unchecked errors and SQL formatting are acceptable.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+      # Deferred Close/Rollback/Flock errors are acceptable fire-and-forget.
+      - text: "Error return value of `.*\\.Close` is not checked"
+        linters:
+          - errcheck
+      - text: "Error return value of `tx\\.Rollback` is not checked"
+        linters:
+          - errcheck
+      - text: "Error return value of `syscall\\.Flock` is not checked"
+        linters:
+          - errcheck
+      # Fire-and-forget recording/meta-setting is acceptable.
+      - text: "Error return value of `hist\\.RecordRun` is not checked"
+        linters:
+          - errcheck
+      - text: "Error return value of `idx\\.SetMeta` is not checked"
+        linters:
+          - errcheck
+      # Fire-and-forget os.Remove for WAL/SHM cleanup is acceptable.
+      - text: "Error return value of `os\\.Remove` is not checked"
+        linters:
+          - errcheck
+      # Fire-and-forget fmt.Fprintf to output writer is acceptable.
+      - text: "Error return value of `fmt\\.Fprintf` is not checked"
+        linters:
+          - errcheck
+      # S1017 in resolver is intentional control flow.
+      - path: internal/resolver/
+        linters:
+          - staticcheck
+      # assignOp is a style preference.
+      - text: "assignOp"
+        linters:
+          - gocritic
+      # SQL string formatting in store is parameterized where needed.
+      - path: internal/db/store\.go
+        text: "G20[12]"
+        linters:
+          - gosec
 
 issues:
-  exclude-dirs:
-    - testdata
-    - benchmarks
   max-issues-per-linter: 50
   max-same-issues: 10
-  exclude-rules:
-    # Test files: unchecked errors and SQL formatting are acceptable.
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-    # Deferred rollback/unlock/close errors are acceptable.
-    - text: "Error return value of `tx\\.Rollback` is not checked"
-      linters:
-        - errcheck
-    - text: "Error return value of `syscall\\.Flock` is not checked"
-      linters:
-        - errcheck
-    # Fire-and-forget recording/meta-setting is acceptable.
-    - text: "Error return value of `hist\\.RecordRun` is not checked"
-      linters:
-        - errcheck
-    - text: "Error return value of `idx\\.SetMeta` is not checked"
-      linters:
-        - errcheck
-    # gosimple S1017 in resolver is intentional control flow.
-    - path: internal/resolver/
-      linters:
-        - gosimple
-    # assignOp is a style preference.
-    - text: "assignOp"
-      linters:
-        - gocritic
-    # SQL string formatting in store is parameterized where needed.
-    - path: internal/db/store\.go
-      text: "G20[12]"
-      linters:
-        - gosec

@@ -19,7 +19,7 @@ type ResolveResult struct {
 	Reason           string // explanation when unresolved
 }
 
-// Type aliases — all existing code continues using model.X unchanged.
+// ExternalDependency and related types are aliases so existing code continues using model.X unchanged.
 type ExternalDependency = schema.ExternalDependency
 type MustReadEntry = schema.MustReadEntry
 type TestEntry = schema.TestEntry

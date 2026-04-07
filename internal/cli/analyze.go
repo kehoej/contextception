@@ -127,11 +127,11 @@ func runAnalyze(files []string) error {
 func formatPretty(output *model.AnalysisOutput) string {
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprintf("Context for: %s\n", output.Subject))
+	fmt.Fprintf(&b, "Context for: %s\n", output.Subject)
 
 	// --- Must Read ---
 	if len(output.MustRead) > 0 {
-		b.WriteString(fmt.Sprintf("\nMust Read (%d files):\n", len(output.MustRead)))
+		fmt.Fprintf(&b, "\nMust Read (%d files):\n", len(output.MustRead))
 		for _, entry := range output.MustRead {
 			line := "  " + entry.File
 			if len(entry.Symbols) > 0 {
@@ -153,7 +153,7 @@ func formatPretty(output *model.AnalysisOutput) string {
 			}
 		}
 	} else if output.MustReadNote != "" {
-		b.WriteString(fmt.Sprintf("\nMust Read: %s\n", output.MustReadNote))
+		fmt.Fprintf(&b, "\nMust Read: %s\n", output.MustReadNote)
 	}
 
 	// --- Likely Modify ---
@@ -173,29 +173,29 @@ func formatPretty(output *model.AnalysisOutput) string {
 					confLabel = confLabel + strings.Repeat(" ", 4-len(confLabel))
 				}
 				signals := formatSignals(e.Signals)
-				b.WriteString(fmt.Sprintf("  %-5s %-12s %-28s %s\n", confLabel, shortKey, e.File, signals))
+				fmt.Fprintf(&b, "  %-5s %-12s %-28s %s\n", confLabel, shortKey, e.File, signals)
 			}
 		}
 		if output.LikelyModifyNote != "" {
-			b.WriteString(fmt.Sprintf("  (%s)\n", output.LikelyModifyNote))
+			fmt.Fprintf(&b, "  (%s)\n", output.LikelyModifyNote)
 		}
 	}
 
 	// --- Tests ---
 	if len(output.Tests) > 0 {
-		b.WriteString(fmt.Sprintf("\nTests (%d files):\n", len(output.Tests)))
+		fmt.Fprintf(&b, "\nTests (%d files):\n", len(output.Tests))
 		for _, t := range output.Tests {
 			tier := "direct"
 			if !t.Direct {
 				tier = "dependency"
 			}
-			b.WriteString(fmt.Sprintf("  %s [%s]\n", t.File, tier))
+			fmt.Fprintf(&b, "  %s [%s]\n", t.File, tier)
 		}
 		if output.TestsNote != "" {
-			b.WriteString(fmt.Sprintf("  (%s)\n", output.TestsNote))
+			fmt.Fprintf(&b, "  (%s)\n", output.TestsNote)
 		}
 	} else if output.TestsNote != "" {
-		b.WriteString(fmt.Sprintf("\nTests: %s\n", output.TestsNote))
+		fmt.Fprintf(&b, "\nTests: %s\n", output.TestsNote)
 	}
 
 	// --- Related ---
@@ -204,20 +204,20 @@ func formatPretty(output *model.AnalysisOutput) string {
 		relCount += len(entries)
 	}
 	if relCount > 0 {
-		b.WriteString(fmt.Sprintf("\nRelated (%d files):\n", relCount))
+		fmt.Fprintf(&b, "\nRelated (%d files):\n", relCount)
 		for _, key := range sortedKeys(output.Related) {
 			entries := output.Related[key]
 			shortKey := shortPackageName(key)
 			for _, e := range entries {
 				signals := formatSignals(e.Signals)
-				b.WriteString(fmt.Sprintf("  %-12s %-28s %s\n", shortKey, e.File, signals))
+				fmt.Fprintf(&b, "  %-12s %-28s %s\n", shortKey, e.File, signals)
 			}
 		}
 	}
 
 	// --- External ---
 	if len(output.External) > 0 {
-		b.WriteString(fmt.Sprintf("\nExternal: %s\n", strings.Join(output.External, ", ")))
+		fmt.Fprintf(&b, "\nExternal: %s\n", strings.Join(output.External, ", "))
 	}
 
 	// --- Blast Radius ---
@@ -231,7 +231,7 @@ func formatPretty(output *model.AnalysisOutput) string {
 
 	// --- Hotspots ---
 	if len(output.Hotspots) > 0 {
-		b.WriteString(fmt.Sprintf("\nHotspots (%d files — high churn + high fan-in):\n", len(output.Hotspots)))
+		fmt.Fprintf(&b, "\nHotspots (%d files — high churn + high fan-in):\n", len(output.Hotspots))
 		for _, h := range output.Hotspots {
 			b.WriteString("  " + h + "\n")
 		}
@@ -239,7 +239,7 @@ func formatPretty(output *model.AnalysisOutput) string {
 
 	// --- Circular Dependencies ---
 	if len(output.CircularDeps) > 0 {
-		b.WriteString(fmt.Sprintf("\nCircular Dependencies (%d cycles):\n", len(output.CircularDeps)))
+		fmt.Fprintf(&b, "\nCircular Dependencies (%d cycles):\n", len(output.CircularDeps))
 		for _, cycle := range output.CircularDeps {
 			b.WriteString("  " + strings.Join(cycle, " -> ") + "\n")
 		}
@@ -247,8 +247,8 @@ func formatPretty(output *model.AnalysisOutput) string {
 
 	// --- Stats ---
 	if output.Stats != nil {
-		b.WriteString(fmt.Sprintf("\nIndex: %d files, %d edges, %d unresolved\n",
-			output.Stats.TotalFiles, output.Stats.TotalEdges, output.Stats.UnresolvedCount))
+		fmt.Fprintf(&b, "\nIndex: %d files, %d edges, %d unresolved\n",
+			output.Stats.TotalFiles, output.Stats.TotalEdges, output.Stats.UnresolvedCount)
 	}
 
 	return b.String()

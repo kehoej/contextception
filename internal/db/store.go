@@ -212,7 +212,7 @@ func DeleteFileSignalsTx(tx *sql.Tx, path string) error {
 	return err
 }
 
-// FileExists checks if a file path exists in the index.
+// FileExistsTx checks if a file path exists in the index.
 func FileExistsTx(tx *sql.Tx, path string) (bool, error) {
 	var count int
 	err := tx.QueryRow("SELECT COUNT(*) FROM files WHERE path = ?", path).Scan(&count)

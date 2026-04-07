@@ -9,14 +9,17 @@ import (
 	"strings"
 
 	"github.com/kehoej/contextception/internal/config"
+	"github.com/kehoej/contextception/internal/update"
 	"github.com/kehoej/contextception/internal/version"
 	"github.com/spf13/cobra"
 )
 
 var (
-	repoRoot string
-	verbose  bool
-	repoCfg  *config.Config
+	repoRoot           string
+	verbose            bool
+	repoCfg            *config.Config
+	noUpdateCheck      bool
+	updateNotification string
 )
 
 // NewRootCmd creates the root cobra command with all subcommands.
@@ -26,6 +29,28 @@ func NewRootCmd() *cobra.Command {
 		Short: "Code context intelligence engine",
 		Long:  `Contextception answers: "What code must be understood before making a safe change?"`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// Version check (cache-then-notify: sync read, async refresh).
+			if !noUpdateCheck && os.Getenv("CONTEXTCEPTION_NO_UPDATE_CHECK") == "" {
+				configDir, err := os.UserConfigDir()
+				if err == nil {
+					globalCfg, _ := config.LoadGlobal(configDir)
+					if globalCfg.Update.Check {
+						result := update.CheckForUpdate(version.Version, configDir, "")
+						updateNotification = result.Notification
+					}
+				}
+			}
+
+			// Clean up leftover .bak file from Windows self-update.
+			if exe, err := os.Executable(); err == nil {
+				os.Remove(exe + ".bak") //nolint:errcheck
+			}
+
+			// Skip repo root detection for commands that don't need it.
+			if cmd.Name() == "update" || cmd.Name() == "contextception" {
+				return nil
+			}
+
 			// Resolve repo root if not explicitly set.
 			if repoRoot == "" {
 				detected, err := detectRepoRoot()
@@ -60,11 +85,18 @@ func NewRootCmd() *cobra.Command {
 
 			return nil
 		},
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+			if updateNotification != "" {
+				fmt.Fprintln(os.Stderr, updateNotification)
+			}
+			return nil
+		},
 		Version: version.Version,
 	}
 
 	root.PersistentFlags().StringVar(&repoRoot, "repo", "", "repository root (defaults to git root detection)")
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	root.PersistentFlags().BoolVar(&noUpdateCheck, "no-update-check", false, "disable update version check")
 
 	root.AddCommand(newIndexCmd())
 	root.AddCommand(newAnalyzeCmd())
@@ -76,6 +108,7 @@ func NewRootCmd() *cobra.Command {
 	root.AddCommand(newSearchCmd())
 	root.AddCommand(newArchetypesCmd())
 	root.AddCommand(newExtensionsCmd())
+	root.AddCommand(newUpdateCmd())
 
 	return root
 }

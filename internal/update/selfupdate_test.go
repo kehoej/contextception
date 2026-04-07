@@ -3,6 +3,7 @@ package update
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -114,34 +116,6 @@ func createTestTarGz(t *testing.T, name string, content []byte) []byte {
 		t.Fatalf("gzip Close: %v", err)
 	}
 	return buf.Bytes()
-}
-
-// TestVerifyChecksum verifies that verifyChecksum passes for a correct hash and
-// fails for a wrong hash.
-func TestVerifyChecksum(t *testing.T) {
-	f, err := os.CreateTemp(t.TempDir(), "checksum-test-*")
-	if err != nil {
-		t.Fatalf("create temp file: %v", err)
-	}
-	content := []byte("hello checksum world")
-	if _, err := f.Write(content); err != nil {
-		t.Fatalf("write temp file: %v", err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatalf("close temp file: %v", err)
-	}
-
-	sum := sha256.Sum256(content)
-	correctHex := hex.EncodeToString(sum[:])
-
-	if err := verifyChecksum(f.Name(), correctHex); err != nil {
-		t.Errorf("verifyChecksum with correct hash: unexpected error: %v", err)
-	}
-
-	wrongHex := strings.Repeat("a", 64)
-	if err := verifyChecksum(f.Name(), wrongHex); err == nil {
-		t.Error("verifyChecksum with wrong hash: expected error, got nil")
-	}
 }
 
 // TestParseChecksum verifies parsing of sha256sum-format lines.
@@ -269,5 +243,137 @@ func TestArchiveNameForPlatform(t *testing.T) {
 	}
 	if !strings.Contains(name, runtime.GOARCH) {
 		t.Errorf("archiveNameForPlatform() = %q, want to contain GOARCH %q", name, runtime.GOARCH)
+	}
+}
+
+// TestSelfUpdateChecksumMismatch verifies that a tampered archive is rejected.
+func TestSelfUpdateChecksumMismatch(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows")
+	}
+
+	dir := t.TempDir()
+	oldBinary := filepath.Join(dir, "contextception")
+	if err := os.WriteFile(oldBinary, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	archiveData := createTestTarGz(t, "contextception", []byte("new binary"))
+	archiveName := archiveNameForPlatform()
+	wrongChecksum := strings.Repeat("a", 64)
+	checksumsTxt := fmt.Sprintf("%s  %s\n", wrongChecksum, archiveName)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "checksums.txt"):
+			_, _ = w.Write([]byte(checksumsTxt))
+		case strings.HasSuffix(r.URL.Path, archiveName):
+			_, _ = w.Write(archiveData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	err := SelfUpdate(oldBinary, "v1.0.5", srv.URL+"/{tag}/{name}")
+	if err == nil {
+		t.Fatal("expected checksum mismatch error, got nil")
+	}
+	if !strings.Contains(err.Error(), "checksum verification failed") {
+		t.Errorf("expected checksum error, got: %v", err)
+	}
+}
+
+// TestSelfUpdateInvalidVersion verifies that malformed version strings are rejected.
+func TestSelfUpdateInvalidVersion(t *testing.T) {
+	dir := t.TempDir()
+	binary := filepath.Join(dir, "contextception")
+	if err := os.WriteFile(binary, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	invalidVersions := []string{"not-a-version", "../../../etc/passwd", ""}
+	for _, v := range invalidVersions {
+		err := SelfUpdate(binary, v, "http://example.com/{tag}/{name}")
+		if err == nil {
+			t.Errorf("SelfUpdate(%q) should fail with invalid version", v)
+			continue
+		}
+		if !strings.Contains(err.Error(), "invalid version") {
+			t.Errorf("SelfUpdate(%q) error = %v, want 'invalid version'", v, err)
+		}
+	}
+}
+
+// TestReplaceBinary verifies atomic binary replacement and cleanup.
+func TestReplaceBinary(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows: rename-dance tested separately")
+	}
+
+	dir := t.TempDir()
+	oldPath := filepath.Join(dir, "binary")
+	if err := os.WriteFile(oldPath, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	newContent := []byte("new content")
+	if err := replaceBinary(oldPath, newContent); err != nil {
+		t.Fatalf("replaceBinary: %v", err)
+	}
+
+	got, err := os.ReadFile(oldPath)
+	if err != nil {
+		t.Fatalf("read replaced binary: %v", err)
+	}
+	if !bytes.Equal(got, newContent) {
+		t.Errorf("got %q, want %q", got, newContent)
+	}
+
+	// .new file should be cleaned up.
+	if _, err := os.Stat(oldPath + ".new"); !os.IsNotExist(err) {
+		t.Error(".new file should not exist after successful replacement")
+	}
+}
+
+// TestReplaceBinaryFailure verifies that replaceBinary fails gracefully for a
+// nonexistent parent directory.
+func TestReplaceBinaryFailure(t *testing.T) {
+	dir := t.TempDir()
+	badPath := filepath.Join(dir, "nonexistent", "binary")
+	err := replaceBinary(badPath, []byte("new"))
+	if err == nil {
+		t.Fatal("expected error for nonexistent directory")
+	}
+}
+
+// TestExtractFromZip verifies zip extraction by base name.
+func TestExtractFromZip(t *testing.T) {
+	wantContent := []byte("zip binary content")
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	f, err := zw.Create("contextception.exe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write(wantContent); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := extractFromZip(buf.Bytes(), "contextception.exe")
+	if err != nil {
+		t.Fatalf("extractFromZip: %v", err)
+	}
+	if !bytes.Equal(got, wantContent) {
+		t.Errorf("got %q, want %q", got, wantContent)
+	}
+
+	_, err = extractFromZip(buf.Bytes(), "notexist")
+	if err == nil {
+		t.Error("expected error for missing file in zip archive")
 	}
 }

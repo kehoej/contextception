@@ -154,9 +154,6 @@ func refreshCache(configDir, apiURL string) {
 
 	// Read existing cache so we preserve NotifiedAt/NotifiedVersion.
 	c, _ := readCache(configDir)
-	if c == nil {
-		c = &Cache{}
-	}
 	c.LatestVersion = version
 	c.CheckedAt = time.Now().UTC()
 	_ = writeCache(configDir, c)
@@ -179,9 +176,6 @@ func CheckForUpdate(currentVersion, configDir, apiURL string) CheckResult {
 	}
 
 	c, _ := readCache(configDir)
-	if c == nil {
-		c = &Cache{}
-	}
 
 	var result CheckResult
 

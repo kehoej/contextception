@@ -147,26 +147,6 @@ func httpGet(url string) ([]byte, error) {
 	return data, nil
 }
 
-// verifyChecksum computes the SHA256 of the file at filePath and compares it
-// to the expected hex string. Returns an error if they do not match.
-func verifyChecksum(filePath, expected string) error {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("open file: %w", err)
-	}
-	defer f.Close()
-
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return fmt.Errorf("hash file: %w", err)
-	}
-	got := hex.EncodeToString(h.Sum(nil))
-	if got != expected {
-		return fmt.Errorf("checksum mismatch: got %s, want %s", got, expected)
-	}
-	return nil
-}
-
 // parseChecksum parses sha256sum-format data (lines of "hexhash  filename") and
 // returns the hex hash for the given filename. Returns an error if not found.
 func parseChecksum(data []byte, filename string) (string, error) {
@@ -208,6 +188,10 @@ func extractFromTarGz(data []byte, targetName string) ([]byte, error) {
 			return nil, fmt.Errorf("tar read: %w", err)
 		}
 		if filepath.Base(hdr.Name) == targetName {
+			// Reject symlinks and other non-regular files to prevent archive attacks.
+			if hdr.Typeflag != tar.TypeReg {
+				return nil, fmt.Errorf("archive entry %q is not a regular file (type %d)", hdr.Name, hdr.Typeflag)
+			}
 			// Limit extracted size to 200MB to prevent decompression bombs.
 			content, err := io.ReadAll(io.LimitReader(tr, 200<<20))
 			if err != nil {
@@ -289,10 +273,7 @@ const defaultBaseURL = "https://github.com/kehoej/contextception/releases/downlo
 // string to use the default GitHub releases URL.
 func SelfUpdate(binaryPath, newVersion, baseURL string) error {
 	// Validate version string to prevent URL injection.
-	v := newVersion
-	if !strings.HasPrefix(v, "v") {
-		v = "v" + v
-	}
+	v := ensureVPrefix(newVersion)
 	if !semver.IsValid(v) {
 		return fmt.Errorf("invalid version: %s", newVersion)
 	}
@@ -309,7 +290,7 @@ func SelfUpdate(binaryPath, newVersion, baseURL string) error {
 	}
 
 	// 1. Download checksums.txt.
-	checksumsURL := makeURL(newVersion, "checksums.txt")
+	checksumsURL := makeURL(v, "checksums.txt")
 	checksumsData, err := httpGet(checksumsURL)
 	if err != nil {
 		return fmt.Errorf("download checksums.txt: %w", err)
@@ -322,8 +303,8 @@ func SelfUpdate(binaryPath, newVersion, baseURL string) error {
 		return fmt.Errorf("parse checksum for %s: %w", archiveName, err)
 	}
 
-	// 3. Download archive to a temp file.
-	archiveURL := makeURL(newVersion, archiveName)
+	// 3. Download archive.
+	archiveURL := makeURL(v, archiveName)
 	archiveData, err := httpGet(archiveURL)
 	if err != nil {
 		return fmt.Errorf("download archive: %w", err)
@@ -337,15 +318,13 @@ func SelfUpdate(binaryPath, newVersion, baseURL string) error {
 	}
 
 	// 5. Extract the binary from the archive.
-	binaryName := "contextception"
-	if runtime.GOOS == "windows" {
-		binaryName = "contextception.exe"
-	}
-
+	var binaryName string
 	var newBinaryContent []byte
 	if runtime.GOOS == "windows" {
+		binaryName = "contextception.exe"
 		newBinaryContent, err = extractFromZip(archiveData, binaryName)
 	} else {
+		binaryName = "contextception"
 		newBinaryContent, err = extractFromTarGz(archiveData, binaryName)
 	}
 	if err != nil {

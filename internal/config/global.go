@@ -30,21 +30,21 @@ func DefaultGlobal() *GlobalConfig {
 // LoadGlobal reads {configDir}/contextception/config.yaml and returns a
 // GlobalConfig. It returns defaults if the file is missing or malformed —
 // global config is tolerant by design since it may evolve over time.
-func LoadGlobal(configDir string) (*GlobalConfig, error) {
+func LoadGlobal(configDir string) *GlobalConfig {
 	path := filepath.Join(configDir, "contextception", "config.yaml")
 
 	data, err := os.ReadFile(path)
 	if err != nil {
 		// Missing file is fine — return defaults.
-		return DefaultGlobal(), nil
+		return DefaultGlobal()
 	}
 
 	cfg := DefaultGlobal()
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	if err := dec.Decode(cfg); err != nil {
 		// Malformed YAML — return defaults, not an error.
-		return DefaultGlobal(), nil
+		return DefaultGlobal()
 	}
 
-	return cfg, nil
+	return cfg
 }

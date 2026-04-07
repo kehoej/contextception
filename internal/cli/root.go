@@ -36,7 +36,7 @@ func NewRootCmd() *cobra.Command {
 			if !noUpdateCheck && os.Getenv("CONTEXTCEPTION_NO_UPDATE_CHECK") == "" && cmd.Name() != "update" {
 				configDir, err := os.UserConfigDir()
 				if err == nil {
-					globalCfg, _ := config.LoadGlobal(configDir)
+					globalCfg := config.LoadGlobal(configDir)
 					if globalCfg.Update.Check {
 						result := update.CheckForUpdate(version.Version, configDir, "")
 						updateNotification = result.Notification
@@ -44,6 +44,18 @@ func NewRootCmd() *cobra.Command {
 					}
 				}
 			}
+
+			// Register finalizer to drain background refresh and show notification.
+			// Uses cobra.OnFinalize (runs via defer) so it fires even when RunE
+			// returns an error, unlike PersistentPostRunE which Cobra skips on error.
+			cobra.OnFinalize(func() {
+				if updateRefreshDone != nil {
+					<-updateRefreshDone
+				}
+				if updateNotification != "" && !ciMode && !jsonOutput {
+					fmt.Fprintln(os.Stderr, updateNotification)
+				}
+			})
 
 			// Clean up leftover .bak file from Windows self-update.
 			if runtime.GOOS == "windows" {
@@ -89,17 +101,6 @@ func NewRootCmd() *cobra.Command {
 				}
 			}
 
-			return nil
-		},
-		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-			// Wait for background cache refresh to finish before exiting,
-			// so the cache is populated for the next run.
-			if updateRefreshDone != nil {
-				<-updateRefreshDone
-			}
-			if updateNotification != "" {
-				fmt.Fprintln(os.Stderr, updateNotification)
-			}
 			return nil
 		},
 		Version: version.Version,

@@ -19,10 +19,7 @@ func writeGlobalConfig(t *testing.T, configDir, content string) {
 
 func TestLoadGlobalMissing(t *testing.T) {
 	configDir := t.TempDir()
-	cfg, err := LoadGlobal(configDir)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	cfg := LoadGlobal(configDir)
 	if !cfg.Update.Check {
 		t.Error("Update.Check = false, want true (default)")
 	}
@@ -32,10 +29,7 @@ func TestLoadGlobalCheckDisabled(t *testing.T) {
 	configDir := t.TempDir()
 	writeGlobalConfig(t, configDir, "update:\n  check: false\n")
 
-	cfg, err := LoadGlobal(configDir)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	cfg := LoadGlobal(configDir)
 	if cfg.Update.Check {
 		t.Error("Update.Check = true, want false")
 	}
@@ -45,10 +39,7 @@ func TestLoadGlobalMalformed(t *testing.T) {
 	configDir := t.TempDir()
 	writeGlobalConfig(t, configDir, "update:\n  check: [invalid yaml\n")
 
-	cfg, err := LoadGlobal(configDir)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	cfg := LoadGlobal(configDir)
 	if !cfg.Update.Check {
 		t.Error("Update.Check = false, want true (default for malformed YAML)")
 	}

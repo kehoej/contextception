@@ -2,6 +2,15 @@
 package update
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -76,6 +85,167 @@ func TestCurrentBinaryPath(t *testing.T) {
 	}
 	if path == "" {
 		t.Error("CurrentBinaryPath() returned empty string")
+	}
+}
+
+// createTestTarGz creates an in-memory tar.gz archive containing a single file
+// with the given name and content.
+func createTestTarGz(t *testing.T, name string, content []byte) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+
+	hdr := &tar.Header{
+		Name: name,
+		Mode: 0o755,
+		Size: int64(len(content)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		t.Fatalf("tar WriteHeader: %v", err)
+	}
+	if _, err := tw.Write(content); err != nil {
+		t.Fatalf("tar Write: %v", err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatalf("tar Close: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("gzip Close: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// TestVerifyChecksum verifies that verifyChecksum passes for a correct hash and
+// fails for a wrong hash.
+func TestVerifyChecksum(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "checksum-test-*")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	content := []byte("hello checksum world")
+	if _, err := f.Write(content); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("close temp file: %v", err)
+	}
+
+	sum := sha256.Sum256(content)
+	correctHex := hex.EncodeToString(sum[:])
+
+	if err := verifyChecksum(f.Name(), correctHex); err != nil {
+		t.Errorf("verifyChecksum with correct hash: unexpected error: %v", err)
+	}
+
+	wrongHex := strings.Repeat("a", 64)
+	if err := verifyChecksum(f.Name(), wrongHex); err == nil {
+		t.Error("verifyChecksum with wrong hash: expected error, got nil")
+	}
+}
+
+// TestParseChecksum verifies parsing of sha256sum-format lines.
+func TestParseChecksum(t *testing.T) {
+	data := []byte("abc123  file1.tar.gz\ndef456  file2.tar.gz\n")
+
+	sum, err := parseChecksum(data, "file1.tar.gz")
+	if err != nil {
+		t.Fatalf("parseChecksum: %v", err)
+	}
+	if sum != "abc123" {
+		t.Errorf("got %q, want %q", sum, "abc123")
+	}
+
+	sum, err = parseChecksum(data, "file2.tar.gz")
+	if err != nil {
+		t.Fatalf("parseChecksum: %v", err)
+	}
+	if sum != "def456" {
+		t.Errorf("got %q, want %q", sum, "def456")
+	}
+
+	_, err = parseChecksum(data, "missing.tar.gz")
+	if err == nil {
+		t.Error("expected error for missing filename, got nil")
+	}
+}
+
+// TestExtractFromTarGz verifies that extractFromTarGz finds a file by base name.
+func TestExtractFromTarGz(t *testing.T) {
+	wantContent := []byte("binary content here")
+	archiveData := createTestTarGz(t, "contextception", wantContent)
+
+	got, err := extractFromTarGz(archiveData, "contextception")
+	if err != nil {
+		t.Fatalf("extractFromTarGz: %v", err)
+	}
+	if !bytes.Equal(got, wantContent) {
+		t.Errorf("content mismatch: got %q, want %q", got, wantContent)
+	}
+
+	_, err = extractFromTarGz(archiveData, "notexist")
+	if err == nil {
+		t.Error("expected error for missing file in archive, got nil")
+	}
+}
+
+// TestSelfUpdate is a full integration test using a mock HTTP server.
+// It skips on Windows because the binary replacement path differs.
+func TestSelfUpdate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows: binary replacement tested separately")
+	}
+
+	// Create fake "old" binary.
+	dir := t.TempDir()
+	oldBinary := dir + "/contextception"
+	if err := os.WriteFile(oldBinary, []byte("old binary content"), 0o755); err != nil {
+		t.Fatalf("write old binary: %v", err)
+	}
+
+	// Create test archive containing the "new" binary.
+	newContent := []byte("new binary content v1.0.5")
+	archiveData := createTestTarGz(t, "contextception", newContent)
+
+	// Compute checksum of the archive.
+	sum := sha256.Sum256(archiveData)
+	archiveChecksum := hex.EncodeToString(sum[:])
+
+	// Determine the archive name that SelfUpdate will request.
+	archiveName := archiveNameForPlatform()
+
+	// Build checksums.txt content.
+	checksumsTxt := fmt.Sprintf("%s  %s\n", archiveChecksum, archiveName)
+
+	// Start mock HTTP server.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "checksums.txt"):
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(checksumsTxt))
+		case strings.HasSuffix(r.URL.Path, archiveName):
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(archiveData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	// Use mock server URL as baseURL pattern.
+	baseURL := srv.URL + "/{tag}/{name}"
+
+	if err := SelfUpdate(oldBinary, "v1.0.5", baseURL); err != nil {
+		t.Fatalf("SelfUpdate: %v", err)
+	}
+
+	// Verify the binary now contains the new content.
+	got, err := os.ReadFile(oldBinary)
+	if err != nil {
+		t.Fatalf("read updated binary: %v", err)
+	}
+	if !bytes.Equal(got, newContent) {
+		t.Errorf("updated binary content = %q, want %q", got, newContent)
 	}
 }
 

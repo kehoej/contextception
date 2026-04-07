@@ -137,7 +137,8 @@ func httpGet(url string) ([]byte, error) {
 		return nil, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	// Limit response size to 100MB to prevent OOM from malicious servers.
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 100<<20))
 	if err != nil {
 		return nil, fmt.Errorf("read body: %w", err)
 	}
@@ -205,7 +206,8 @@ func extractFromTarGz(data []byte, targetName string) ([]byte, error) {
 			return nil, fmt.Errorf("tar read: %w", err)
 		}
 		if filepath.Base(hdr.Name) == targetName {
-			content, err := io.ReadAll(tr)
+			// Limit extracted size to 200MB to prevent decompression bombs.
+			content, err := io.ReadAll(io.LimitReader(tr, 200<<20))
 			if err != nil {
 				return nil, fmt.Errorf("read tar entry: %w", err)
 			}
@@ -228,7 +230,8 @@ func extractFromZip(data []byte, targetName string) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("open zip entry: %w", err)
 			}
-			content, err := io.ReadAll(rc)
+			// Limit extracted size to 200MB to prevent decompression bombs.
+			content, err := io.ReadAll(io.LimitReader(rc, 200<<20))
 			rc.Close()
 			if err != nil {
 				return nil, fmt.Errorf("read zip entry: %w", err)
@@ -315,24 +318,11 @@ func SelfUpdate(binaryPath, newVersion, baseURL string) error {
 		return fmt.Errorf("download archive: %w", err)
 	}
 
-	// 4. Write archive to temp file and verify checksum.
-	tmpFile, err := os.CreateTemp("", "contextception-update-*.tmp")
-	if err != nil {
-		return fmt.Errorf("create temp file: %w", err)
-	}
-	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
-
-	if _, err := tmpFile.Write(archiveData); err != nil {
-		tmpFile.Close()
-		return fmt.Errorf("write archive to temp: %w", err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("close temp file: %w", err)
-	}
-
-	if err := verifyChecksum(tmpPath, expectedChecksum); err != nil {
-		return fmt.Errorf("checksum verification failed: %w", err)
+	// 4. Verify checksum of downloaded archive data in memory.
+	actualSum := sha256.Sum256(archiveData)
+	if hex.EncodeToString(actualSum[:]) != expectedChecksum {
+		return fmt.Errorf("checksum verification failed: got %s, want %s",
+			hex.EncodeToString(actualSum[:]), expectedChecksum)
 	}
 
 	// 5. Extract the binary from the archive.

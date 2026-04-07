@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/kehoej/contextception/internal/config"
@@ -30,7 +31,8 @@ func NewRootCmd() *cobra.Command {
 		Long:  `Contextception answers: "What code must be understood before making a safe change?"`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Version check (cache-then-notify: sync read, async refresh).
-			if !noUpdateCheck && os.Getenv("CONTEXTCEPTION_NO_UPDATE_CHECK") == "" {
+			// Skip for the update command itself — user is already updating.
+			if !noUpdateCheck && os.Getenv("CONTEXTCEPTION_NO_UPDATE_CHECK") == "" && cmd.Name() != "update" {
 				configDir, err := os.UserConfigDir()
 				if err == nil {
 					globalCfg, _ := config.LoadGlobal(configDir)
@@ -42,8 +44,10 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			// Clean up leftover .bak file from Windows self-update.
-			if exe, err := os.Executable(); err == nil {
-				os.Remove(exe + ".bak") //nolint:errcheck
+			if runtime.GOOS == "windows" {
+				if exe, err := os.Executable(); err == nil {
+					os.Remove(exe + ".bak") //nolint:errcheck
+				}
 			}
 
 			// Skip repo root detection for commands that don't need it.

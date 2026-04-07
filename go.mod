@@ -6,6 +6,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.5.0
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/mod v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.48.1
 )

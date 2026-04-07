@@ -51,3 +51,6 @@ dev-cache/
 
 # Temporary files
 .temp/
+
+# Superpowers plans
+docs/superpowers/

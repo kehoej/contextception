@@ -24,8 +24,8 @@ import (
 
 // minisignPubKey is the minisign public key used to verify release signatures.
 // Override in tests. Generate with: minisign -G
-var minisignPubKey = `untrusted comment: minisign public key 9610BE1C90F8AD9E
-RWSerfiQHL4QlsgaAA47PzkzNCuWhCtXyAbpB3nqAt+0nsBTApWNoXx0`
+var minisignPubKey = `untrusted comment: minisign public key 9B6F2978A9D97090
+RWSQcNmpeClvm6pVWzVORMCgWP3Q/cl72bcpG5Y1jwjPewGESIPyLZjN`
 
 // InstallMethod describes how the binary was installed.
 type InstallMethod int

@@ -177,7 +177,7 @@ jobs:
           echo "$MINISIGN_KEY" > /tmp/minisign.key
 
           # Sign checksums.txt
-          minisign -S -s /tmp/minisign.key -m dist/checksums.txt -t "contextception ${{ github.ref_name }}"
+          minisign -S -W -s /tmp/minisign.key -m dist/checksums.txt -t "contextception ${{ github.ref_name }}"
 
           # Clean up private key
           rm -f /tmp/minisign.key

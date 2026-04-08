@@ -39,23 +39,16 @@ func NewRootCmd() *cobra.Command {
 					globalCfg := config.LoadGlobal(configDir)
 					if globalCfg.Update.Check {
 						result := update.CheckForUpdate(version.Version, configDir, "")
-						updateNotification = result.Notification
+						if result.ShouldNotify {
+							updateNotification = fmt.Sprintf(
+								"A new version of contextception is available (%s). Run 'contextception update' to upgrade.",
+								result.LatestVersion,
+							)
+						}
 						updateRefreshDone = result.RefreshDone
 					}
 				}
 			}
-
-			// Register finalizer to drain background refresh and show notification.
-			// Uses cobra.OnFinalize (runs via defer) so it fires even when RunE
-			// returns an error, unlike PersistentPostRunE which Cobra skips on error.
-			cobra.OnFinalize(func() {
-				if updateRefreshDone != nil {
-					<-updateRefreshDone
-				}
-				if updateNotification != "" && !ciMode && !jsonOutput {
-					fmt.Fprintln(os.Stderr, updateNotification)
-				}
-			})
 
 			// Clean up leftover .bak file from Windows self-update.
 			if runtime.GOOS == "windows" {
@@ -105,6 +98,18 @@ func NewRootCmd() *cobra.Command {
 		},
 		Version: version.Version,
 	}
+
+	// Register finalizer once per NewRootCmd() call (not per-execution) to
+	// drain the background refresh goroutine and show the update notification.
+	// Uses cobra.OnFinalize so it fires even when RunE returns an error.
+	cobra.OnFinalize(func() {
+		if updateRefreshDone != nil {
+			<-updateRefreshDone
+		}
+		if updateNotification != "" && !ciMode && !jsonOutput {
+			fmt.Fprintln(os.Stderr, updateNotification)
+		}
+	})
 
 	root.PersistentFlags().StringVar(&repoRoot, "repo", "", "repository root (defaults to git root detection)")
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")

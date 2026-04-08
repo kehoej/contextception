@@ -30,8 +30,10 @@ type Cache struct {
 
 // CheckResult holds the outcome of CheckForUpdate.
 type CheckResult struct {
-	// Notification is non-empty when the user should be told about a new version.
-	Notification string
+	// ShouldNotify is true when the user should be told about a new version.
+	ShouldNotify bool
+	// LatestVersion is the newest version available (set when ShouldNotify is true).
+	LatestVersion string
 	// RefreshDone is closed when the background cache refresh completes.
 	// Nil if no refresh was needed. Callers can select on this to wait.
 	RefreshDone <-chan struct{}
@@ -141,9 +143,10 @@ func FetchLatest(apiURL string) (string, error) {
 }
 
 // refreshCache fetches the latest release version and updates the cache.
-// Errors are silently discarded — this runs in a background goroutine and
-// should never surface to the user.
-func refreshCache(configDir, apiURL string) {
+// It preserves the provided notification state to avoid clobbering writes
+// made by the main goroutine. Errors are silently discarded — this runs in
+// a background goroutine and should never surface to the user.
+func refreshCache(configDir, apiURL string, notifiedAt time.Time, notifiedVersion string) {
 	if apiURL == "" {
 		apiURL = githubReleasesURL
 	}
@@ -152,10 +155,12 @@ func refreshCache(configDir, apiURL string) {
 		return
 	}
 
-	// Read existing cache so we preserve NotifiedAt/NotifiedVersion.
-	c, _ := readCache(configDir)
-	c.LatestVersion = version
-	c.CheckedAt = time.Now().UTC()
+	c := &Cache{
+		LatestVersion:   version,
+		CheckedAt:       time.Now().UTC(),
+		NotifiedAt:      notifiedAt,
+		NotifiedVersion: notifiedVersion,
+	}
 	_ = writeCache(configDir, c)
 }
 
@@ -164,7 +169,7 @@ func refreshCache(configDir, apiURL string) {
 //  2. If cache is stale, spawn a background goroutine to refresh it for the NEXT run.
 //  3. Compare cached latest vs currentVersion.
 //  4. Apply notification-suppression rules.
-//  5. If notifying, update the cache and return a non-empty CheckResult.Notification.
+//  5. If notifying, update the cache and return CheckResult with ShouldNotify=true.
 //
 // If the cache is stale, RefreshDone will be a non-nil channel that closes when
 // the background refresh completes. Callers can optionally wait on it to ensure
@@ -178,40 +183,36 @@ func CheckForUpdate(currentVersion, configDir, apiURL string) CheckResult {
 	c, _ := readCache(configDir)
 
 	var result CheckResult
+	stale := time.Since(c.CheckedAt) > checkInterval
 
-	// Refresh cache in background when stale.
-	if time.Since(c.CheckedAt) > checkInterval {
+	// Determine notification before spawning the refresh goroutine so
+	// that the goroutine receives the final notification state and cannot
+	// clobber it with a stale read-modify-write.
+	shouldNotify := c.LatestVersion != "" &&
+		IsNewer(currentVersion, c.LatestVersion) &&
+		!(c.NotifiedVersion == c.LatestVersion && time.Since(c.NotifiedAt) < notifyInterval)
+
+	if shouldNotify {
+		c.NotifiedAt = time.Now().UTC()
+		c.NotifiedVersion = c.LatestVersion
+		_ = writeCache(configDir, c)
+
+		result.ShouldNotify = true
+		result.LatestVersion = c.LatestVersion
+	}
+
+	// Refresh cache in background when stale. Pass current notification
+	// state so the goroutine preserves it rather than re-reading the file.
+	if stale {
 		done := make(chan struct{})
 		result.RefreshDone = done
+		notifiedAt := c.NotifiedAt
+		notifiedVersion := c.NotifiedVersion
 		go func() {
 			defer close(done)
-			refreshCache(configDir, apiURL)
+			refreshCache(configDir, apiURL, notifiedAt, notifiedVersion)
 		}()
 	}
 
-	// Nothing to compare yet.
-	if c.LatestVersion == "" {
-		return result
-	}
-
-	// Is the cached version actually newer?
-	if !IsNewer(currentVersion, c.LatestVersion) {
-		return result
-	}
-
-	// Notification suppression: same version notified within 7 days.
-	if c.NotifiedVersion == c.LatestVersion && time.Since(c.NotifiedAt) < notifyInterval {
-		return result
-	}
-
-	// We will notify. Persist the notification record.
-	c.NotifiedAt = time.Now().UTC()
-	c.NotifiedVersion = c.LatestVersion
-	_ = writeCache(configDir, c)
-
-	result.Notification = fmt.Sprintf(
-		"A new version of contextception is available (%s). Run 'contextception update' to upgrade.",
-		c.LatestVersion,
-	)
 	return result
 }

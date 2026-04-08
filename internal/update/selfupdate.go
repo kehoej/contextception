@@ -8,6 +8,7 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,8 +18,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jedisct1/go-minisign"
 	"golang.org/x/mod/semver"
 )
+
+// minisignPubKey is the minisign public key used to verify release signatures.
+// Override in tests. Generate with: minisign -G
+var minisignPubKey = `untrusted comment: minisign public key 9610BE1C90F8AD9E
+RWSerfiQHL4QlsgaAA47PzkzNCuWhCtXyAbpB3nqAt+0nsBTApWNoXx0`
 
 // InstallMethod describes how the binary was installed.
 type InstallMethod int
@@ -147,6 +154,60 @@ func httpGet(url string) ([]byte, error) {
 	return data, nil
 }
 
+// errNotFound is returned by httpGetOptional when the server returns 404.
+var errNotFound = errors.New("not found")
+
+// httpGetOptional is like httpGet but returns errNotFound for 404 responses
+// instead of a generic error. This allows callers to distinguish "file does
+// not exist" from other failures.
+func httpGetOptional(url string) ([]byte, error) {
+	client := &http.Client{Timeout: downloadTimeout}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("User-Agent", "contextception-selfupdate")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, errNotFound
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
+	return data, nil
+}
+
+// verifyChecksums verifies the minisign signature over checksumsData.
+func verifyChecksums(checksumsData, signatureData []byte) error {
+	pk, err := minisign.DecodePublicKey(minisignPubKey)
+	if err != nil {
+		return fmt.Errorf("parse public key: %w", err)
+	}
+	sig, err := minisign.DecodeSignature(string(signatureData))
+	if err != nil {
+		return fmt.Errorf("parse signature: %w", err)
+	}
+	valid, err := pk.Verify(checksumsData, sig)
+	if err != nil {
+		return fmt.Errorf("signature verification: %w", err)
+	}
+	if !valid {
+		return fmt.Errorf("signature verification failed")
+	}
+	return nil
+}
+
 // parseChecksum parses sha256sum-format data (lines of "hexhash  filename") and
 // returns the hex hash for the given filename. Returns an error if not found.
 func parseChecksum(data []byte, filename string) (string, error) {
@@ -193,9 +254,14 @@ func extractFromTarGz(data []byte, targetName string) ([]byte, error) {
 				return nil, fmt.Errorf("archive entry %q is not a regular file (type %d)", hdr.Name, hdr.Typeflag)
 			}
 			// Limit extracted size to 200MB to prevent decompression bombs.
-			content, err := io.ReadAll(io.LimitReader(tr, 200<<20))
+			lr := io.LimitReader(tr, 200<<20)
+			content, err := io.ReadAll(lr)
 			if err != nil {
 				return nil, fmt.Errorf("read tar entry: %w", err)
+			}
+			// Verify the entry was fully read (not silently truncated).
+			if _, err := tr.Read(make([]byte, 1)); err != io.EOF {
+				return nil, fmt.Errorf("archive entry %q exceeds 200MB size limit", hdr.Name)
 			}
 			return content, nil
 		}
@@ -212,16 +278,26 @@ func extractFromZip(data []byte, targetName string) ([]byte, error) {
 	}
 	for _, f := range zr.File {
 		if filepath.Base(f.Name) == targetName {
+			// Reject symlinks and other non-regular files to prevent archive attacks.
+			if !f.FileInfo().Mode().IsRegular() {
+				return nil, fmt.Errorf("archive entry %q is not a regular file (mode %s)", f.Name, f.FileInfo().Mode())
+			}
 			rc, err := f.Open()
 			if err != nil {
 				return nil, fmt.Errorf("open zip entry: %w", err)
 			}
 			// Limit extracted size to 200MB to prevent decompression bombs.
 			content, err := io.ReadAll(io.LimitReader(rc, 200<<20))
-			rc.Close()
 			if err != nil {
+				rc.Close()
 				return nil, fmt.Errorf("read zip entry: %w", err)
 			}
+			// Verify the entry was fully read (not silently truncated).
+			if _, err := rc.Read(make([]byte, 1)); err != io.EOF {
+				rc.Close()
+				return nil, fmt.Errorf("archive entry %q exceeds 200MB size limit", f.Name)
+			}
+			rc.Close()
 			return content, nil
 		}
 	}
@@ -296,28 +372,42 @@ func SelfUpdate(binaryPath, newVersion, baseURL string) error {
 		return fmt.Errorf("download checksums.txt: %w", err)
 	}
 
-	// 2. Determine archive name and expected checksum.
+	// 2. Verify checksums.txt signature if available.
+	sigURL := makeURL(v, "checksums.txt.minisig")
+	sigData, sigErr := httpGetOptional(sigURL)
+	switch {
+	case sigErr == nil:
+		if err := verifyChecksums(checksumsData, sigData); err != nil {
+			return fmt.Errorf("signature verification failed: %w", err)
+		}
+	case errors.Is(sigErr, errNotFound):
+		return fmt.Errorf("release not signed: signature file not found at %s", sigURL)
+	default:
+		return fmt.Errorf("download signature: %w", sigErr)
+	}
+
+	// 3. Determine archive name and expected checksum.
 	archiveName := archiveNameForPlatform()
 	expectedChecksum, err := parseChecksum(checksumsData, archiveName)
 	if err != nil {
 		return fmt.Errorf("parse checksum for %s: %w", archiveName, err)
 	}
 
-	// 3. Download archive.
+	// 4. Download archive.
 	archiveURL := makeURL(v, archiveName)
 	archiveData, err := httpGet(archiveURL)
 	if err != nil {
 		return fmt.Errorf("download archive: %w", err)
 	}
 
-	// 4. Verify checksum of downloaded archive data in memory.
+	// 5. Verify checksum of downloaded archive data in memory.
 	actualSum := sha256.Sum256(archiveData)
 	if hex.EncodeToString(actualSum[:]) != expectedChecksum {
 		return fmt.Errorf("checksum verification failed: got %s, want %s",
 			hex.EncodeToString(actualSum[:]), expectedChecksum)
 	}
 
-	// 5. Extract the binary from the archive.
+	// 6. Extract the binary from the archive.
 	var binaryName string
 	var newBinaryContent []byte
 	if runtime.GOOS == "windows" {
@@ -331,7 +421,7 @@ func SelfUpdate(binaryPath, newVersion, baseURL string) error {
 		return fmt.Errorf("extract binary from archive: %w", err)
 	}
 
-	// 6. Atomically replace the binary.
+	// 7. Atomically replace the binary.
 	if err := replaceBinary(binaryPath, newBinaryContent); err != nil {
 		return fmt.Errorf("replace binary: %w", err)
 	}

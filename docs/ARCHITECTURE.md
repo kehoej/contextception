@@ -157,6 +157,48 @@ Exposes contextception as an MCP server over stdio transport. Eight tools:
 
 The server lazy-initializes the index on first tool call and runs migrations if needed.
 
+### Update Subsystem (`internal/update/`)
+
+Handles version checking and self-update. This is the one component that writes outside the repository — it modifies the binary itself during self-update.
+
+**Version check** uses a cache-then-notify pattern:
+
+```
+CLI startup (PersistentPreRunE)
+    |
+    v
+Read cache file (sync, fast path)
+    |
+    +--> Cache fresh? Use cached version for comparison
+    |
+    +--> Cache stale? Spawn background goroutine to refresh
+    |
+    v
+Compare cached latest vs current version
+    |
+    +--> Suppression rules (same version within 7 days = silent)
+    |
+    v
+Return structured result (ShouldNotify, LatestVersion, RefreshDone channel)
+    |
+    v
+cobra.OnFinalize drains RefreshDone, CLI layer formats and prints notification
+```
+
+The background goroutine receives notification state by value to avoid read-modify-write races on the cache file. The `RefreshDone` channel lets the CLI wait for the goroutine before exit.
+
+**Self-update** (`SelfUpdate`) performs a verified binary replacement:
+
+1. Download `checksums.txt` from GitHub Releases
+2. Download and verify `checksums.txt.minisig` (required — missing signature is a hard error)
+3. Parse expected SHA256 for the platform-specific archive
+4. Download the archive
+5. Verify SHA256 of the downloaded archive
+6. Extract binary from tar.gz/zip (with symlink rejection and 200MB size limit with exhaustion check)
+7. Atomic binary replacement (Unix: rename-over; Windows: rename-to-bak then rename-new)
+
+**Install method detection** (`DetectInstallMethod`) inspects the binary path to determine whether it was installed via Homebrew, `go install`, or direct download, so the `update` command can suggest the appropriate upgrade method.
+
 ## Output Schema
 
 Analysis produces a JSON context bundle (schema 3.2):
@@ -182,3 +224,5 @@ Formal JSON Schema definitions are in `protocol/analysis-schema.json` and `proto
 3. **Parallel extraction** — worker pool processes files concurrently. Extractors implement `Clone()` for thread-safe copies.
 4. **Language-agnostic core** — extractors emit `ImportFact`, resolvers emit file paths. The analysis engine never sees language-specific details.
 5. **Capped historical signals** — co-change and churn can boost scores but never dominate structural evidence.
+6. **Non-blocking update check** — sync cache read + async refresh. Notification is deferred to `cobra.OnFinalize` so it never delays command execution.
+7. **Mandatory release signing** — self-update requires a valid minisign signature on `checksums.txt`. Missing signatures are a hard error, preventing downgrade-to-unsigned attacks.

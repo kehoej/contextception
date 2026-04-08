@@ -134,8 +134,11 @@ func TestCheckForUpdate_CacheFresh_NewVersion(t *testing.T) {
 	}
 
 	result := CheckForUpdate("v1.0.0", dir, "")
-	if result.Notification == "" {
-		t.Error("expected notification, got empty string")
+	if !result.ShouldNotify {
+		t.Error("expected ShouldNotify=true")
+	}
+	if result.LatestVersion != "v1.5.0" {
+		t.Errorf("LatestVersion = %q, want %q", result.LatestVersion, "v1.5.0")
 	}
 }
 
@@ -151,8 +154,8 @@ func TestCheckForUpdate_CacheFresh_SameVersion(t *testing.T) {
 	}
 
 	result := CheckForUpdate("v1.0.0", dir, "")
-	if result.Notification != "" {
-		t.Errorf("expected no notification, got %q", result.Notification)
+	if result.ShouldNotify {
+		t.Error("expected ShouldNotify=false")
 	}
 }
 
@@ -171,8 +174,8 @@ func TestCheckForUpdate_NotificationSuppressed(t *testing.T) {
 	}
 
 	result := CheckForUpdate("v1.0.0", dir, "")
-	if result.Notification != "" {
-		t.Errorf("expected notification suppressed, got %q", result.Notification)
+	if result.ShouldNotify {
+		t.Error("expected ShouldNotify=false (suppressed)")
 	}
 }
 
@@ -191,8 +194,8 @@ func TestCheckForUpdate_NotificationResurfaces(t *testing.T) {
 	}
 
 	result := CheckForUpdate("v1.0.0", dir, "")
-	if result.Notification == "" {
-		t.Error("expected notification to resurface after 7 days, got empty string")
+	if !result.ShouldNotify {
+		t.Error("expected ShouldNotify=true after 7-day suppression expires")
 	}
 }
 
@@ -211,8 +214,8 @@ func TestCheckForUpdate_NewerThanNotified(t *testing.T) {
 	}
 
 	result := CheckForUpdate("v1.0.0", dir, "")
-	if result.Notification == "" {
-		t.Error("expected notification for version newer than previously notified, got empty string")
+	if !result.ShouldNotify {
+		t.Error("expected ShouldNotify=true for version newer than previously notified")
 	}
 }
 
@@ -228,19 +231,19 @@ func TestCheckForUpdate_DevVersion(t *testing.T) {
 	}
 
 	result := CheckForUpdate("dev", dir, "")
-	if result.Notification != "" {
-		t.Errorf("dev build should not notify, got %q", result.Notification)
+	if result.ShouldNotify {
+		t.Error("dev build should not notify")
 	}
 
 	// Also test empty version.
 	result = CheckForUpdate("", dir, "")
-	if result.Notification != "" {
-		t.Errorf("empty version should not notify, got %q", result.Notification)
+	if result.ShouldNotify {
+		t.Error("empty version should not notify")
 	}
 }
 
-// TestCheckForUpdate_NotificationContent verifies the exact notification string format.
-func TestCheckForUpdate_NotificationContent(t *testing.T) {
+// TestCheckForUpdate_NotificationFields verifies the structured notification fields.
+func TestCheckForUpdate_NotificationFields(t *testing.T) {
 	dir := t.TempDir()
 	c := &Cache{
 		LatestVersion: "v1.5.0",
@@ -251,9 +254,11 @@ func TestCheckForUpdate_NotificationContent(t *testing.T) {
 	}
 
 	result := CheckForUpdate("v1.0.0", dir, "")
-	want := "A new version of contextception is available (v1.5.0). Run 'contextception update' to upgrade."
-	if result.Notification != want {
-		t.Errorf("notification = %q, want %q", result.Notification, want)
+	if !result.ShouldNotify {
+		t.Fatal("expected ShouldNotify=true")
+	}
+	if result.LatestVersion != "v1.5.0" {
+		t.Errorf("LatestVersion = %q, want %q", result.LatestVersion, "v1.5.0")
 	}
 }
 

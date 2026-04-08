@@ -16,6 +16,8 @@ Supports 5 languages: Python, TypeScript/JavaScript, Go, Java, and Rust. Availab
 - **TS/JS Extraction:** `smacker/go-tree-sitter` (CGO) with regex fallback
 - **MCP Server:** `modelcontextprotocol/go-sdk` (stdio transport)
 - **Config:** `gopkg.in/yaml.v3`
+- **Semver:** `golang.org/x/mod/semver`
+- **Release Signing:** `jedisct1/go-minisign` (signature verification for self-update)
 
 ## Architecture
 
@@ -25,7 +27,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture guide
 Repository → Language Extractors → SQLite Index → Analysis Engine → Context Bundle (JSON)
 ```
 
-Key components: Indexer (`internal/indexer/`), Language Extractors (`internal/extractor/`), Resolvers (`internal/resolver/`), Analysis Engine (`internal/analyzer/`), Change Analysis (`internal/change/`), MCP Server (`internal/mcpserver/`).
+Key components: Indexer (`internal/indexer/`), Language Extractors (`internal/extractor/`), Resolvers (`internal/resolver/`), Analysis Engine (`internal/analyzer/`), Change Analysis (`internal/change/`), MCP Server (`internal/mcpserver/`), Update (`internal/update/`).
 
 ## Key Design Principles
 

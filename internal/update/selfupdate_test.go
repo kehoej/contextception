@@ -6,7 +6,9 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -170,6 +172,15 @@ func TestSelfUpdate(t *testing.T) {
 		t.Skip("skipping on Windows: binary replacement tested separately")
 	}
 
+	// Generate a test key pair and override the package-level public key.
+	pub, priv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	origKey := minisignPubKey
+	minisignPubKey = formatMinisignPublicKey(pub)
+	t.Cleanup(func() { minisignPubKey = origKey })
+
 	// Create fake "old" binary.
 	dir := t.TempDir()
 	oldBinary := dir + "/contextception"
@@ -188,12 +199,15 @@ func TestSelfUpdate(t *testing.T) {
 	// Determine the archive name that SelfUpdate will request.
 	archiveName := archiveNameForPlatform()
 
-	// Build checksums.txt content.
+	// Build checksums.txt content and sign it.
 	checksumsTxt := fmt.Sprintf("%s  %s\n", archiveChecksum, archiveName)
+	minisig := signMinisign(t, priv, []byte(checksumsTxt))
 
 	// Start mock HTTP server.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
+		case strings.HasSuffix(r.URL.Path, "checksums.txt.minisig"):
+			_, _ = w.Write([]byte(minisig))
 		case strings.HasSuffix(r.URL.Path, "checksums.txt"):
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(checksumsTxt))
@@ -252,6 +266,15 @@ func TestSelfUpdateChecksumMismatch(t *testing.T) {
 		t.Skip("skipping on Windows")
 	}
 
+	// Generate a test key pair and override the package-level public key.
+	pub, priv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	origKey := minisignPubKey
+	minisignPubKey = formatMinisignPublicKey(pub)
+	t.Cleanup(func() { minisignPubKey = origKey })
+
 	dir := t.TempDir()
 	oldBinary := filepath.Join(dir, "contextception")
 	if err := os.WriteFile(oldBinary, []byte("old"), 0o755); err != nil {
@@ -262,9 +285,12 @@ func TestSelfUpdateChecksumMismatch(t *testing.T) {
 	archiveName := archiveNameForPlatform()
 	wrongChecksum := strings.Repeat("a", 64)
 	checksumsTxt := fmt.Sprintf("%s  %s\n", wrongChecksum, archiveName)
+	minisig := signMinisign(t, priv, []byte(checksumsTxt))
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
+		case strings.HasSuffix(r.URL.Path, "checksums.txt.minisig"):
+			_, _ = w.Write([]byte(minisig))
 		case strings.HasSuffix(r.URL.Path, "checksums.txt"):
 			_, _ = w.Write([]byte(checksumsTxt))
 		case strings.HasSuffix(r.URL.Path, archiveName):
@@ -275,7 +301,7 @@ func TestSelfUpdateChecksumMismatch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	err := SelfUpdate(oldBinary, "v1.0.5", srv.URL+"/{tag}/{name}")
+	err = SelfUpdate(oldBinary, "v1.0.5", srv.URL+"/{tag}/{name}")
 	if err == nil {
 		t.Fatal("expected checksum mismatch error, got nil")
 	}
@@ -375,5 +401,310 @@ func TestExtractFromZip(t *testing.T) {
 	_, err = extractFromZip(buf.Bytes(), "notexist")
 	if err == nil {
 		t.Error("expected error for missing file in zip archive")
+	}
+}
+
+// --- Symlink rejection tests ---
+
+func TestExtractFromTarGzRejectsSymlink(t *testing.T) {
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+
+	hdr := &tar.Header{
+		Name:     "contextception",
+		Typeflag: tar.TypeSymlink,
+		Linkname: "/etc/passwd",
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		t.Fatal(err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := extractFromTarGz(buf.Bytes(), "contextception")
+	if err == nil {
+		t.Fatal("expected error for symlink entry, got nil")
+	}
+	if !strings.Contains(err.Error(), "not a regular file") {
+		t.Errorf("error = %v, want to contain 'not a regular file'", err)
+	}
+}
+
+func TestExtractFromZipRejectsNonRegular(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+
+	// Create a file header with symlink mode bits.
+	fh := &zip.FileHeader{Name: "contextception"}
+	fh.SetMode(os.ModeSymlink | 0o755)
+	w, err := zw.CreateHeader(fh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte("/etc/passwd")); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = extractFromZip(buf.Bytes(), "contextception")
+	if err == nil {
+		t.Fatal("expected error for symlink entry, got nil")
+	}
+	if !strings.Contains(err.Error(), "not a regular file") {
+		t.Errorf("error = %v, want to contain 'not a regular file'", err)
+	}
+}
+
+// --- Minisign signature tests ---
+
+// testMinisignKeyID is an arbitrary 8-byte key ID used in test signatures.
+var testMinisignKeyID = [8]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+
+// formatMinisignPublicKey formats an ed25519 public key as a minisign public
+// key string: "untrusted comment: ...\n" + base64(Ed || keyID || pubkey).
+func formatMinisignPublicKey(pub ed25519.PublicKey) string {
+	// Minisign public key format: 2-byte algorithm ("Ed") + 8-byte key ID + 32-byte public key.
+	var raw [42]byte
+	raw[0] = 'E'
+	raw[1] = 'd'
+	copy(raw[2:10], testMinisignKeyID[:])
+	copy(raw[10:42], pub)
+	return "untrusted comment: minisign public key\n" + base64.StdEncoding.EncodeToString(raw[:])
+}
+
+// signMinisign creates a minisign signature string over message using the given
+// ed25519 private key.
+func signMinisign(t *testing.T, priv ed25519.PrivateKey, message []byte) string {
+	t.Helper()
+
+	// Sign the message.
+	sig := ed25519.Sign(priv, message)
+
+	// Build the signature line: 2-byte algorithm ("Ed") + 8-byte key ID + 64-byte signature.
+	var sigRaw [74]byte
+	sigRaw[0] = 'E'
+	sigRaw[1] = 'd'
+	copy(sigRaw[2:10], testMinisignKeyID[:])
+	copy(sigRaw[10:74], sig)
+
+	sigB64 := base64.StdEncoding.EncodeToString(sigRaw[:])
+
+	// Trusted comment.
+	trustedComment := "timestamp:1234567890"
+
+	// Global signature: sign(signature_bytes || trusted_comment_bytes).
+	var globalMsg []byte
+	globalMsg = append(globalMsg, sig...)
+	globalMsg = append(globalMsg, []byte(trustedComment)...)
+	globalSig := ed25519.Sign(priv, globalMsg)
+	globalSigB64 := base64.StdEncoding.EncodeToString(globalSig)
+
+	return fmt.Sprintf("untrusted comment: signature\n%s\ntrusted comment: %s\n%s",
+		sigB64, trustedComment, globalSigB64)
+}
+
+func TestVerifyChecksums(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Override the package-level public key for this test.
+	origKey := minisignPubKey
+	minisignPubKey = formatMinisignPublicKey(pub)
+	t.Cleanup(func() { minisignPubKey = origKey })
+
+	message := []byte("abc123  contextception_linux_amd64.tar.gz\n")
+	sigStr := signMinisign(t, priv, message)
+
+	if err := verifyChecksums(message, []byte(sigStr)); err != nil {
+		t.Fatalf("verifyChecksums with valid signature: %v", err)
+	}
+}
+
+func TestVerifyChecksumsInvalidSignature(t *testing.T) {
+	pub, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Generate a different key to sign with (wrong key).
+	_, wrongPriv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	origKey := minisignPubKey
+	minisignPubKey = formatMinisignPublicKey(pub)
+	t.Cleanup(func() { minisignPubKey = origKey })
+
+	message := []byte("abc123  contextception_linux_amd64.tar.gz\n")
+	sigStr := signMinisign(t, wrongPriv, message)
+
+	if err := verifyChecksums(message, []byte(sigStr)); err == nil {
+		t.Fatal("expected error for invalid signature, got nil")
+	}
+}
+
+func TestSelfUpdateWithValidSignature(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows")
+	}
+
+	pub, priv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	origKey := minisignPubKey
+	minisignPubKey = formatMinisignPublicKey(pub)
+	t.Cleanup(func() { minisignPubKey = origKey })
+
+	dir := t.TempDir()
+	oldBinary := filepath.Join(dir, "contextception")
+	if err := os.WriteFile(oldBinary, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	newContent := []byte("new binary with sig")
+	archiveData := createTestTarGz(t, "contextception", newContent)
+	sum := sha256.Sum256(archiveData)
+	archiveName := archiveNameForPlatform()
+	checksumsTxt := fmt.Sprintf("%s  %s\n", hex.EncodeToString(sum[:]), archiveName)
+	minisig := signMinisign(t, priv, []byte(checksumsTxt))
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "checksums.txt.minisig"):
+			_, _ = w.Write([]byte(minisig))
+		case strings.HasSuffix(r.URL.Path, "checksums.txt"):
+			_, _ = w.Write([]byte(checksumsTxt))
+		case strings.HasSuffix(r.URL.Path, archiveName):
+			_, _ = w.Write(archiveData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	if err := SelfUpdate(oldBinary, "v1.0.5", srv.URL+"/{tag}/{name}"); err != nil {
+		t.Fatalf("SelfUpdate with valid signature: %v", err)
+	}
+
+	got, err := os.ReadFile(oldBinary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, newContent) {
+		t.Errorf("binary = %q, want %q", got, newContent)
+	}
+}
+
+func TestSelfUpdateWithInvalidSignature(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows")
+	}
+
+	pub, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, wrongPriv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	origKey := minisignPubKey
+	minisignPubKey = formatMinisignPublicKey(pub)
+	t.Cleanup(func() { minisignPubKey = origKey })
+
+	dir := t.TempDir()
+	oldBinary := filepath.Join(dir, "contextception")
+	if err := os.WriteFile(oldBinary, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	archiveData := createTestTarGz(t, "contextception", []byte("new"))
+	sum := sha256.Sum256(archiveData)
+	archiveName := archiveNameForPlatform()
+	checksumsTxt := fmt.Sprintf("%s  %s\n", hex.EncodeToString(sum[:]), archiveName)
+	badSig := signMinisign(t, wrongPriv, []byte(checksumsTxt))
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "checksums.txt.minisig"):
+			_, _ = w.Write([]byte(badSig))
+		case strings.HasSuffix(r.URL.Path, "checksums.txt"):
+			_, _ = w.Write([]byte(checksumsTxt))
+		case strings.HasSuffix(r.URL.Path, archiveName):
+			_, _ = w.Write(archiveData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	err = SelfUpdate(oldBinary, "v1.0.5", srv.URL+"/{tag}/{name}")
+	if err == nil {
+		t.Fatal("expected signature verification error, got nil")
+	}
+	if !strings.Contains(err.Error(), "signature verification failed") {
+		t.Errorf("error = %v, want to contain 'signature verification failed'", err)
+	}
+}
+
+func TestSelfUpdateWithoutSignature(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows")
+	}
+
+	dir := t.TempDir()
+	oldBinary := filepath.Join(dir, "contextception")
+	if err := os.WriteFile(oldBinary, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	newContent := []byte("new binary no sig")
+	archiveData := createTestTarGz(t, "contextception", newContent)
+	sum := sha256.Sum256(archiveData)
+	archiveName := archiveNameForPlatform()
+	checksumsTxt := fmt.Sprintf("%s  %s\n", hex.EncodeToString(sum[:]), archiveName)
+
+	// Server returns 404 for .minisig — simulates unsigned release.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "checksums.txt"):
+			_, _ = w.Write([]byte(checksumsTxt))
+		case strings.HasSuffix(r.URL.Path, archiveName):
+			_, _ = w.Write(archiveData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	// Should fail — missing signature is now a hard error.
+	err := SelfUpdate(oldBinary, "v1.0.5", srv.URL+"/{tag}/{name}")
+	if err == nil {
+		t.Fatal("expected error for missing signature, got nil")
+	}
+	if !strings.Contains(err.Error(), "release not signed") {
+		t.Errorf("error = %v, want to contain 'release not signed'", err)
+	}
+
+	// Verify the original binary was NOT replaced.
+	got, err := os.ReadFile(oldBinary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, []byte("old")) {
+		t.Error("binary should not have been replaced when signature is missing")
 	}
 }

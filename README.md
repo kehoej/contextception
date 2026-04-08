@@ -304,6 +304,7 @@ contextception reindex                  Delete and rebuild the index from scratc
 contextception extensions                List supported file extensions
 contextception status                   Show index status and diagnostics
 contextception mcp                      Start the MCP server (stdio transport)
+contextception update                   Check for and install the latest version
 ```
 
 ### Key Flags
@@ -315,6 +316,22 @@ contextception mcp                      Start the MCP server (stdio transport)
 | `--ci --fail-on high\|medium` | Exit codes for CI pipelines |
 | `--cap N` | Limit must_read entries (overflow to related) |
 | `--no-external` | Exclude external dependencies |
+| `--no-update-check` | Disable automatic update version check |
+
+### Updating
+
+Contextception checks for new versions automatically (once per day, cached) and prints a notification to stderr when an update is available. To update:
+
+```bash
+contextception update
+```
+
+The update command detects your install method and acts accordingly:
+- **Direct download:** downloads and replaces the binary with checksum verification
+- **Homebrew:** suggests `brew upgrade contextception`
+- **go install:** suggests `go install ...@latest`
+
+Disable the automatic check with `--no-update-check`, `CONTEXTCEPTION_NO_UPDATE_CHECK=1`, or set `update.check: false` in the global config at `<config-dir>/contextception/config.yaml` (where `<config-dir>` is `~/Library/Application Support` on macOS, `~/.config` on Linux, `%AppData%` on Windows).
 
 ---
 

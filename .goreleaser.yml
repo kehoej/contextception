@@ -73,6 +73,18 @@ archives:
 checksum:
   name_template: 'checksums.txt'
 
+signs:
+  - cmd: minisign
+    args:
+      - "-S"
+      - "-s"
+      - "/tmp/minisign.key"
+      - "-m"
+      - "${artifact}"
+      - "-t"
+      - "contextception {{ .Version }}"
+    artifacts: checksum
+
 changelog:
   sort: asc
   filters:

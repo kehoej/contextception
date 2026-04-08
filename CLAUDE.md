@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Contextception** is a code context intelligence engine written in **Go**. It answers: *"What code must be understood before making a safe change?"* It is not a code generator, AI assistant, or IDE — it determines what matters, not what to do.
 
-Supports 5 languages: Python, TypeScript/JavaScript, Go, Java, and Rust. Available as a CLI (10 commands) and MCP server (8 tools).
+Supports 5 languages: Python, TypeScript/JavaScript, Go, Java, and Rust. Available as a CLI (11 commands) and MCP server (8 tools).
 
 ## Tech Stack
 
@@ -16,6 +16,8 @@ Supports 5 languages: Python, TypeScript/JavaScript, Go, Java, and Rust. Availab
 - **TS/JS Extraction:** `smacker/go-tree-sitter` (CGO) with regex fallback
 - **MCP Server:** `modelcontextprotocol/go-sdk` (stdio transport)
 - **Config:** `gopkg.in/yaml.v3`
+- **Semver:** `golang.org/x/mod/semver`
+- **Release Signing:** `jedisct1/go-minisign` (signature verification for self-update)
 
 ## Architecture
 
@@ -25,7 +27,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture guide
 Repository → Language Extractors → SQLite Index → Analysis Engine → Context Bundle (JSON)
 ```
 
-Key components: Indexer (`internal/indexer/`), Language Extractors (`internal/extractor/`), Resolvers (`internal/resolver/`), Analysis Engine (`internal/analyzer/`), Change Analysis (`internal/change/`), MCP Server (`internal/mcpserver/`).
+Key components: Indexer (`internal/indexer/`), Language Extractors (`internal/extractor/`), Resolvers (`internal/resolver/`), Analysis Engine (`internal/analyzer/`), Change Analysis (`internal/change/`), MCP Server (`internal/mcpserver/`), Update (`internal/update/`).
 
 ## Key Design Principles
 
@@ -58,7 +60,7 @@ internal/
   change/              PR/branch diff analysis
   classify/            File role classification
   cli/                 Command handlers (cobra subcommands)
-  config/              Configuration parsing (.contextception/config.yaml)
+  config/              Configuration parsing (per-repo + global config)
   db/                  SQLite layer (migrations, store, search)
   extractor/           Language extractors (python, typescript, golang, java, rust)
   git/                 Git history signal extraction
@@ -68,6 +70,7 @@ internal/
   mcpserver/           MCP server (tools, stdio transport)
   model/               Shared data types
   resolver/            Module resolution (per-language)
+  update/              Version check, self-update, install method detection
   validation/          Fixture-based validation framework
   version/             Version injection (set via ldflags)
 protocol/              JSON Schema specifications

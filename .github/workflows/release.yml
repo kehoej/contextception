@@ -165,6 +165,23 @@ jobs:
           cd dist
           sha256sum *.tar.gz *.zip > checksums.txt
 
+      - name: Sign checksums with minisign
+        env:
+          MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
+        run: |
+          # Install minisign
+          curl -sL https://github.com/jedisct1/minisign/releases/download/0.11/minisign-0.11-linux.tar.gz | tar xz
+          sudo cp minisign-linux/x86_64/minisign /usr/local/bin/
+
+          # Write the private key to a temp file
+          echo "$MINISIGN_KEY" > /tmp/minisign.key
+
+          # Sign checksums.txt
+          minisign -S -s /tmp/minisign.key -m dist/checksums.txt -t "contextception ${{ github.ref_name }}"
+
+          # Clean up private key
+          rm -f /tmp/minisign.key
+
       - name: Generate changelog
         run: |
           # Get the previous tag

@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-04-08
+
 ### Added
 
 - **Automatic update notifications:** checks for new versions once per day (cached) and prints a one-line notification to stderr when an update is available
-- **`contextception update` command:** detects install method (Homebrew, go install, direct download) and updates accordingly, with SHA256 checksum verification
+- **`contextception update` command:** detects install method (Homebrew, go install, direct download) and updates accordingly
+- **Minisign release signing:** release checksums are signed with minisign; self-update requires a valid signature
 - **Global configuration:** platform-native config at `os.UserConfigDir()/contextception/config.yaml` for update settings
 - **Update suppression:** `--no-update-check` flag, `CONTEXTCEPTION_NO_UPDATE_CHECK=1` env var, or `update.check: false` in global config
 

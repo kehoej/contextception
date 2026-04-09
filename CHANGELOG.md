@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-04-09
+
+### Added
+
+- **`contextception hook-context` command:** PreToolUse hook that runs the full analyzer and injects dependency context directly into Claude's context window via the `additionalContext` JSON protocol — Claude automatically sees must-read files, blast radius, and test coverage before every edit
+- **Hook analyzer mode:** new `"hook"` mode preset with tight caps (5 must_read, 0 likely_modify, 2 tests, 0 related) optimized for low-latency hook invocations
+- **`/release` command:** Claude Code slash command for AI-powered release automation — generates changelog entries from commits, updates CHANGELOG.md, commits, tags, and pushes to trigger the CI/CD pipeline
+- **`make release` target:** shows release info (latest tag, next version, pending commits)
+
+### Changed
+
+- **Setup installs `hook-context` instead of `hook-check`:** new installations get the context-injecting hook by default; `hook-check` remains for backward compatibility
+- **Mode presets respect zero caps:** analyzer mode presets can now set caps to 0 without being overridden by defaults
+
 ## [1.0.4] - 2026-04-09
 
 ### Added

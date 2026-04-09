@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-04-09
+
+### Fixed
+
+- **`contextception setup` upgrades stale hooks:** running `setup` now detects and replaces old hook variants (e.g. `hook-check` from v1.0.4) with the current `hook-context` command, instead of silently skipping when any contextception hook is already configured
+
 ## [1.0.5] - 2026-04-09
 
 ### Added

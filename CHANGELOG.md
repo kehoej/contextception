@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-04-09
+
+### Added
+
+- **`contextception setup` command:** one-command configuration for Claude Code, Cursor, and Windsurf — adds MCP server config and PreToolUse hooks automatically
+- **`contextception hook-check` subcommand:** native Go replacement for the shell-based hook script — zero external dependencies (no python3 required)
+- **Multi-editor support:** `--editor claude|cursor|windsurf` flag configures the correct config file for each editor
+- **Setup reversibility:** `--uninstall` flag removes all contextception configuration, `--dry-run` previews changes
+- **Surgical JSON editing:** uses tidwall/sjson to modify config files without reordering keys
+
 ## [1.0.3] - 2026-04-08
 
 ### Added

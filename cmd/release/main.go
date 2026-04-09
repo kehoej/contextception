@@ -204,7 +204,7 @@ func bumpPatch(tag string) string {
 	}
 	// Parse and increment patch.
 	patch := 0
-	fmt.Sscanf(parts[2], "%d", &patch)
+	_, _ = fmt.Sscanf(parts[2], "%d", &patch)
 	return fmt.Sprintf("%s.%s.%d", parts[0], parts[1], patch+1)
 }
 

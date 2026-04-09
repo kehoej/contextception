@@ -1,4 +1,4 @@
-.PHONY: build run clean test lint install coverage generate check help
+.PHONY: build run clean test lint install coverage generate check release help
 
 build: ## Build binary to ./bin/contextception
 	go build -o bin/contextception ./cmd/contextception
@@ -25,6 +25,9 @@ coverage: ## Run tests with coverage and open HTML report
 
 generate: ## Regenerate protocol JSON schemas
 	go run ./cmd/gen-schema
+
+release: ## Show release info (use /release in Claude Code for full release)
+	go run ./cmd/release info
 
 check: ## Run vet, lint, and tests
 	go vet ./...

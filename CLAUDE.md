@@ -47,7 +47,10 @@ make check      # Run vet + lint + test
 make coverage   # Generate HTML coverage report
 make install    # go install to $GOPATH/bin
 make generate   # Regenerate protocol JSON schemas
+make release    # Show release info (latest tag, next version, pending commits)
 make help       # List all targets
+/release        # Full release: generate changelog, commit, tag, push (Claude Code)
+
 ```
 
 ## Project Structure

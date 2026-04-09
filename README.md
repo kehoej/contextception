@@ -305,6 +305,7 @@ contextception extensions                List supported file extensions
 contextception status                   Show index status and diagnostics
 contextception mcp                      Start the MCP server (stdio transport)
 contextception update                   Check for and install the latest version
+contextception setup                    Configure contextception for your AI editor
 ```
 
 ### Key Flags

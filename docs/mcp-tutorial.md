@@ -33,7 +33,29 @@ Any agent that supports the Model Context Protocol stdio transport: Claude Code,
 
 ## Step 1: Configure MCP for your tool
 
-### Claude Code
+### Automatic setup (recommended)
+
+The `setup` command configures everything in one step:
+
+```bash
+# Claude Code (adds MCP server + PreToolUse hooks)
+contextception setup
+
+# Cursor
+contextception setup --editor cursor
+
+# Windsurf
+contextception setup --editor windsurf
+```
+
+For Claude Code, this also installs hooks that automatically remind the AI to call `get_context` before editing files. Use `--dry-run` to preview changes, or `--uninstall` to reverse.
+
+### Manual configuration
+
+If you prefer to configure manually:
+
+<details>
+<summary>Claude Code</summary>
 
 Add to `~/.claude.json`:
 
@@ -47,8 +69,10 @@ Add to `~/.claude.json`:
   }
 }
 ```
+</details>
 
-### Cursor
+<details>
+<summary>Cursor</summary>
 
 Add to `.cursor/mcp.json` in your project root:
 
@@ -63,8 +87,10 @@ Add to `.cursor/mcp.json` in your project root:
   }
 }
 ```
+</details>
 
-### Windsurf
+<details>
+<summary>Windsurf</summary>
 
 Add to `~/.codeium/windsurf/mcp_config.json`:
 
@@ -79,6 +105,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
   }
 }
 ```
+</details>
 
 ### Custom agents
 

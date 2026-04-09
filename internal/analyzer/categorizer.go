@@ -35,6 +35,7 @@ var modePresets = map[string][4]int{
 	"plan":      {15, 5, 3, 15}, // must_read, likely_modify, tests, related
 	"implement": {10, 20, 5, 5},
 	"review":    {5, 10, 10, 5},
+	"hook":      {5, 0, 2, 0}, // compact output for PreToolUse hooks
 }
 
 // Token estimation constants (chars per token ≈ 4).
@@ -50,7 +51,9 @@ const (
 // Precedence: mode sets base caps → individual --max-* overrides → token budget constrains.
 func (c Caps) resolve() Caps {
 	// Step 1: Apply mode presets for any caps that are still zero.
+	modeApplied := false
 	if preset, ok := modePresets[c.Mode]; ok {
+		modeApplied = true
 		if c.MaxMustRead <= 0 {
 			c.MaxMustRead = preset[0]
 		}
@@ -65,18 +68,21 @@ func (c Caps) resolve() Caps {
 		}
 	}
 
-	// Step 2: Fill remaining zeros with defaults.
-	if c.MaxMustRead <= 0 {
-		c.MaxMustRead = defaultMaxMustRead
-	}
-	if c.MaxRelated <= 0 {
-		c.MaxRelated = defaultMaxRelated
-	}
-	if c.MaxLikelyModify <= 0 {
-		c.MaxLikelyModify = defaultMaxLikelyModify
-	}
-	if c.MaxTests <= 0 {
-		c.MaxTests = defaultMaxTests
+	// Step 2: Fill remaining zeros with defaults (only when no mode preset was applied,
+	// since mode presets may intentionally set caps to 0).
+	if !modeApplied {
+		if c.MaxMustRead <= 0 {
+			c.MaxMustRead = defaultMaxMustRead
+		}
+		if c.MaxRelated <= 0 {
+			c.MaxRelated = defaultMaxRelated
+		}
+		if c.MaxLikelyModify <= 0 {
+			c.MaxLikelyModify = defaultMaxLikelyModify
+		}
+		if c.MaxTests <= 0 {
+			c.MaxTests = defaultMaxTests
+		}
 	}
 
 	// Step 3: Apply token budget constraints.

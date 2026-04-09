@@ -61,8 +61,8 @@ func TestSetup_FreshInstall_Claude(t *testing.T) {
 	for _, e := range entries {
 		matchers[e.Get("matcher").String()] = true
 		hookCmd := e.Get("hooks.0.command").String()
-		if hookCmd != "contextception hook-check" {
-			t.Fatalf("expected hook command 'contextception hook-check', got %q", hookCmd)
+		if hookCmd != "contextception hook-context" {
+			t.Fatalf("expected hook command 'contextception hook-context', got %q", hookCmd)
 		}
 	}
 	if !matchers["Edit"] || !matchers["Write"] {

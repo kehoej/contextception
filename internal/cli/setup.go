@@ -195,7 +195,7 @@ func ensureHookConfig(settingsPath string, dryRun bool) (bool, error) {
 			"hooks": []map[string]string{
 				{
 					"type":    "command",
-					"command": "contextception hook-check",
+					"command": "contextception hook-context",
 				},
 			},
 		}
@@ -240,7 +240,7 @@ func removeHookConfig(settingsPath string, dryRun bool) (bool, error) {
 		}
 		hooks.ForEach(func(_, hook gjson.Result) bool {
 			cmd := hook.Get("command").String()
-			if strings.Contains(cmd, "contextception hook-check") || strings.Contains(cmd, "contextception-remind") {
+			if strings.Contains(cmd, "contextception hook-check") || strings.Contains(cmd, "contextception hook-context") || strings.Contains(cmd, "contextception-remind") {
 				toRemove = append(toRemove, int(key.Int()))
 				return false
 			}

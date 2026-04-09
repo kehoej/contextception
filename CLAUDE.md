@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Contextception** is a code context intelligence engine written in **Go**. It answers: *"What code must be understood before making a safe change?"* It is not a code generator, AI assistant, or IDE — it determines what matters, not what to do.
 
-Supports 5 languages: Python, TypeScript/JavaScript, Go, Java, and Rust. Available as a CLI (11 commands) and MCP server (8 tools).
+Supports 5 languages: Python, TypeScript/JavaScript, Go, Java, and Rust. Available as a CLI (13 commands) and MCP server (8 tools).
 
 ## Tech Stack
 

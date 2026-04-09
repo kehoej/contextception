@@ -58,7 +58,7 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			// Skip repo root detection for commands that don't need it.
-			if cmd.Name() == "update" || cmd.Name() == "contextception" {
+			if cmd.Name() == "update" || cmd.Name() == "setup" || cmd.Name() == "hook-check" || cmd.Name() == "contextception" {
 				return nil
 			}
 
@@ -126,6 +126,8 @@ func NewRootCmd() *cobra.Command {
 	root.AddCommand(newArchetypesCmd())
 	root.AddCommand(newExtensionsCmd())
 	root.AddCommand(newUpdateCmd())
+	root.AddCommand(newSetupCmd())
+	root.AddCommand(newHookCheckCmd())
 
 	return root
 }

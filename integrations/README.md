@@ -23,7 +23,26 @@ Verify installation:
 contextception --version
 ```
 
-## Integrations
+## Quick Setup
+
+The `setup` command configures everything automatically:
+
+```bash
+# Claude Code (MCP server + PreToolUse hooks)
+contextception setup
+
+# Cursor
+contextception setup --editor cursor
+
+# Windsurf
+contextception setup --editor windsurf
+```
+
+Use `--dry-run` to preview changes, or `--uninstall` to reverse. For Claude Code, this also installs hooks that remind the AI to call `get_context` before editing files.
+
+## Manual Configuration
+
+If you prefer to configure manually, or need per-project setup:
 
 ### Claude Code
 

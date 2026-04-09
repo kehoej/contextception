@@ -333,6 +333,7 @@ contextception extensions                List supported file extensions
 contextception status                   Index status and diagnostics
 contextception mcp                      Start MCP server (stdio transport)
 contextception update                   Check for and install the latest version
+contextception setup                    Configure contextception for your AI editor
 ```
 
 ### Global flags
@@ -343,6 +344,14 @@ contextception update                   Check for and install the latest version
 | `-v, --verbose` | Verbose output |
 | `--version` | Display version |
 | `--no-update-check` | Disable automatic update version check |
+
+### Setup flags (setup)
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--editor` | claude | Target editor: `claude`, `cursor`, `windsurf` |
+| `--dry-run` | false | Show what would change without writing files |
+| `--uninstall` | false | Remove contextception configuration |
 
 ### Analysis flags (analyze, analyze-change)
 

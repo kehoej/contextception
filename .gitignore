@@ -54,3 +54,6 @@ dev-cache/
 
 # Superpowers plans
 docs/superpowers/
+
+# Git worktrees
+.worktrees/

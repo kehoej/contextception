@@ -511,6 +511,89 @@ func TestHookCheck_UnsupportedFile(t *testing.T) {
 	}
 }
 
+func TestSetup_UpgradesOldHookCheck(t *testing.T) {
+	home := t.TempDir()
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pre-populate with old hook-check entries.
+	oldConfig := `{
+		"hooks": {
+			"PreToolUse": [
+				{
+					"matcher": "Edit",
+					"hooks": [{"type": "command", "command": "contextception hook-check"}]
+				},
+				{
+					"matcher": "Write",
+					"hooks": [{"type": "command", "command": "contextception hook-check"}]
+				}
+			]
+		}
+	}`
+	if err := os.WriteFile(settingsPath, []byte(oldConfig), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := ensureHookConfig(settingsPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected hooks to be updated when upgrading from hook-check")
+	}
+
+	// Verify old entries replaced with new.
+	data, _ := os.ReadFile(settingsPath)
+	entries := gjson.GetBytes(data, "hooks.PreToolUse").Array()
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+	for _, e := range entries {
+		cmd := e.Get("hooks.0.command").String()
+		if cmd != "contextception hook-context" {
+			t.Fatalf("expected hook-context, got %q", cmd)
+		}
+	}
+}
+
+func TestSetup_SkipsWhenCurrent(t *testing.T) {
+	home := t.TempDir()
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pre-populate with current hook-context entries.
+	currentConfig := `{
+		"hooks": {
+			"PreToolUse": [
+				{
+					"matcher": "Edit",
+					"hooks": [{"type": "command", "command": "contextception hook-context"}]
+				},
+				{
+					"matcher": "Write",
+					"hooks": [{"type": "command", "command": "contextception hook-context"}]
+				}
+			]
+		}
+	}`
+	if err := os.WriteFile(settingsPath, []byte(currentConfig), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := ensureHookConfig(settingsPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Fatal("should not change when current hook is already installed")
+	}
+}
+
 func TestSetup_UnsupportedEditor(t *testing.T) {
 	_, _, err := editorPaths("/home/test", "vscode")
 	if err == nil {

@@ -177,7 +177,12 @@ func removeMCPConfig(configPath string, dryRun bool) (bool, error) {
 	return true, writeJSON(configPath, data)
 }
 
+// currentHookCommand is the hook command that setup installs.
+const currentHookCommand = "contextception hook-context"
+
 // ensureHookConfig adds PreToolUse hook entries for Edit and Write matchers.
+// If a stale contextception hook exists (e.g. hook-check from an older version),
+// it is removed and replaced with the current hook command.
 func ensureHookConfig(settingsPath string, dryRun bool) (bool, error) {
 	data, err := readOrCreateJSON(settingsPath)
 	if err != nil {
@@ -186,7 +191,18 @@ func ensureHookConfig(settingsPath string, dryRun bool) (bool, error) {
 
 	anyChanged := false
 	for _, matcher := range []string{"Edit", "Write"} {
-		if hasHookEntry(data, matcher) {
+		// Remove stale contextception hooks for this matcher (returns updated data).
+		var removed bool
+		data, removed, err = removeStaleHookEntry(data, matcher)
+		if err != nil {
+			return false, err
+		}
+		if removed {
+			anyChanged = true
+		}
+
+		// Skip if the current hook is already installed.
+		if hasCurrentHookEntry(data, matcher) {
 			continue
 		}
 
@@ -195,7 +211,7 @@ func ensureHookConfig(settingsPath string, dryRun bool) (bool, error) {
 			"hooks": []map[string]string{
 				{
 					"type":    "command",
-					"command": "contextception hook-context",
+					"command": currentHookCommand,
 				},
 			},
 		}
@@ -240,7 +256,7 @@ func removeHookConfig(settingsPath string, dryRun bool) (bool, error) {
 		}
 		hooks.ForEach(func(_, hook gjson.Result) bool {
 			cmd := hook.Get("command").String()
-			if strings.Contains(cmd, "contextception hook-check") || strings.Contains(cmd, "contextception hook-context") || strings.Contains(cmd, "contextception-remind") {
+			if strings.Contains(cmd, "contextception") {
 				toRemove = append(toRemove, int(key.Int()))
 				return false
 			}
@@ -268,9 +284,9 @@ func removeHookConfig(settingsPath string, dryRun bool) (bool, error) {
 	return true, writeJSON(settingsPath, data)
 }
 
-// hasHookEntry checks if a PreToolUse entry for the given matcher with a
-// contextception command already exists.
-func hasHookEntry(data []byte, matcher string) bool {
+// hasCurrentHookEntry checks if the current hook command is already installed
+// for the given matcher.
+func hasCurrentHookEntry(data []byte, matcher string) bool {
 	entries := gjson.GetBytes(data, "hooks.PreToolUse")
 	if !entries.Exists() || !entries.IsArray() {
 		return false
@@ -286,8 +302,7 @@ func hasHookEntry(data []byte, matcher string) bool {
 			return true
 		}
 		hooks.ForEach(func(_, hook gjson.Result) bool {
-			cmd := hook.Get("command").String()
-			if strings.Contains(cmd, "contextception") {
+			if hook.Get("command").String() == currentHookCommand {
 				found = true
 				return false
 			}
@@ -296,6 +311,51 @@ func hasHookEntry(data []byte, matcher string) bool {
 		return !found
 	})
 	return found
+}
+
+// removeStaleHookEntry removes PreToolUse entries for the given matcher that
+// contain a contextception command other than the current one. Returns the
+// updated data and whether any entries were removed.
+func removeStaleHookEntry(data []byte, matcher string) ([]byte, bool, error) {
+	entries := gjson.GetBytes(data, "hooks.PreToolUse")
+	if !entries.Exists() || !entries.IsArray() {
+		return data, false, nil
+	}
+
+	var toRemove []int
+	entries.ForEach(func(key, value gjson.Result) bool {
+		if value.Get("matcher").String() != matcher {
+			return true
+		}
+		hooks := value.Get("hooks")
+		if !hooks.Exists() || !hooks.IsArray() {
+			return true
+		}
+		hooks.ForEach(func(_, hook gjson.Result) bool {
+			cmd := hook.Get("command").String()
+			// Match any contextception hook that isn't the current command.
+			if strings.Contains(cmd, "contextception") && cmd != currentHookCommand {
+				toRemove = append(toRemove, int(key.Int()))
+				return false
+			}
+			return true
+		})
+		return true
+	})
+
+	if len(toRemove) == 0 {
+		return data, false, nil
+	}
+
+	var err error
+	for i := len(toRemove) - 1; i >= 0; i-- {
+		path := fmt.Sprintf("hooks.PreToolUse.%d", toRemove[i])
+		data, err = sjson.DeleteBytes(data, path)
+		if err != nil {
+			return nil, false, fmt.Errorf("removing stale hook entry: %w", err)
+		}
+	}
+	return data, true, nil
 }
 
 // editorPaths returns the MCP config path and hooks config path for the editor.

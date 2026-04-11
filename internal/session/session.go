@@ -67,6 +67,13 @@ type toolUseContent struct {
 	Input map[string]any `json:"input"`
 }
 
+// toolResultContent represents a tool_result entry which may contain hook-injected context.
+type toolResultContent struct {
+	Type      string `json:"type"`
+	ToolUseID string `json:"tool_use_id"`
+	Content   any    `json:"content"` // string or []map[string]any
+}
+
 // DiscoverResult contains the output of the discover analysis.
 type DiscoverResult struct {
 	SessionsScanned int              `json:"sessions_scanned"`
@@ -195,14 +202,38 @@ func ParseSession(path string, repoRoot string) ([]EditEvent, []ContextEvent, er
 					})
 				}
 			}
+
+			// Check for hook-injected context in tool_result entries.
+			// When contextception hook-context runs, it injects "[contextception]"
+			// into the tool_result additionalContext. This shows up as text content
+			// containing the marker within the tool_result for Edit/Write calls.
+			if tc.Type == "" {
+				var tr toolResultContent
+				if err := json.Unmarshal(raw, &tr); err == nil && tr.Type == "tool_result" {
+					if file := extractHookContextFile(tr.Content); file != "" {
+						contexts = append(contexts, ContextEvent{
+							FilePath:  makeRelative(file, repoRoot),
+							Timestamp: ts,
+						})
+					}
+				}
+			}
 		}
 	}
 
 	return edits, contexts, scanner.Err()
 }
 
+// UsageLogQuerier can check whether a file has been analyzed via the usage_log table.
+type UsageLogQuerier interface {
+	// FilesWithUsage returns the set of files that have usage_log entries since the given time.
+	FilesWithUsage(since time.Time) (map[string]bool, error)
+}
+
 // Discover analyzes sessions to find files edited without get_context being called.
-func Discover(repoRoot string, since time.Time, includeTests bool, isSupportedExt func(string) bool) (*DiscoverResult, error) {
+// If usageLog is non-nil, it also checks the usage_log table for hook-injected context
+// that doesn't appear in session JSONL files.
+func Discover(repoRoot string, since time.Time, includeTests bool, isSupportedExt func(string) bool, usageLog ...UsageLogQuerier) (*DiscoverResult, error) {
 	sessions, err := ListSessions(repoRoot, since, 0)
 	if err != nil {
 		return nil, err
@@ -228,6 +259,19 @@ func Discover(repoRoot string, since time.Time, includeTests bool, isSupportedEx
 
 		for _, c := range contexts {
 			contextFiles[c.FilePath]++
+		}
+	}
+
+	// Cross-reference with usage_log for hook-injected context.
+	// Hook-context runs as a PreToolUse hook and records source="hook" entries
+	// in history.sqlite, but this doesn't appear in session JSONL files.
+	if len(usageLog) > 0 && usageLog[0] != nil {
+		if filesWithUsage, err := usageLog[0].FilesWithUsage(since); err == nil {
+			for f := range filesWithUsage {
+				if _, edited := editCounts[f]; edited {
+					contextFiles[f]++
+				}
+			}
 		}
 	}
 
@@ -339,6 +383,35 @@ func GetSessionStats(repoRoot string, since time.Time, limit int, isSupportedExt
 	}
 
 	return results, nil
+}
+
+// contextMarker is the prefix injected by hook-context into additionalContext.
+const contextMarker = "[contextception] Context: "
+
+// extractHookContextFile extracts the file path from hook-injected context.
+// The hook-context output contains "[contextception] Context: <file> (...)"
+func extractHookContextFile(content any) string {
+	var text string
+	switch v := content.(type) {
+	case string:
+		text = v
+	default:
+		// Could be []map[string]any with text entries — marshal and search.
+		data, _ := json.Marshal(v)
+		text = string(data)
+	}
+
+	idx := strings.Index(text, contextMarker)
+	if idx < 0 {
+		return ""
+	}
+	// Extract file path: "[contextception] Context: <file> (" or "[contextception] Context: <file>\n"
+	rest := text[idx+len(contextMarker):]
+	end := strings.IndexAny(rest, " \n(")
+	if end < 0 {
+		return rest
+	}
+	return rest[:end]
 }
 
 // isWithinRepo checks if a file path is within the repo root.

@@ -604,6 +604,36 @@ func (s *Store) UsageCount() (int, error) {
 	return count, err
 }
 
+// FilesWithUsage returns the set of files that have usage_log entries since the given time.
+// This satisfies the session.UsageLogQuerier interface.
+func (s *Store) FilesWithUsage(since time.Time) (map[string]bool, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	rows, err := s.db.Query(`
+		SELECT files_analyzed FROM usage_log
+		WHERE created_at >= ?`, sinceStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[string]bool)
+	for rows.Next() {
+		var filesJSON string
+		if err := rows.Scan(&filesJSON); err != nil {
+			continue
+		}
+		var files []string
+		if err := json.Unmarshal([]byte(filesJSON), &files); err != nil {
+			continue
+		}
+		for _, f := range files {
+			result[f] = true
+		}
+	}
+	return result, rows.Err()
+}
+
 // UsageEntryFromAnalysis creates a UsageEntry from an analysis output.
 func UsageEntryFromAnalysis(source, tool string, files []string, output *model.AnalysisOutput, durationMs int64, mode string, tokenBudget int) *UsageEntry {
 	entry := &UsageEntry{

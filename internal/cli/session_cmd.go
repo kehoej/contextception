@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/kehoej/contextception/internal/history"
 	"github.com/kehoej/contextception/internal/session"
 	"github.com/spf13/cobra"
 )
@@ -41,7 +42,14 @@ Examples:
 func runSession() error {
 	since := time.Now().AddDate(0, 0, -30) // last 30 days
 
-	stats, err := session.GetSessionStats(repoRoot, since, sessionLimit, isSupportedExtension)
+	// Open history to cross-reference usage_log (hook-injected context).
+	var usageLog session.UsageLogQuerier
+	if hist, hErr := history.Open(repoRoot); hErr == nil {
+		defer hist.Close()
+		usageLog = hist
+	}
+
+	stats, err := session.GetSessionStats(repoRoot, since, sessionLimit, isSupportedExtension, usageLog)
 	if err != nil {
 		return fmt.Errorf("analyzing sessions: %w", err)
 	}

@@ -285,7 +285,7 @@ func Discover(repoRoot string, since time.Time, includeTests bool, isSupportedEx
 		}
 
 		isTest := isTestFile(file)
-		if !includeTests && isTest && ctxCount == 0 {
+		if !includeTests && isTest {
 			continue // skip test files from missed list unless --all
 		}
 
@@ -320,7 +320,8 @@ func Discover(repoRoot string, since time.Time, includeTests bool, isSupportedEx
 }
 
 // GetSessionStats returns adoption stats per session.
-func GetSessionStats(repoRoot string, since time.Time, limit int, isSupportedExt func(string) bool) ([]SessionInfo, error) {
+// If usageLog is provided, it also checks the usage_log table for hook-injected context.
+func GetSessionStats(repoRoot string, since time.Time, limit int, isSupportedExt func(string) bool, usageLog ...UsageLogQuerier) ([]SessionInfo, error) {
 	sessions, err := ListSessions(repoRoot, since, limit)
 	if err != nil {
 		return nil, err
@@ -346,6 +347,15 @@ func GetSessionStats(repoRoot string, since time.Time, limit int, isSupportedExt
 		contextFiles := make(map[string]bool)
 		for _, c := range contexts {
 			contextFiles[c.FilePath] = true
+		}
+
+		// Cross-reference with usage_log for hook-injected context.
+		if len(usageLog) > 0 && usageLog[0] != nil {
+			if filesWithUsage, err := usageLog[0].FilesWithUsage(since); err == nil {
+				for f := range filesWithUsage {
+					contextFiles[f] = true
+				}
+			}
 		}
 
 		editCount := len(editedFiles)
@@ -531,9 +541,12 @@ func FormatSessionSummary(sessions []SessionInfo) string {
 }
 
 // formatRelativeDate returns a human-friendly relative date.
+// Compares calendar dates (year, month, day) rather than hours elapsed.
 func formatRelativeDate(t time.Time) string {
 	now := time.Now()
-	days := int(now.Sub(t).Hours() / 24)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	tDay := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	days := int(today.Sub(tDay).Hours() / 24)
 	switch {
 	case days == 0:
 		return "Today"

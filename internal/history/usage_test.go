@@ -32,6 +32,7 @@ func TestRecordAndQueryUsage(t *testing.T) {
 		TestCount:         1,
 		BlastLevel:        "medium",
 		Confidence:        0.92,
+		HasConfidence:     true,
 		ResponseTokens:    200,
 		DurationMs:        150,
 		Mode:              "implement",
@@ -53,6 +54,7 @@ func TestRecordAndQueryUsage(t *testing.T) {
 		TestCount:         2,
 		BlastLevel:        "high",
 		Confidence:        0.85,
+		HasConfidence:     true,
 		ResponseTokens:    450,
 		DurationMs:        300,
 		Mode:              "plan",
@@ -82,8 +84,8 @@ func TestRecordAndQueryUsage(t *testing.T) {
 	if summary.TotalAnalyses != 2 {
 		t.Errorf("total analyses = %d, want 2", summary.TotalAnalyses)
 	}
-	if summary.TotalFiles != 3 { // 1 + 2
-		t.Errorf("total files = %d, want 3", summary.TotalFiles)
+	if summary.FilesAnalyzed != 3 { // 1 + 2
+		t.Errorf("total files = %d, want 3", summary.FilesAnalyzed)
 	}
 	if summary.AvgConfidence < 0.88 || summary.AvgConfidence > 0.89 {
 		t.Errorf("avg confidence = %.2f, want ~0.885", summary.AvgConfidence)
@@ -197,8 +199,8 @@ func TestUsageEntryFromChangeReport(t *testing.T) {
 
 func TestFormatGainSummary(t *testing.T) {
 	summary := &UsageSummary{
-		TotalAnalyses: 10,
-		TotalFiles:    15,
+		ContextAnalyses: 10,
+		FilesAnalyzed: 15,
 		AvgConfidence: 0.89,
 		AvgDurationMs: 200,
 		BlastLevelCounts: map[string]int{
@@ -227,7 +229,7 @@ func TestFormatGainSummary(t *testing.T) {
 
 	// Check that it contains key info.
 	checks := []string{
-		"Analyses run:",
+		"Context analyses:",
 		"10",
 		"0.89",
 		"src/main.py",
@@ -243,10 +245,10 @@ func TestFormatGainSummary(t *testing.T) {
 func TestGainExportJSON(t *testing.T) {
 	export := &GainExport{
 		Summary: &UsageSummary{
-			TotalAnalyses:    5,
-			TotalFiles:       10,
-			AvgConfidence:    0.9,
-			AvgDurationMs:    100,
+			ContextAnalyses: 5,
+			FilesAnalyzed:   10,
+			AvgConfidence:   0.9,
+			AvgDurationMs:   100,
 			BlastLevelCounts: map[string]int{"low": 5},
 		},
 		TopFiles: []TopFile{{File: "a.py", Count: 3, LastSeen: "2026-04-11"}},
@@ -262,8 +264,8 @@ func TestGainExportJSON(t *testing.T) {
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	if parsed.Summary.TotalAnalyses != 5 {
-		t.Errorf("total_analyses = %d, want 5", parsed.Summary.TotalAnalyses)
+	if parsed.Summary.ContextAnalyses != 5 {
+		t.Errorf("context_analyses = %d, want 5", parsed.Summary.ContextAnalyses)
 	}
 }
 

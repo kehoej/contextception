@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -384,18 +385,19 @@ func (s *Store) RunCount() (int, error) {
 
 // UsageEntry represents a single usage tracking record.
 type UsageEntry struct {
-	Source           string   // "mcp", "cli", "hook"
-	Tool             string   // "get_context", "analyze", "analyze_change"
-	FilesAnalyzed    []string // file paths analyzed
-	MustReadCount    int
+	Source            string   // "mcp", "cli", "hook"
+	Tool              string   // "get_context", "analyze", "analyze_change"
+	FilesAnalyzed     []string // file paths analyzed
+	MustReadCount     int
 	LikelyModifyCount int
-	TestCount        int
-	BlastLevel       string
-	Confidence       float64
-	ResponseTokens   int
-	DurationMs       int64
-	Mode             string
-	TokenBudget      int
+	TestCount         int
+	BlastLevel        string
+	Confidence        float64
+	HasConfidence     bool // true for analyze/get_context, false for analyze_change
+	ResponseTokens    int
+	DurationMs        int64
+	Mode              string
+	TokenBudget       int
 }
 
 // RecordUsage stores a usage log entry.
@@ -403,6 +405,12 @@ func (s *Store) RecordUsage(entry *UsageEntry) (int64, error) {
 	filesJSON, err := json.Marshal(entry.FilesAnalyzed)
 	if err != nil {
 		return 0, fmt.Errorf("marshaling files: %w", err)
+	}
+
+	// Store NULL confidence for tools that don't produce one (e.g. analyze_change).
+	var confidence any
+	if entry.HasConfidence {
+		confidence = entry.Confidence
 	}
 
 	result, err := s.db.Exec(`
@@ -413,7 +421,7 @@ func (s *Store) RecordUsage(entry *UsageEntry) (int64, error) {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		entry.Source, entry.Tool, string(filesJSON), len(entry.FilesAnalyzed),
 		entry.MustReadCount, entry.LikelyModifyCount, entry.TestCount,
-		entry.BlastLevel, entry.Confidence, entry.ResponseTokens,
+		entry.BlastLevel, confidence, entry.ResponseTokens,
 		entry.DurationMs, entry.Mode, entry.TokenBudget,
 	)
 	if err != nil {
@@ -424,10 +432,12 @@ func (s *Store) RecordUsage(entry *UsageEntry) (int64, error) {
 
 // UsageSummary contains aggregate usage statistics.
 type UsageSummary struct {
-	TotalAnalyses   int     `json:"total_analyses"`
-	TotalFiles      int     `json:"total_files"`
-	AvgConfidence   float64 `json:"avg_confidence"`
-	AvgDurationMs   float64 `json:"avg_duration_ms"`
+	ContextAnalyses  int     `json:"context_analyses"`  // analyze + get_context
+	ChangeAnalyses   int     `json:"change_analyses"`   // analyze_change
+	TotalAnalyses    int     `json:"total_analyses"`    // all tools combined
+	FilesAnalyzed    int     `json:"files_analyzed"`    // unique files from context analyses
+	AvgConfidence    float64 `json:"avg_confidence"`    // from context analyses only (NULLs excluded)
+	AvgDurationMs    float64 `json:"avg_duration_ms"`
 	BlastLevelCounts map[string]int `json:"blast_level_counts"`
 }
 
@@ -442,15 +452,27 @@ func (s *Store) GetUsageSummary(since time.Time) (*UsageSummary, error) {
 		BlastLevelCounts: make(map[string]int),
 	}
 
+	// Overall counts.
 	err := s.db.QueryRow(`
-		SELECT COUNT(*), COALESCE(SUM(file_count), 0),
-		       COALESCE(AVG(confidence), 0), COALESCE(AVG(duration_ms), 0)
+		SELECT COUNT(*), COALESCE(AVG(duration_ms), 0)
 		FROM usage_log WHERE created_at >= ?`, sinceStr,
-	).Scan(&summary.TotalAnalyses, &summary.TotalFiles,
-		&summary.AvgConfidence, &summary.AvgDurationMs)
+	).Scan(&summary.TotalAnalyses, &summary.AvgDurationMs)
 	if err != nil {
 		return nil, err
 	}
+
+	// Context analyses only (analyze + get_context): file counts and confidence.
+	// AVG(confidence) naturally skips NULL rows (analyze_change stores NULL).
+	err = s.db.QueryRow(`
+		SELECT COUNT(*), COALESCE(SUM(file_count), 0), COALESCE(AVG(confidence), 0)
+		FROM usage_log
+		WHERE created_at >= ? AND tool != 'analyze_change'`, sinceStr,
+	).Scan(&summary.ContextAnalyses, &summary.FilesAnalyzed, &summary.AvgConfidence)
+	if err != nil {
+		return nil, err
+	}
+
+	summary.ChangeAnalyses = summary.TotalAnalyses - summary.ContextAnalyses
 
 	rows, err := s.db.Query(`
 		SELECT COALESCE(blast_level, 'unknown'), COUNT(*)
@@ -538,7 +560,7 @@ func (s *Store) GetTopFiles(since time.Time, limit int) ([]TopFile, error) {
 	rows, err := s.db.Query(`
 		SELECT files_analyzed, COUNT(*) as cnt, MAX(created_at) as last_seen
 		FROM usage_log
-		WHERE created_at >= ?
+		WHERE created_at >= ? AND tool != 'analyze_change'
 		GROUP BY files_analyzed
 		ORDER BY cnt DESC
 		LIMIT ?`, sinceStr, limit*3) // fetch extra since we need to expand JSON arrays
@@ -588,13 +610,14 @@ func (s *Store) GetTopFiles(since time.Time, limit int) ([]TopFile, error) {
 	return result, nil
 }
 
-// sortTopFiles sorts TopFile entries by count descending.
+// sortTopFiles sorts TopFile entries by count descending, then path ascending for stability.
 func sortTopFiles(files []TopFile) {
-	for i := 1; i < len(files); i++ {
-		for j := i; j > 0 && files[j].Count > files[j-1].Count; j-- {
-			files[j], files[j-1] = files[j-1], files[j]
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].Count != files[j].Count {
+			return files[i].Count > files[j].Count
 		}
-	}
+		return files[i].File < files[j].File
+	})
 }
 
 // UsageCount returns the total number of usage log entries.
@@ -649,6 +672,7 @@ func UsageEntryFromAnalysis(source, tool string, files []string, output *model.A
 		entry.MustReadCount = len(output.MustRead)
 		entry.TestCount = len(output.Tests)
 		entry.Confidence = output.Confidence
+		entry.HasConfidence = true
 
 		// Count likely_modify entries across all packages.
 		for _, entries := range output.LikelyModify {
@@ -725,10 +749,13 @@ func FormatGainSummary(summary *UsageSummary, topFiles []TopFile, daily []UsageP
 
 	// KPIs
 	avgBlast := dominantBlastLevel(summary.BlastLevelCounts)
-	fmt.Fprintf(&b, "  Analyses run:     %-10d Avg confidence:  %.2f\n",
-		summary.TotalAnalyses, summary.AvgConfidence)
+	fmt.Fprintf(&b, "  Context analyses: %-10d Avg confidence:  %.2f\n",
+		summary.ContextAnalyses, summary.AvgConfidence)
 	fmt.Fprintf(&b, "  Files analyzed:   %-10d Avg blast radius: %s\n",
-		summary.TotalFiles, avgBlast)
+		summary.FilesAnalyzed, avgBlast)
+	if summary.ChangeAnalyses > 0 {
+		fmt.Fprintf(&b, "  Change analyses:  %d\n", summary.ChangeAnalyses)
+	}
 	fmt.Fprintf(&b, "  Avg duration:     %dms\n",
 		int(summary.AvgDurationMs))
 
@@ -778,12 +805,13 @@ type FeedbackEntry struct {
 // RecordFeedback stores an LLM feedback entry, linking to the most recent usage_log for the file.
 func (s *Store) RecordFeedback(entry *FeedbackEntry) (int64, error) {
 	// Find the most recent usage_log entry for this file.
+	// Use JSON-quoted path to avoid false matches (e.g. "db.go" matching "db_test.go").
 	var usageID sql.NullInt64
 	_ = s.db.QueryRow(`
 		SELECT id FROM usage_log
 		WHERE files_analyzed LIKE ?
 		ORDER BY created_at DESC LIMIT 1`,
-		"%"+entry.FilePath+"%",
+		`%"`+entry.FilePath+`"%`,
 	).Scan(&usageID)
 
 	usefulJSON, _ := json.Marshal(entry.UsefulFiles)
@@ -837,10 +865,8 @@ func (s *Store) GetAccuracyMetrics(since time.Time) (*AccuracyMetrics, error) {
 
 	// Compute precision and recall from file lists.
 	rows, err := s.db.Query(`
-		SELECT f.useful_files, f.unnecessary_files, f.missing_files,
-		       f.modified_files, u.must_read_count, u.likely_modify_count
+		SELECT f.useful_files, f.unnecessary_files, f.missing_files, f.modified_files
 		FROM feedback f
-		LEFT JOIN usage_log u ON f.usage_id = u.id
 		WHERE f.created_at >= ?`, sinceStr)
 	if err != nil {
 		return nil, err
@@ -848,13 +874,12 @@ func (s *Store) GetAccuracyMetrics(since time.Time) (*AccuracyMetrics, error) {
 	defer rows.Close()
 
 	var totalUseful, totalUnnecessary, totalMissing int
-	var totalModified, totalLikelyModify int
+	var totalModified int
 
 	for rows.Next() {
 		var usefulJSON, unnecessaryJSON, missingJSON, modifiedJSON sql.NullString
-		var mustReadCount, likelyModifyCount sql.NullInt64
 		if err := rows.Scan(&usefulJSON, &unnecessaryJSON, &missingJSON,
-			&modifiedJSON, &mustReadCount, &likelyModifyCount); err != nil {
+			&modifiedJSON); err != nil {
 			return nil, err
 		}
 
@@ -862,13 +887,20 @@ func (s *Store) GetAccuracyMetrics(since time.Time) (*AccuracyMetrics, error) {
 		totalUnnecessary += countJSONArray(unnecessaryJSON)
 		totalMissing += countJSONArray(missingJSON)
 		totalModified += countJSONArray(modifiedJSON)
-		if likelyModifyCount.Valid {
-			totalLikelyModify += int(likelyModifyCount.Int64)
-		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+
+	// Likely-modify denominator: sum likely_modify_count from distinct usage entries
+	// to avoid inflating the count when multiple feedbacks link to the same analysis.
+	var totalLikelyModify int
+	_ = s.db.QueryRow(`
+		SELECT COALESCE(SUM(u.likely_modify_count), 0)
+		FROM usage_log u
+		WHERE u.id IN (SELECT DISTINCT usage_id FROM feedback WHERE created_at >= ? AND usage_id IS NOT NULL)`,
+		sinceStr,
+	).Scan(&totalLikelyModify)
 
 	// Must-read precision: useful / (useful + unnecessary)
 	if totalUseful+totalUnnecessary > 0 {

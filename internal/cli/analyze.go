@@ -33,6 +33,7 @@ var (
 	failOn          string
 	mode            string
 	tokenBudget     int
+	compactOutput   bool
 )
 
 func newAnalyzeCmd() *cobra.Command {
@@ -128,6 +129,11 @@ func runAnalyze(files []string) error {
 	if jsonOutput {
 		enc := json.NewEncoder(os.Stdout)
 		return enc.Encode(output)
+	}
+
+	if compactOutput {
+		fmt.Print(analyzer.FormatCompact(output))
+		return nil
 	}
 
 	fmt.Print(formatPretty(output))

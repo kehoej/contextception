@@ -167,6 +167,7 @@ func registerAnalysisFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&failOn, "fail-on", "high", "blast radius level that triggers non-zero exit (high, medium)")
 	cmd.Flags().StringVar(&mode, "mode", "", "workflow mode: plan, implement, review (adjusts caps)")
 	cmd.Flags().IntVar(&tokenBudget, "token-budget", 0, "target token budget for output (adjusts caps automatically)")
+	cmd.Flags().BoolVar(&compactOutput, "compact", false, "token-optimized text summary (~75% fewer tokens than JSON)")
 }
 
 // handleCIExit checks the blast radius level and exits with an appropriate code

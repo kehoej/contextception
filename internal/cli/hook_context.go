@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -161,67 +160,12 @@ func runHookContext() error {
 		}
 	}()
 
-	// Format and emit.
-	additional := formatHookContext(output)
+	// Format and emit using compact output.
+	additional := "[contextception] " + analyzer.FormatCompact(output)
 	emitHookAllow(additional)
 	return nil
 }
 
-// formatHookContext produces a compact plain-text summary of the analysis output.
-func formatHookContext(output *model.AnalysisOutput) string {
-	if output == nil {
-		return ""
-	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "[contextception] Dependency context for %s\n", output.Subject)
-
-	if len(output.MustRead) > 0 {
-		b.WriteString("\nMust-read before editing:\n")
-		for _, entry := range output.MustRead {
-			b.WriteString("  ")
-			b.WriteString(entry.File)
-			if len(entry.Symbols) > 0 {
-				fmt.Fprintf(&b, " (%s)", strings.Join(entry.Symbols, ", "))
-			}
-			var tags []string
-			if entry.Direction != "" {
-				tags = append(tags, entry.Direction)
-			}
-			if entry.Stable {
-				tags = append(tags, "stable")
-			}
-			if entry.Circular {
-				tags = append(tags, "circular")
-			}
-			if len(tags) > 0 {
-				fmt.Fprintf(&b, " [%s]", strings.Join(tags, ", "))
-			}
-			b.WriteString("\n")
-		}
-	}
-
-	// Tests (direct only).
-	var directTests []string
-	for _, t := range output.Tests {
-		if t.Direct {
-			directTests = append(directTests, t.File)
-		}
-	}
-	if len(directTests) > 0 {
-		fmt.Fprintf(&b, "\nTests: %s\n", strings.Join(directTests, ", "))
-	}
-
-	if output.BlastRadius != nil {
-		fmt.Fprintf(&b, "\nBlast radius: %s", output.BlastRadius.Level)
-		if output.BlastRadius.Detail != "" {
-			fmt.Fprintf(&b, " (%s)", output.BlastRadius.Detail)
-		}
-		b.WriteString("\n")
-	}
-
-	return b.String()
-}
 
 // emitHookAllow writes the JSON envelope to stdout.
 func emitHookAllow(additionalContext string) {

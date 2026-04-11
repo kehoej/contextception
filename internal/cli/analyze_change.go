@@ -145,6 +145,11 @@ func runAnalyzeChange(refRange string) error {
 		return enc.Encode(report)
 	}
 
+	if compactOutput {
+		fmt.Print(analyzer.FormatCompactChange(report))
+		return nil
+	}
+
 	fmt.Print(formatChangeReport(report))
 	return nil
 }

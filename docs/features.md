@@ -373,6 +373,7 @@ contextception session                  Show adoption across Claude Code session
 | `--fail-on` | high | Blast radius level that triggers non-zero exit (`high` or `medium`) |
 | `--mode` | (none) | Workflow mode: `plan`, `implement`, or `review` |
 | `--token-budget` | 0 | Target token budget (auto-adjusts caps) |
+| `--compact` | false | Token-optimized text summary (~60-75% fewer tokens than JSON) |
 
 ### CI mode
 

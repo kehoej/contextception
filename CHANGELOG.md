@@ -7,23 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Usage analytics tracking:** every `analyze`, `analyze-change`, and MCP `get_context` call is automatically recorded in `history.sqlite` with file count, blast radius, confidence, duration, and response tokens
-- **`contextception gain` command:** usage analytics dashboard showing analysis counts, top files, blast radius trends, and daily activity with `--daily/weekly/monthly` breakdowns and `--format json|csv` export
-- **`rate_context` MCP tool:** structured LLM feedback — usefulness rating (1-5), which files were useful/unnecessary/missing/modified, and free-text notes
-- **`contextception accuracy` command:** recommendation quality metrics computed from LLM feedback — must-read precision/recall, likely-modify accuracy, overall usefulness score
-- **`contextception discover` command:** scans Claude Code session files to find supported files edited without `get_context` being called, with coverage percentages and `--all` flag to include test files
-- **`contextception session` command:** per-session adoption rates across recent Claude Code sessions with progress bars
-- **`--compact` flag:** token-optimized text summary on `analyze` and `analyze-change` commands producing ~60-75% fewer tokens than JSON while preserving all essential context
-- **`internal/session/` package:** Claude Code session JSONL parser for discover and adoption analytics
-
-### Changed
-
-- **Hook-context uses compact formatter:** richer output (includes likely-modify and warnings) in fewer tokens than the previous custom format
-- **Context analyses tracked separately from change analyses:** `gain` metrics correctly distinguish "files whose context was analyzed" from "files that changed in a PR"
-- **Feedback links to context analyses preferentially:** `rate_context` links to the most recent `analyze`/`get_context` entry, not `analyze_change`, for accurate quality measurement
-
 ## [1.0.6] - 2026-04-09
 
 ### Fixed

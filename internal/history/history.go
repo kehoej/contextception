@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/kehoej/contextception/internal/model"
@@ -107,6 +109,43 @@ func migrate(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_runs_branch ON analysis_runs(branch);
 	CREATE INDEX IF NOT EXISTS idx_file_risks_path ON file_risks(file_path);
 	CREATE INDEX IF NOT EXISTS idx_hotspot_path ON hotspot_history(file_path);
+
+	CREATE TABLE IF NOT EXISTS usage_log (
+		id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+		source              TEXT    NOT NULL,
+		tool                TEXT    NOT NULL,
+		files_analyzed      TEXT    NOT NULL,
+		file_count          INTEGER NOT NULL DEFAULT 1,
+		must_read_count     INTEGER NOT NULL DEFAULT 0,
+		likely_modify_count INTEGER NOT NULL DEFAULT 0,
+		test_count          INTEGER NOT NULL DEFAULT 0,
+		blast_level         TEXT,
+		confidence          REAL,
+		response_tokens     INTEGER,
+		duration_ms         INTEGER,
+		mode                TEXT,
+		token_budget        INTEGER
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_usage_log_created ON usage_log(created_at);
+	CREATE INDEX IF NOT EXISTS idx_usage_log_tool ON usage_log(tool);
+
+	CREATE TABLE IF NOT EXISTS feedback (
+		id                INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+		usage_id          INTEGER REFERENCES usage_log(id),
+		file_path         TEXT    NOT NULL,
+		usefulness        INTEGER NOT NULL CHECK(usefulness BETWEEN 1 AND 5),
+		useful_files      TEXT,
+		unnecessary_files TEXT,
+		missing_files     TEXT,
+		modified_files    TEXT,
+		notes             TEXT
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_feedback_file ON feedback(file_path);
+	CREATE INDEX IF NOT EXISTS idx_feedback_usefulness ON feedback(usefulness);
 	`
 	_, err := db.Exec(schema)
 	return err
@@ -343,3 +382,683 @@ func (s *Store) RunCount() (int, error) {
 	err := s.db.QueryRow("SELECT COUNT(*) FROM analysis_runs").Scan(&count)
 	return count, err
 }
+
+// UsageEntry represents a single usage tracking record.
+type UsageEntry struct {
+	Source            string   // "mcp", "cli", "hook"
+	Tool              string   // "get_context", "analyze", "analyze_change"
+	FilesAnalyzed     []string // file paths analyzed
+	MustReadCount     int
+	LikelyModifyCount int
+	TestCount         int
+	BlastLevel        string
+	Confidence        float64
+	HasConfidence     bool // true for analyze/get_context, false for analyze_change
+	ResponseTokens    int
+	DurationMs        int64
+	Mode              string
+	TokenBudget       int
+}
+
+// RecordUsage stores a usage log entry.
+func (s *Store) RecordUsage(entry *UsageEntry) (int64, error) {
+	filesJSON, err := json.Marshal(entry.FilesAnalyzed)
+	if err != nil {
+		return 0, fmt.Errorf("marshaling files: %w", err)
+	}
+
+	// Store NULL confidence for tools that don't produce one (e.g. analyze_change).
+	var confidence any
+	if entry.HasConfidence {
+		confidence = entry.Confidence
+	}
+
+	result, err := s.db.Exec(`
+		INSERT INTO usage_log
+			(source, tool, files_analyzed, file_count, must_read_count,
+			 likely_modify_count, test_count, blast_level, confidence,
+			 response_tokens, duration_ms, mode, token_budget)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		entry.Source, entry.Tool, string(filesJSON), len(entry.FilesAnalyzed),
+		entry.MustReadCount, entry.LikelyModifyCount, entry.TestCount,
+		entry.BlastLevel, confidence, entry.ResponseTokens,
+		entry.DurationMs, entry.Mode, entry.TokenBudget,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting usage: %w", err)
+	}
+	return result.LastInsertId()
+}
+
+// UsageSummary contains aggregate usage statistics.
+type UsageSummary struct {
+	ContextAnalyses  int     `json:"context_analyses"`  // analyze + get_context
+	ChangeAnalyses   int     `json:"change_analyses"`   // analyze_change
+	TotalAnalyses    int     `json:"total_analyses"`    // all tools combined
+	FilesAnalyzed    int     `json:"files_analyzed"`    // unique files from context analyses
+	AvgConfidence    float64 `json:"avg_confidence"`    // from context analyses only (NULLs excluded)
+	AvgDurationMs    float64 `json:"avg_duration_ms"`
+	BlastLevelCounts map[string]int `json:"blast_level_counts"`
+}
+
+// sqliteDatetime formats a time for SQLite comparison (matches datetime('now') format).
+const sqliteDatetimeFmt = "2006-01-02 15:04:05"
+
+// GetUsageSummary returns aggregate usage statistics since the given time.
+func (s *Store) GetUsageSummary(since time.Time) (*UsageSummary, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	summary := &UsageSummary{
+		BlastLevelCounts: make(map[string]int),
+	}
+
+	// Overall counts.
+	err := s.db.QueryRow(`
+		SELECT COUNT(*), COALESCE(AVG(duration_ms), 0)
+		FROM usage_log WHERE created_at >= ?`, sinceStr,
+	).Scan(&summary.TotalAnalyses, &summary.AvgDurationMs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Context analyses only (analyze + get_context): file counts and confidence.
+	// AVG(confidence) naturally skips NULL rows (analyze_change stores NULL).
+	err = s.db.QueryRow(`
+		SELECT COUNT(*), COALESCE(SUM(file_count), 0), COALESCE(AVG(confidence), 0)
+		FROM usage_log
+		WHERE created_at >= ? AND tool != 'analyze_change'`, sinceStr,
+	).Scan(&summary.ContextAnalyses, &summary.FilesAnalyzed, &summary.AvgConfidence)
+	if err != nil {
+		return nil, err
+	}
+
+	summary.ChangeAnalyses = summary.TotalAnalyses - summary.ContextAnalyses
+
+	rows, err := s.db.Query(`
+		SELECT COALESCE(blast_level, 'unknown'), COUNT(*)
+		FROM usage_log WHERE created_at >= ?
+		GROUP BY blast_level`, sinceStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var level string
+		var count int
+		if err := rows.Scan(&level, &count); err != nil {
+			return nil, err
+		}
+		summary.BlastLevelCounts[level] = count
+	}
+	return summary, rows.Err()
+}
+
+// UsagePeriod represents usage data for a time period.
+type UsagePeriod struct {
+	Period        string  `json:"period"`
+	Analyses      int     `json:"analyses"`
+	Files         int     `json:"files"`
+	AvgConfidence float64 `json:"avg_confidence"`
+	AvgDurationMs float64 `json:"avg_duration_ms"`
+}
+
+// GetUsageByPeriod returns usage statistics grouped by the given period.
+// period must be "day", "week", or "month".
+func (s *Store) GetUsageByPeriod(period string, since time.Time, limit int) ([]UsagePeriod, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	var groupExpr string
+	switch period {
+	case "week":
+		groupExpr = "strftime('%Y-W%W', created_at)"
+	case "month":
+		groupExpr = "strftime('%Y-%m', created_at)"
+	default: // "day"
+		groupExpr = "date(created_at)"
+	}
+
+	//nolint:gosec // groupExpr is from hardcoded switch, not user input
+	query := fmt.Sprintf(`
+		SELECT %s as period, COUNT(*),
+		       COALESCE(SUM(CASE WHEN tool != 'analyze_change' THEN file_count ELSE 0 END), 0),
+		       COALESCE(AVG(confidence), 0), COALESCE(AVG(duration_ms), 0)
+		FROM usage_log
+		WHERE created_at >= ?
+		GROUP BY period
+		ORDER BY period DESC
+		LIMIT ?`, groupExpr)
+
+	rows, err := s.db.Query(query, sinceStr, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []UsagePeriod
+	for rows.Next() {
+		var p UsagePeriod
+		if err := rows.Scan(&p.Period, &p.Analyses, &p.Files,
+			&p.AvgConfidence, &p.AvgDurationMs); err != nil {
+			return nil, err
+		}
+		results = append(results, p)
+	}
+	return results, rows.Err()
+}
+
+// TopFile represents a frequently analyzed file.
+type TopFile struct {
+	File     string `json:"file"`
+	Count    int    `json:"count"`
+	LastSeen string `json:"last_seen"`
+}
+
+// GetTopFiles returns the most frequently analyzed files.
+func (s *Store) GetTopFiles(since time.Time, limit int) ([]TopFile, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	rows, err := s.db.Query(`
+		SELECT files_analyzed, COUNT(*) as cnt, MAX(created_at) as last_seen
+		FROM usage_log
+		WHERE created_at >= ? AND tool != 'analyze_change'
+		GROUP BY files_analyzed
+		ORDER BY cnt DESC
+		LIMIT ?`, sinceStr, limit*3) // fetch extra since we need to expand JSON arrays
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Aggregate counts by individual file path (files_analyzed is a JSON array).
+	fileCounts := make(map[string]*TopFile)
+	for rows.Next() {
+		var filesJSON string
+		var count int
+		var lastSeen string
+		if err := rows.Scan(&filesJSON, &count, &lastSeen); err != nil {
+			return nil, err
+		}
+
+		var files []string
+		if err := json.Unmarshal([]byte(filesJSON), &files); err != nil {
+			continue
+		}
+		for _, f := range files {
+			if existing, ok := fileCounts[f]; ok {
+				existing.Count += count
+				if lastSeen > existing.LastSeen {
+					existing.LastSeen = lastSeen
+				}
+			} else {
+				fileCounts[f] = &TopFile{File: f, Count: count, LastSeen: lastSeen}
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Sort by count descending.
+	result := make([]TopFile, 0, len(fileCounts))
+	for _, tf := range fileCounts {
+		result = append(result, *tf)
+	}
+	sortTopFiles(result)
+	if len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
+// sortTopFiles sorts TopFile entries by count descending, then path ascending for stability.
+func sortTopFiles(files []TopFile) {
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].Count != files[j].Count {
+			return files[i].Count > files[j].Count
+		}
+		return files[i].File < files[j].File
+	})
+}
+
+// UsageCount returns the total number of usage log entries.
+func (s *Store) UsageCount() (int, error) {
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM usage_log").Scan(&count)
+	return count, err
+}
+
+// FilesWithUsage returns the set of files that have context analysis entries since the given time.
+// Only includes analyze/get_context entries, not analyze_change (which lists changed files, not
+// files whose dependency context was individually analyzed).
+// This satisfies the session.UsageLogQuerier interface.
+func (s *Store) FilesWithUsage(since time.Time) (map[string]bool, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	rows, err := s.db.Query(`
+		SELECT files_analyzed FROM usage_log
+		WHERE created_at >= ? AND tool != 'analyze_change'`, sinceStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[string]bool)
+	for rows.Next() {
+		var filesJSON string
+		if err := rows.Scan(&filesJSON); err != nil {
+			continue
+		}
+		var files []string
+		if err := json.Unmarshal([]byte(filesJSON), &files); err != nil {
+			continue
+		}
+		for _, f := range files {
+			result[f] = true
+		}
+	}
+	return result, rows.Err()
+}
+
+// UsageEntryFromAnalysis creates a UsageEntry from an analysis output.
+func UsageEntryFromAnalysis(source, tool string, files []string, output *model.AnalysisOutput, durationMs int64, mode string, tokenBudget int) *UsageEntry {
+	entry := &UsageEntry{
+		Source:        source,
+		Tool:          tool,
+		FilesAnalyzed: files,
+		DurationMs:    durationMs,
+		Mode:          mode,
+		TokenBudget:   tokenBudget,
+	}
+
+	if output != nil {
+		entry.MustReadCount = len(output.MustRead)
+		entry.TestCount = len(output.Tests)
+		entry.Confidence = output.Confidence
+		entry.HasConfidence = true
+
+		// Count likely_modify entries across all packages.
+		for _, entries := range output.LikelyModify {
+			entry.LikelyModifyCount += len(entries)
+		}
+
+		if output.BlastRadius != nil {
+			entry.BlastLevel = output.BlastRadius.Level
+		}
+
+		// Estimate response tokens (rough: JSON bytes / 4).
+		if data, err := json.Marshal(output); err == nil {
+			entry.ResponseTokens = len(data) / 4
+		}
+	}
+
+	return entry
+}
+
+// UsageEntryFromChangeReport creates a UsageEntry from a change report.
+func UsageEntryFromChangeReport(source string, files []string, report *model.ChangeReport, durationMs int64, mode string, tokenBudget int) *UsageEntry {
+	entry := &UsageEntry{
+		Source:        source,
+		Tool:          "analyze_change",
+		FilesAnalyzed: files,
+		DurationMs:    durationMs,
+		Mode:          mode,
+		TokenBudget:   tokenBudget,
+	}
+
+	if report != nil {
+		entry.MustReadCount = len(report.MustRead)
+		entry.TestCount = len(report.Tests)
+
+		for _, entries := range report.LikelyModify {
+			entry.LikelyModifyCount += len(entries)
+		}
+
+		if report.BlastRadius != nil {
+			entry.BlastLevel = report.BlastRadius.Level
+		}
+
+		// Estimate response tokens.
+		if data, err := json.Marshal(report); err == nil {
+			entry.ResponseTokens = len(data) / 4
+		}
+
+		// Extract changed file paths for the files_analyzed field.
+		if len(files) == 0 {
+			for _, cf := range report.ChangedFiles {
+				entry.FilesAnalyzed = append(entry.FilesAnalyzed, cf.File)
+			}
+		}
+	}
+
+	return entry
+}
+
+// GainExport represents the full analytics export for JSON/CSV output.
+type GainExport struct {
+	Summary *UsageSummary `json:"summary"`
+	TopFiles []TopFile    `json:"top_files"`
+	Daily   []UsagePeriod `json:"daily,omitempty"`
+	Weekly  []UsagePeriod `json:"weekly,omitempty"`
+	Monthly []UsagePeriod `json:"monthly,omitempty"`
+}
+
+// FormatGainSummary produces the human-readable gain dashboard text.
+func FormatGainSummary(summary *UsageSummary, topFiles []TopFile, daily []UsagePeriod) string {
+	var b strings.Builder
+
+	b.WriteString("Contextception Analytics\n")
+	b.WriteString(strings.Repeat("=", 50) + "\n\n")
+
+	// KPIs
+	avgBlast := dominantBlastLevel(summary.BlastLevelCounts)
+	fmt.Fprintf(&b, "  Context analyses: %-10d Avg confidence:  %.2f\n",
+		summary.ContextAnalyses, summary.AvgConfidence)
+	fmt.Fprintf(&b, "  Files analyzed:   %-10d Avg blast radius: %s\n",
+		summary.FilesAnalyzed, avgBlast)
+	if summary.ChangeAnalyses > 0 {
+		fmt.Fprintf(&b, "  Change analyses:  %d\n", summary.ChangeAnalyses)
+	}
+	fmt.Fprintf(&b, "  Avg duration:     %dms\n",
+		int(summary.AvgDurationMs))
+
+	// Top files
+	if len(topFiles) > 0 {
+		b.WriteString("\n  Top analyzed files:\n")
+		b.WriteString("  " + strings.Repeat("-", 46) + "\n")
+		for _, f := range topFiles {
+			name := f.File
+			if len(name) > 35 {
+				name = "..." + name[len(name)-32:]
+			}
+			fmt.Fprintf(&b, "  %-37s %3d analyses\n", name, f.Count)
+		}
+	}
+
+	// Daily trend
+	if len(daily) > 0 {
+		b.WriteString("\n  Daily activity:\n")
+		b.WriteString("  " + strings.Repeat("-", 46) + "\n")
+		// Show in chronological order (daily is DESC, reverse it).
+		for i := len(daily) - 1; i >= 0; i-- {
+			d := daily[i]
+			bar := strings.Repeat("|", min(d.Analyses, 30))
+			fmt.Fprintf(&b, "  %-12s %3d  %s\n", d.Period, d.Analyses, bar)
+		}
+	}
+
+	if summary.TotalAnalyses == 0 {
+		b.WriteString("\n  No analyses recorded yet. Use contextception analyze or get_context to start tracking.\n")
+	}
+
+	return b.String()
+}
+
+// FeedbackEntry represents a single feedback record from the LLM.
+type FeedbackEntry struct {
+	FilePath         string   `json:"file_path"`
+	Usefulness       int      `json:"usefulness"`
+	UsefulFiles      []string `json:"useful_files,omitempty"`
+	UnnecessaryFiles []string `json:"unnecessary_files,omitempty"`
+	MissingFiles     []string `json:"missing_files,omitempty"`
+	ModifiedFiles    []string `json:"modified_files,omitempty"`
+	Notes            string   `json:"notes,omitempty"`
+}
+
+// RecordFeedback stores an LLM feedback entry, linking to the most recent usage_log for the file.
+func (s *Store) RecordFeedback(entry *FeedbackEntry) (int64, error) {
+	// Find the most recent context analysis (not change report) for this file.
+	// Prefer analyze/get_context over analyze_change since feedback is about
+	// context analysis quality. Use instr() for exact substring matching
+	// (immune to LIKE wildcards in file paths containing % or _).
+	quotedPath := `"` + entry.FilePath + `"`
+	var usageID sql.NullInt64
+	_ = s.db.QueryRow(`
+		SELECT id FROM usage_log
+		WHERE instr(files_analyzed, ?) > 0 AND tool != 'analyze_change'
+		ORDER BY created_at DESC LIMIT 1`,
+		quotedPath,
+	).Scan(&usageID)
+	// Fall back to analyze_change if no context analysis exists.
+	if !usageID.Valid {
+		_ = s.db.QueryRow(`
+			SELECT id FROM usage_log
+			WHERE instr(files_analyzed, ?) > 0
+			ORDER BY created_at DESC LIMIT 1`,
+			quotedPath,
+		).Scan(&usageID)
+	}
+
+	usefulJSON, _ := json.Marshal(entry.UsefulFiles)
+	unnecessaryJSON, _ := json.Marshal(entry.UnnecessaryFiles)
+	missingJSON, _ := json.Marshal(entry.MissingFiles)
+	modifiedJSON, _ := json.Marshal(entry.ModifiedFiles)
+
+	result, err := s.db.Exec(`
+		INSERT INTO feedback
+			(usage_id, file_path, usefulness, useful_files,
+			 unnecessary_files, missing_files, modified_files, notes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		usageID, entry.FilePath, entry.Usefulness,
+		string(usefulJSON), string(unnecessaryJSON),
+		string(missingJSON), string(modifiedJSON),
+		entry.Notes,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting feedback: %w", err)
+	}
+	return result.LastInsertId()
+}
+
+// AccuracyMetrics contains precision/recall metrics computed from feedback.
+type AccuracyMetrics struct {
+	TotalRatings       int     `json:"total_ratings"`
+	AvgUsefulness      float64 `json:"avg_usefulness"`
+	MustReadPrecision  float64 `json:"must_read_precision"`
+	MustReadRecall     float64 `json:"must_read_recall"`
+	LikelyModifyAccuracy float64 `json:"likely_modify_accuracy"`
+}
+
+// GetAccuracyMetrics computes precision/recall from feedback data.
+func (s *Store) GetAccuracyMetrics(since time.Time) (*AccuracyMetrics, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	metrics := &AccuracyMetrics{}
+
+	// Get basic stats.
+	err := s.db.QueryRow(`
+		SELECT COUNT(*), COALESCE(AVG(usefulness), 0)
+		FROM feedback WHERE created_at >= ?`, sinceStr,
+	).Scan(&metrics.TotalRatings, &metrics.AvgUsefulness)
+	if err != nil {
+		return nil, err
+	}
+
+	if metrics.TotalRatings == 0 {
+		return metrics, nil
+	}
+
+	// Compute precision and recall from file lists.
+	rows, err := s.db.Query(`
+		SELECT f.useful_files, f.unnecessary_files, f.missing_files, f.modified_files
+		FROM feedback f
+		WHERE f.created_at >= ?`, sinceStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var totalUseful, totalUnnecessary, totalMissing int
+	var totalModified int
+
+	for rows.Next() {
+		var usefulJSON, unnecessaryJSON, missingJSON, modifiedJSON sql.NullString
+		if err := rows.Scan(&usefulJSON, &unnecessaryJSON, &missingJSON,
+			&modifiedJSON); err != nil {
+			return nil, err
+		}
+
+		totalUseful += countJSONArray(usefulJSON)
+		totalUnnecessary += countJSONArray(unnecessaryJSON)
+		totalMissing += countJSONArray(missingJSON)
+		totalModified += countJSONArray(modifiedJSON)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Likely-modify denominator: sum likely_modify_count from distinct usage entries
+	// to avoid inflating the count when multiple feedbacks link to the same analysis.
+	var totalLikelyModify int
+	_ = s.db.QueryRow(`
+		SELECT COALESCE(SUM(u.likely_modify_count), 0)
+		FROM usage_log u
+		WHERE u.id IN (SELECT DISTINCT usage_id FROM feedback WHERE created_at >= ? AND usage_id IS NOT NULL)`,
+		sinceStr,
+	).Scan(&totalLikelyModify)
+
+	// Must-read precision: useful / (useful + unnecessary)
+	if totalUseful+totalUnnecessary > 0 {
+		metrics.MustReadPrecision = float64(totalUseful) / float64(totalUseful+totalUnnecessary)
+	}
+
+	// Must-read recall: useful / (useful + missing)
+	if totalUseful+totalMissing > 0 {
+		metrics.MustReadRecall = float64(totalUseful) / float64(totalUseful+totalMissing)
+	}
+
+	// Likely-modify accuracy: modified / predicted
+	if totalLikelyModify > 0 {
+		metrics.LikelyModifyAccuracy = float64(totalModified) / float64(totalLikelyModify)
+	}
+
+	return metrics, nil
+}
+
+// countJSONArray returns the number of elements in a JSON array string.
+func countJSONArray(s sql.NullString) int {
+	if !s.Valid || s.String == "" || s.String == "null" {
+		return 0
+	}
+	var arr []string
+	if err := json.Unmarshal([]byte(s.String), &arr); err != nil {
+		return 0
+	}
+	return len(arr)
+}
+
+// RatedAnalysis represents a feedback entry with its rating for display.
+type RatedAnalysis struct {
+	FilePath   string  `json:"file_path"`
+	Usefulness int     `json:"usefulness"`
+	Notes      string  `json:"notes,omitempty"`
+	CreatedAt  string  `json:"created_at"`
+}
+
+// GetLowestRated returns the lowest-rated analyses.
+func (s *Store) GetLowestRated(since time.Time, limit int) ([]RatedAnalysis, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	rows, err := s.db.Query(`
+		SELECT file_path, usefulness, COALESCE(notes, ''), created_at
+		FROM feedback
+		WHERE created_at >= ?
+		ORDER BY usefulness ASC, created_at DESC
+		LIMIT ?`, sinceStr, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []RatedAnalysis
+	for rows.Next() {
+		var r RatedAnalysis
+		if err := rows.Scan(&r.FilePath, &r.Usefulness, &r.Notes, &r.CreatedAt); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}
+
+// FeedbackCount returns the total number of feedback entries.
+func (s *Store) FeedbackCount() (int, error) {
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM feedback").Scan(&count)
+	return count, err
+}
+
+// AccuracyExport represents the full accuracy export for JSON output.
+type AccuracyExport struct {
+	Metrics    *AccuracyMetrics `json:"metrics"`
+	LowestRated []RatedAnalysis `json:"lowest_rated,omitempty"`
+}
+
+// FormatAccuracySummary produces the human-readable accuracy dashboard text.
+func FormatAccuracySummary(metrics *AccuracyMetrics, lowestRated []RatedAnalysis) string {
+	var b strings.Builder
+
+	b.WriteString("Recommendation Accuracy")
+	fmt.Fprintf(&b, " (%d rated analyses)\n", metrics.TotalRatings)
+	b.WriteString(strings.Repeat("=", 50) + "\n\n")
+
+	if metrics.TotalRatings == 0 {
+		b.WriteString("  No feedback recorded yet.\n")
+		b.WriteString("  Use the rate_context MCP tool after get_context to start tracking accuracy.\n")
+		return b.String()
+	}
+
+	fmt.Fprintf(&b, "  Must-read precision:    %3.0f%%  (recommended files that were useful)\n",
+		metrics.MustReadPrecision*100)
+	fmt.Fprintf(&b, "  Must-read recall:       %3.0f%%  (needed files that were recommended)\n",
+		metrics.MustReadRecall*100)
+	fmt.Fprintf(&b, "  Likely-modify accuracy: %3.0f%%  (predicted modifications that happened)\n",
+		metrics.LikelyModifyAccuracy*100)
+
+	stars := strings.Repeat("*", int(metrics.AvgUsefulness+0.5))
+	fmt.Fprintf(&b, "  Overall usefulness:     %s %.1f / 5.0\n", stars, metrics.AvgUsefulness)
+
+	if len(lowestRated) > 0 {
+		b.WriteString("\n  Lowest-rated analyses:\n")
+		b.WriteString("  " + strings.Repeat("-", 46) + "\n")
+		for _, r := range lowestRated {
+			name := r.FilePath
+			if len(name) > 30 {
+				name = "..." + name[len(name)-27:]
+			}
+			line := fmt.Sprintf("  %-32s *%d", name, r.Usefulness)
+			if r.Notes != "" {
+				notes := r.Notes
+				if len(notes) > 40 {
+					notes = notes[:37] + "..."
+				}
+				line += fmt.Sprintf("  %q", notes)
+			}
+			b.WriteString(line + "\n")
+		}
+	}
+
+	return b.String()
+}
+
+// dominantBlastLevel returns the most common blast level.
+func dominantBlastLevel(counts map[string]int) string {
+	if len(counts) == 0 {
+		return "n/a"
+	}
+	// Tie-breaking priority: higher severity wins.
+	priority := map[string]int{"high": 3, "medium": 2, "low": 1, "unknown": 0}
+	best := ""
+	bestCount := 0
+	bestPri := -1
+	for level, count := range counts {
+		pri := priority[level]
+		if count > bestCount || (count == bestCount && pri > bestPri) {
+			best = level
+			bestCount = count
+			bestPri = pri
+		}
+	}
+	return best
+}
+

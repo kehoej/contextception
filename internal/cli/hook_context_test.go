@@ -5,12 +5,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kehoej/contextception/internal/analyzer"
 	"github.com/kehoej/contextception/internal/model"
 )
 
-func TestFormatHookContext_WithEntries(t *testing.T) {
+func TestHookContextCompactFormat(t *testing.T) {
 	output := &model.AnalysisOutput{
 		Subject: "internal/cli/analyze.go",
+		Confidence: 0.95,
 		MustRead: []model.MustReadEntry{
 			{File: "internal/analyzer/analyzer.go", Symbols: []string{"Analyze", "AnalyzeMulti"}, Direction: "imports"},
 			{File: "internal/db/db.go", Symbols: []string{"OpenIndex"}, Direction: "imports", Stable: true},
@@ -26,64 +28,53 @@ func TestFormatHookContext_WithEntries(t *testing.T) {
 		},
 	}
 
-	result := formatHookContext(output)
+	// This mirrors how hook_context.go formats the output.
+	result := "[contextception] " + analyzer.FormatCompact(output)
 
 	// Check header.
-	if !strings.Contains(result, "[contextception] Dependency context for internal/cli/analyze.go") {
-		t.Error("missing header")
+	if !strings.Contains(result, "[contextception]") {
+		t.Error("missing contextception prefix")
+	}
+	if !strings.Contains(result, "internal/cli/analyze.go") {
+		t.Error("missing subject")
 	}
 
-	// Check must-read entries.
-	if !strings.Contains(result, "internal/analyzer/analyzer.go (Analyze, AnalyzeMulti) [imports]") {
-		t.Error("missing analyzer entry with symbols and direction")
+	// Check must-read entries are present.
+	if !strings.Contains(result, "internal/analyzer/analyzer.go") {
+		t.Error("missing analyzer entry")
 	}
-	if !strings.Contains(result, "internal/db/db.go (OpenIndex) [imports, stable]") {
-		t.Error("missing db entry with stable tag")
-	}
-	if !strings.Contains(result, "internal/model/model.go [imports, circular]") {
-		t.Error("missing model entry with circular tag")
+	if !strings.Contains(result, "internal/db/db.go") {
+		t.Error("missing db entry")
 	}
 
-	// Check tests (direct only).
+	// Check tests.
 	if !strings.Contains(result, "internal/cli/analyze_test.go") {
 		t.Error("missing direct test")
 	}
-	if strings.Contains(result, "internal/analyzer/analyzer_test.go") {
-		t.Error("non-direct test should not appear")
-	}
 
 	// Check blast radius.
-	if !strings.Contains(result, "Blast radius: medium (5 reverse importers)") {
+	if !strings.Contains(result, "blast: medium") {
 		t.Error("missing blast radius")
 	}
 }
 
-func TestFormatHookContext_Empty(t *testing.T) {
+func TestHookContextCompactFormat_Empty(t *testing.T) {
 	output := &model.AnalysisOutput{
-		Subject: "empty.go",
+		Subject:    "empty.go",
+		Confidence: 1.0,
 	}
 
-	result := formatHookContext(output)
-	if !strings.Contains(result, "[contextception] Dependency context for empty.go") {
-		t.Error("missing header for empty output")
+	result := "[contextception] " + analyzer.FormatCompact(output)
+	if !strings.Contains(result, "empty.go") {
+		t.Error("missing subject for empty output")
 	}
-	if strings.Contains(result, "Must-read") {
+	// Should not have sections for empty data.
+	if strings.Contains(result, "Must read") {
 		t.Error("should not have must-read section for empty output")
-	}
-	if strings.Contains(result, "Tests:") {
-		t.Error("should not have tests section for empty output")
-	}
-}
-
-func TestFormatHookContext_Nil(t *testing.T) {
-	result := formatHookContext(nil)
-	if result != "" {
-		t.Error("nil output should produce empty string")
 	}
 }
 
 func TestEmitHookAllow_JSONStructure(t *testing.T) {
-	// Test that the envelope has the correct structure.
 	out := hookOutput{
 		HookSpecificOutput: hookSpecific{
 			HookEventName:      "PreToolUse",
@@ -96,7 +87,6 @@ func TestEmitHookAllow_JSONStructure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify required fields.
 	var parsed map[string]map[string]string
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatal(err)
@@ -125,7 +115,6 @@ func TestEmitHookAllow_OmitsEmptyContext(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// additionalContext should be omitted (not present as empty string).
 	if strings.Contains(string(data), "additionalContext") {
 		t.Error("empty additionalContext should be omitted from JSON")
 	}

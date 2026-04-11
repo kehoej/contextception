@@ -1406,6 +1406,87 @@ func TestAnalyzeChangeNoChanges(t *testing.T) {
 	}
 }
 
+// === Rate Context Tool Tests ===
+
+func TestRateContextMCP(t *testing.T) {
+	root := createTestProject(t)
+	session := startTestServer(t, root)
+
+	// First call get_context so there's a usage_log entry to link to.
+	_, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "get_context",
+		Arguments: map[string]any{"file": "myapp/main.py"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Now rate the context.
+	result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: "rate_context",
+		Arguments: map[string]any{
+			"file":              "myapp/main.py",
+			"usefulness":        4,
+			"useful_files":      []any{"myapp/models.py", "myapp/utils.py"},
+			"unnecessary_files": []any{"myapp/base.py"},
+			"missing_files":     []any{},
+			"modified_files":    []any{"myapp/models.py"},
+			"notes":             "Good context, base.py wasn't needed",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.IsError {
+		t.Fatalf("rate_context returned error: %s", textContent(t, result))
+	}
+
+	text := textContent(t, result)
+	if !strings.Contains(text, "Feedback recorded") {
+		t.Errorf("expected 'Feedback recorded' in response, got: %s", text)
+	}
+}
+
+func TestRateContextValidation(t *testing.T) {
+	root := createTestProject(t)
+	session := startTestServer(t, root)
+
+	// Missing file.
+	result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "rate_context",
+		Arguments: map[string]any{"usefulness": 3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.IsError {
+		t.Error("expected error for missing file parameter")
+	}
+
+	// Invalid usefulness.
+	result, err = session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "rate_context",
+		Arguments: map[string]any{"file": "test.py", "usefulness": 0},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.IsError {
+		t.Error("expected error for usefulness=0")
+	}
+
+	result, err = session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "rate_context",
+		Arguments: map[string]any{"file": "test.py", "usefulness": 6},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.IsError {
+		t.Error("expected error for usefulness=6")
+	}
+}
+
 func TestGetContextOmitExternal(t *testing.T) {
 	root := createTestProject(t)
 	session := startTestServer(t, root)

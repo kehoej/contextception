@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/kehoej/contextception/internal/analyzer"
 	"github.com/kehoej/contextception/internal/db"
+	"github.com/kehoej/contextception/internal/history"
 	"github.com/kehoej/contextception/internal/model"
 	"github.com/spf13/cobra"
 )
@@ -31,6 +33,7 @@ var (
 	failOn          string
 	mode            string
 	tokenBudget     int
+	compactOutput   bool
 )
 
 func newAnalyzeCmd() *cobra.Command {
@@ -93,6 +96,7 @@ func runAnalyze(files []string) error {
 		},
 	})
 
+	start := time.Now()
 	var output *model.AnalysisOutput
 	if len(targets) == 1 {
 		output, err = a.Analyze(targets[0])
@@ -101,6 +105,14 @@ func runAnalyze(files []string) error {
 	}
 	if err != nil {
 		return err
+	}
+	durationMs := time.Since(start).Milliseconds()
+
+	// Record usage (best-effort).
+	if hist, hErr := history.Open(repoRoot); hErr == nil {
+		defer hist.Close()
+		entry := history.UsageEntryFromAnalysis("cli", "analyze", targets, output, durationMs, mode, tokenBudget)
+		_, _ = hist.RecordUsage(entry)
 	}
 
 	// CI mode: suppress normal output, exit with code based on blast radius.
@@ -117,6 +129,11 @@ func runAnalyze(files []string) error {
 	if jsonOutput {
 		enc := json.NewEncoder(os.Stdout)
 		return enc.Encode(output)
+	}
+
+	if compactOutput {
+		fmt.Print(analyzer.FormatCompact(output))
+		return nil
 	}
 
 	fmt.Print(formatPretty(output))

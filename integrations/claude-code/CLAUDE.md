@@ -27,6 +27,7 @@ Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Ja
 - **When exploring an unfamiliar project:** Call `get_structure` first for an overview, then `get_entrypoints` to find key files, then `get_archetypes` to see representative files across architectural layers.
 - **When reviewing a PR or branch:** Call `analyze_change` to see blast radius, test gaps, and coupling signals across all changed files.
 - **When searching for a file or symbol:** Call `search` with a path pattern or symbol name (use `type: "symbol"` for symbol search).
+- **After completing work on a file:** Call `rate_context` to provide feedback on how useful the analysis was. Report which suggested files were actually useful, which were unnecessary, and which needed files were missing.
 
 ### Example workflow: modifying a file
 
@@ -35,7 +36,8 @@ Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Ja
 3. Check `likely_modify` to see what else may need changes
 4. Check `tests` to know which tests to run
 5. Make the change
-6. Verify by re-running `get_context` if the change affected imports
+6. Call `rate_context` with feedback on which suggested files were useful
+7. Verify by re-running `get_context` if the change affected imports
 
 ### Multi-file analysis
 

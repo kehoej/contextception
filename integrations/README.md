@@ -133,7 +133,7 @@ This starts the MCP server on stdin/stdout. Configure your agent to launch this 
 
 ## Available MCP Tools
 
-All integrations expose the same eight tools:
+All integrations expose the same nine tools:
 
 | Tool | Description |
 |------|-------------|
@@ -145,6 +145,7 @@ All integrations expose the same eight tools:
 | `get_structure` | Return directory structure with file counts and language distribution. |
 | `get_archetypes` | Detect representative files across architectural layers (one per category). |
 | `analyze_change` | Analyze the impact of a git diff / PR. Returns blast radius, test gaps, coupling signals. |
+| `rate_context` | Rate how useful a previous `get_context` result was. Structured feedback for accuracy tracking. |
 
 ## Supported Languages
 

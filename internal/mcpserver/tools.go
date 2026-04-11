@@ -16,6 +16,7 @@ import (
 	"github.com/kehoej/contextception/internal/classify"
 	"github.com/kehoej/contextception/internal/db"
 	"github.com/kehoej/contextception/internal/grader"
+	"github.com/kehoej/contextception/internal/history"
 	"github.com/kehoej/contextception/internal/indexer"
 	"github.com/kehoej/contextception/internal/model"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -148,6 +149,7 @@ func (cs *ContextServer) handleGetContext(ctx context.Context, req *mcp.CallTool
 		},
 	})
 
+	start := time.Now()
 	var output *model.AnalysisOutput
 	if len(targets) == 1 {
 		output, err = a.Analyze(targets[0])
@@ -156,6 +158,13 @@ func (cs *ContextServer) handleGetContext(ctx context.Context, req *mcp.CallTool
 	}
 	if err != nil {
 		return errorResult(fmt.Sprintf("analysis failed: %v", err)), nil, nil
+	}
+	durationMs := time.Since(start).Milliseconds()
+
+	// Record usage analytics (best-effort).
+	if hist := cs.ensureHistory(); hist != nil {
+		entry := history.UsageEntryFromAnalysis("mcp", "get_context", targets, output, durationMs, input.Mode, input.TokenBudget)
+		_, _ = hist.RecordUsage(entry)
 	}
 
 	return jsonResult(output), nil, nil
@@ -633,12 +642,66 @@ func (cs *ContextServer) handleAnalyzeChange(ctx context.Context, req *mcp.CallT
 		},
 	}
 
+	start := time.Now()
 	report, err := change.BuildReport(idx, cfg, base, head)
 	if err != nil {
 		return errorResult(fmt.Sprintf("analyzing change: %v", err)), nil, nil
 	}
+	durationMs := time.Since(start).Milliseconds()
+
+	// Record usage analytics (best-effort).
+	if hist := cs.ensureHistory(); hist != nil {
+		entry := history.UsageEntryFromChangeReport("mcp", nil, report, durationMs, "", 0)
+		_, _ = hist.RecordUsage(entry)
+	}
 
 	return jsonResult(report), nil, nil
+}
+
+// rateContextInput is the input schema for the rate_context tool.
+type rateContextInput struct {
+	File             string   `json:"file"              jsonschema:"File that was analyzed"`
+	Usefulness       int      `json:"usefulness"        jsonschema:"1-5 rating: 1=not useful, 5=essential"`
+	UsefulFiles      []string `json:"useful_files,omitempty" jsonschema:"Which must_read/related files were actually useful"`
+	UnnecessaryFiles []string `json:"unnecessary_files,omitempty" jsonschema:"Files in must_read that were NOT needed"`
+	MissingFiles     []string `json:"missing_files,omitempty" jsonschema:"Files you needed that were NOT suggested"`
+	ModifiedFiles    []string `json:"modified_files,omitempty" jsonschema:"Files you actually modified"`
+	Notes            string   `json:"notes,omitempty"   jsonschema:"Brief explanation of rating"`
+}
+
+// handleRateContext records LLM feedback about a previous get_context result.
+func (cs *ContextServer) handleRateContext(ctx context.Context, req *mcp.CallToolRequest, input rateContextInput) (*mcp.CallToolResult, any, error) {
+	if input.File == "" {
+		return errorResult("file parameter is required"), nil, nil
+	}
+	if input.Usefulness < 1 || input.Usefulness > 5 {
+		return errorResult("usefulness must be between 1 and 5"), nil, nil
+	}
+
+	hist := cs.ensureHistory()
+	if hist == nil {
+		return errorResult("opening history store failed"), nil, nil
+	}
+
+	entry := &history.FeedbackEntry{
+		FilePath:         input.File,
+		Usefulness:       input.Usefulness,
+		UsefulFiles:      input.UsefulFiles,
+		UnnecessaryFiles: input.UnnecessaryFiles,
+		MissingFiles:     input.MissingFiles,
+		ModifiedFiles:    input.ModifiedFiles,
+		Notes:            input.Notes,
+	}
+
+	if _, err := hist.RecordFeedback(entry); err != nil {
+		return errorResult(fmt.Sprintf("recording feedback: %v", err)), nil, nil
+	}
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: "Feedback recorded. Thank you."},
+		},
+	}, nil, nil
 }
 
 // detectDefaultBranch finds the default branch (main or master).

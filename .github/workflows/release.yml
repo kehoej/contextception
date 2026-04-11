@@ -53,7 +53,7 @@ jobs:
           cp ../LICENSE* ../README* . 2>/dev/null || true
           tar czf contextception_darwin_${{ matrix.goarch }}.tar.gz contextception LICENSE* README*
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-darwin-${{ matrix.goarch }}
           path: dist/contextception_darwin_${{ matrix.goarch }}.tar.gz
@@ -99,7 +99,7 @@ jobs:
           cp ../LICENSE* ../README* . 2>/dev/null || true
           tar czf contextception_linux_${{ matrix.goarch }}.tar.gz contextception LICENSE* README*
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-linux-${{ matrix.goarch }}
           path: dist/contextception_linux_${{ matrix.goarch }}.tar.gz
@@ -137,7 +137,7 @@ jobs:
           cp ../LICENSE* ../README* . 2>/dev/null || true
           7z a -tzip contextception_windows_${{ matrix.goarch }}.zip contextception.exe LICENSE* README*
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-windows-${{ matrix.goarch }}
           path: dist/contextception_windows_${{ matrix.goarch }}.zip

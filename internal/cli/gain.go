@@ -105,11 +105,11 @@ func runGain() error {
 	case "csv":
 		return writeGainCSV(export)
 	default:
-		return writeGainText(export, fetchDaily)
+		return writeGainText(export)
 	}
 }
 
-func writeGainText(export *history.GainExport, showDaily bool) error {
+func writeGainText(export *history.GainExport) error {
 	fmt.Print(history.FormatGainSummary(export.Summary, export.TopFiles, export.Daily))
 
 	if gainWeekly && len(export.Weekly) > 0 {

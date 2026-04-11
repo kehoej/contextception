@@ -8,6 +8,7 @@ import (
 
 	"github.com/kehoej/contextception/internal/config"
 	"github.com/kehoej/contextception/internal/db"
+	"github.com/kehoej/contextception/internal/history"
 	"github.com/kehoej/contextception/internal/version"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -16,9 +17,10 @@ import (
 type ContextServer struct {
 	repoRoot string
 
-	mu  sync.Mutex
-	idx *db.Index      // lazily opened on first tool call
-	cfg *config.Config // lazily loaded on first tool call
+	mu   sync.Mutex
+	idx  *db.Index       // lazily opened on first tool call
+	cfg  *config.Config  // lazily loaded on first tool call
+	hist *history.Store  // lazily opened on first usage-tracking call
 }
 
 // New creates a ContextServer for the given repository root.
@@ -49,13 +51,17 @@ func (cs *ContextServer) RunStdio(ctx context.Context) error {
 	return cs.Run(ctx, &mcp.StdioTransport{})
 }
 
-// Close releases the database connection if open.
+// Close releases the database connections if open.
 func (cs *ContextServer) Close() {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	if cs.idx != nil {
 		cs.idx.Close()
 		cs.idx = nil
+	}
+	if cs.hist != nil {
+		cs.hist.Close()
+		cs.hist = nil
 	}
 }
 
@@ -113,6 +119,24 @@ func (cs *ContextServer) ensureConfig() *config.Config {
 
 	cs.cfg = cfg
 	return cs.cfg
+}
+
+// ensureHistory lazily opens the history store for usage tracking.
+func (cs *ContextServer) ensureHistory() *history.Store {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	if cs.hist != nil {
+		return cs.hist
+	}
+
+	hist, err := history.Open(cs.repoRoot)
+	if err != nil {
+		return nil
+	}
+
+	cs.hist = hist
+	return cs.hist
 }
 
 // registerTools adds all MCP tools to the server.

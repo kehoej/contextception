@@ -13,7 +13,6 @@ import (
 var (
 	accuracySince  int
 	accuracyFormat string
-	accuracyFile   string
 )
 
 func newAccuracyCmd() *cobra.Command {
@@ -40,7 +39,6 @@ Examples:
 
 	cmd.Flags().IntVar(&accuracySince, "since", 30, "lookback window in days")
 	cmd.Flags().StringVar(&accuracyFormat, "format", "", "output format: json")
-	cmd.Flags().StringVar(&accuracyFile, "file", "", "filter to a specific file path")
 
 	return cmd
 }

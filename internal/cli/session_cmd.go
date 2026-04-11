@@ -13,6 +13,7 @@ import (
 
 var (
 	sessionLimit  int
+	sessionSince  int
 	sessionFormat string
 )
 
@@ -25,7 +26,8 @@ is called before editing supported files. Displays adoption rate
 per session with coverage percentages.
 
 Examples:
-  contextception session                   # last 10 sessions
+  contextception session                   # last 10 sessions (30 days)
+  contextception session --since 7         # last 7 days
   contextception session --limit 20        # more sessions
   contextception session --format json     # JSON export`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -34,13 +36,14 @@ Examples:
 	}
 
 	cmd.Flags().IntVar(&sessionLimit, "limit", 10, "max sessions to show")
+	cmd.Flags().IntVar(&sessionSince, "since", 30, "lookback window in days")
 	cmd.Flags().StringVar(&sessionFormat, "format", "", "output format: json")
 
 	return cmd
 }
 
 func runSession() error {
-	since := time.Now().AddDate(0, 0, -30) // last 30 days
+	since := time.Now().AddDate(0, 0, -sessionSince)
 
 	// Open history to cross-reference usage_log (hook-injected context).
 	var usageLog session.UsageLogQuerier

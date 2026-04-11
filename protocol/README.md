@@ -8,6 +8,7 @@ This directory contains the formal protocol specification for Contextception's J
 |--------|---------|------|-------------|
 | AnalysisOutput | 3.2 | [analysis-schema.json](analysis-schema.json) | Context bundle for single or multi-file analysis |
 | ChangeReport | 1.0 | [change-schema.json](change-schema.json) | Impact analysis for branch diffs |
+| RateContext | 1.0 | (MCP input only) | LLM feedback on context quality |
 
 Both schemas use [JSON Schema draft 2020-12](https://json-schema.org/draft/2020-12/schema).
 
@@ -176,6 +177,36 @@ Produced by `contextception analyze-change [base..head]` and the `analyze_change
 
 ---
 
+## RateContext (MCP-only)
+
+The `rate_context` MCP tool accepts structured LLM feedback about a previous `get_context` result. It does not have a corresponding CLI output schema since it is an input-only tool.
+
+### Input Parameters
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | string | yes | Repo-relative path of the file that was analyzed |
+| `usefulness` | integer | yes | Rating from 1 (not useful) to 5 (essential) |
+| `useful_files` | string[] | no | Files from `must_read`/`related` that were actually useful |
+| `unnecessary_files` | string[] | no | Files in `must_read` that were NOT needed |
+| `missing_files` | string[] | no | Files you needed that were NOT suggested |
+| `modified_files` | string[] | no | Files you actually modified during your work |
+| `notes` | string | no | Brief explanation of the rating |
+
+### Response
+
+On success, returns a text content block: `"Feedback recorded. Thank you."`
+
+On error (missing `file`, `usefulness` out of range), returns an error result with a descriptive message.
+
+### Constraints
+
+- `usefulness` must be between 1 and 5 (inclusive)
+- `file` must be non-empty
+- Feedback is linked to the most recent `get_context` or `analyze` usage for the given file (prefers context analyses over change analyses)
+
+---
+
 ## Invariants
 
 These properties hold across all schema versions:
@@ -232,6 +263,7 @@ contextception analyze-change --ci --fail-on high
 The same schemas are returned by the MCP tools:
 - `get_context` returns AnalysisOutput
 - `analyze_change` returns ChangeReport
+- `rate_context` accepts RateContext input, returns text confirmation
 
 ### Parsing Output
 

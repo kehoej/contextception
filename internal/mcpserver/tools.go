@@ -162,10 +162,9 @@ func (cs *ContextServer) handleGetContext(ctx context.Context, req *mcp.CallTool
 	durationMs := time.Since(start).Milliseconds()
 
 	// Record usage analytics (best-effort).
-	if hist, hErr := history.Open(cs.repoRoot); hErr == nil {
+	if hist := cs.ensureHistory(); hist != nil {
 		entry := history.UsageEntryFromAnalysis("mcp", "get_context", targets, output, durationMs, input.Mode, input.TokenBudget)
 		_, _ = hist.RecordUsage(entry)
-		hist.Close()
 	}
 
 	return jsonResult(output), nil, nil
@@ -651,10 +650,9 @@ func (cs *ContextServer) handleAnalyzeChange(ctx context.Context, req *mcp.CallT
 	durationMs := time.Since(start).Milliseconds()
 
 	// Record usage analytics (best-effort).
-	if hist, hErr := history.Open(cs.repoRoot); hErr == nil {
+	if hist := cs.ensureHistory(); hist != nil {
 		entry := history.UsageEntryFromChangeReport("mcp", nil, report, durationMs, "", 0)
 		_, _ = hist.RecordUsage(entry)
-		hist.Close()
 	}
 
 	return jsonResult(report), nil, nil
@@ -680,11 +678,10 @@ func (cs *ContextServer) handleRateContext(ctx context.Context, req *mcp.CallToo
 		return errorResult("usefulness must be between 1 and 5"), nil, nil
 	}
 
-	hist, err := history.Open(cs.repoRoot)
-	if err != nil {
-		return errorResult(fmt.Sprintf("opening history: %v", err)), nil, nil
+	hist := cs.ensureHistory()
+	if hist == nil {
+		return errorResult("opening history store failed"), nil, nil
 	}
-	defer hist.Close()
 
 	entry := &history.FeedbackEntry{
 		FilePath:         input.File,
@@ -696,8 +693,7 @@ func (cs *ContextServer) handleRateContext(ctx context.Context, req *mcp.CallToo
 		Notes:            input.Notes,
 	}
 
-	_, err = hist.RecordFeedback(entry)
-	if err != nil {
+	if _, err := hist.RecordFeedback(entry); err != nil {
 		return errorResult(fmt.Sprintf("recording feedback: %v", err)), nil, nil
 	}
 

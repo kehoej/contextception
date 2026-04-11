@@ -2,14 +2,19 @@ package analyzer
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/kehoej/contextception/internal/model"
 )
 
 // FormatCompact produces a token-optimized text summary of an analysis output.
-// Targets ~75% fewer tokens than full JSON while preserving all essential information.
+// Targets ~60-75% fewer tokens than full JSON while preserving all essential information.
 func FormatCompact(output *model.AnalysisOutput) string {
+	if output == nil {
+		return ""
+	}
+
 	var b strings.Builder
 
 	// Header line with key metrics.
@@ -59,6 +64,10 @@ func FormatCompact(output *model.AnalysisOutput) string {
 
 // FormatCompactChange produces a token-optimized text summary of a change report.
 func FormatCompactChange(report *model.ChangeReport) string {
+	if report == nil {
+		return ""
+	}
+
 	var b strings.Builder
 
 	// Header.
@@ -188,9 +197,16 @@ func compactMustReadReason(entry model.MustReadEntry) string {
 
 // compactLikelyModify builds inline entries like "file.py (high), other.py (medium)".
 func compactLikelyModify(lm map[string][]model.LikelyModifyEntry) []string {
+	// Sort keys for deterministic output.
+	keys := make([]string, 0, len(lm))
+	for k := range lm {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	var parts []string
-	for _, entries := range lm {
-		for _, e := range entries {
+	for _, k := range keys {
+		for _, e := range lm[k] {
 			parts = append(parts, fmt.Sprintf("%s (%s)", e.File, e.Confidence))
 		}
 	}

@@ -171,51 +171,49 @@ func ParseSession(path string, repoRoot string) ([]EditEvent, []ContextEvent, er
 			if err := json.Unmarshal(raw, &tc); err != nil {
 				continue
 			}
-			if tc.Type != "tool_use" {
-				continue
-			}
 
-			switch tc.Name {
-			case "Edit", "Write":
-				filePath, _ := tc.Input["file_path"].(string)
-				if filePath == "" {
-					continue
-				}
-				// Only count files within the repo.
-				if !isWithinRepo(filePath, repoRoot) {
-					continue
-				}
-				edits = append(edits, EditEvent{
-					FilePath:  makeRelative(filePath, repoRoot),
-					Tool:      tc.Name,
-					Timestamp: ts,
-				})
-			}
-
-			// Check for contextception MCP calls.
-			if strings.Contains(tc.Name, "contextception") && strings.Contains(tc.Name, "get_context") {
-				file, _ := tc.Input["file"].(string)
-				if file != "" {
-					contexts = append(contexts, ContextEvent{
-						FilePath:  makeRelative(file, repoRoot),
+			if tc.Type == "tool_use" {
+				switch tc.Name {
+				case "Edit", "Write":
+					filePath, _ := tc.Input["file_path"].(string)
+					if filePath == "" {
+						continue
+					}
+					// Only count files within the repo.
+					if !isWithinRepo(filePath, repoRoot) {
+						continue
+					}
+					edits = append(edits, EditEvent{
+						FilePath:  makeRelative(filePath, repoRoot),
+						Tool:      tc.Name,
 						Timestamp: ts,
 					})
 				}
+
+				// Check for contextception MCP calls.
+				if strings.Contains(tc.Name, "contextception") && strings.Contains(tc.Name, "get_context") {
+					file, _ := tc.Input["file"].(string)
+					if file != "" {
+						contexts = append(contexts, ContextEvent{
+							FilePath:  makeRelative(file, repoRoot),
+							Timestamp: ts,
+						})
+					}
+				}
+				continue
 			}
 
 			// Check for hook-injected context in tool_result entries.
 			// When contextception hook-context runs, it injects "[contextception]"
 			// into the tool_result additionalContext. This shows up as text content
 			// containing the marker within the tool_result for Edit/Write calls.
-			if tc.Type == "" {
-				var tr toolResultContent
-				if err := json.Unmarshal(raw, &tr); err == nil && tr.Type == "tool_result" {
-					if file := extractHookContextFile(tr.Content); file != "" {
-						contexts = append(contexts, ContextEvent{
-							FilePath:  makeRelative(file, repoRoot),
-							Timestamp: ts,
-						})
-					}
+			var tr toolResultContent
+			if err := json.Unmarshal(raw, &tr); err == nil && tr.Type == "tool_result" {
+				if file := extractHookContextFile(tr.Content); file != "" {
+					contexts = append(contexts, ContextEvent{
+						FilePath:  makeRelative(file, repoRoot),
+						Timestamp: ts,
+					})
 				}
 			}
 		}
@@ -350,10 +348,13 @@ func GetSessionStats(repoRoot string, since time.Time, limit int, isSupportedExt
 		}
 
 		// Cross-reference with usage_log for hook-injected context.
+		// Only credit files that were actually edited in this session.
 		if len(usageLog) > 0 && usageLog[0] != nil {
 			if filesWithUsage, err := usageLog[0].FilesWithUsage(since); err == nil {
 				for f := range filesWithUsage {
-					contextFiles[f] = true
+					if editedFiles[f] {
+						contextFiles[f] = true
+					}
 				}
 			}
 		}

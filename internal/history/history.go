@@ -809,21 +809,23 @@ type FeedbackEntry struct {
 func (s *Store) RecordFeedback(entry *FeedbackEntry) (int64, error) {
 	// Find the most recent context analysis (not change report) for this file.
 	// Prefer analyze/get_context over analyze_change since feedback is about
-	// context analysis quality. Use JSON-quoted path to avoid false matches.
+	// context analysis quality. Use instr() for exact substring matching
+	// (immune to LIKE wildcards in file paths containing % or _).
+	quotedPath := `"` + entry.FilePath + `"`
 	var usageID sql.NullInt64
 	_ = s.db.QueryRow(`
 		SELECT id FROM usage_log
-		WHERE files_analyzed LIKE ? AND tool != 'analyze_change'
+		WHERE instr(files_analyzed, ?) > 0 AND tool != 'analyze_change'
 		ORDER BY created_at DESC LIMIT 1`,
-		`%"`+entry.FilePath+`"%`,
+		quotedPath,
 	).Scan(&usageID)
 	// Fall back to analyze_change if no context analysis exists.
 	if !usageID.Valid {
 		_ = s.db.QueryRow(`
 			SELECT id FROM usage_log
-			WHERE files_analyzed LIKE ?
+			WHERE instr(files_analyzed, ?) > 0
 			ORDER BY created_at DESC LIMIT 1`,
-			`%"`+entry.FilePath+`"%`,
+			quotedPath,
 		).Scan(&usageID)
 	}
 
@@ -1044,12 +1046,17 @@ func dominantBlastLevel(counts map[string]int) string {
 	if len(counts) == 0 {
 		return "n/a"
 	}
+	// Tie-breaking priority: higher severity wins.
+	priority := map[string]int{"high": 3, "medium": 2, "low": 1, "unknown": 0}
 	best := ""
 	bestCount := 0
+	bestPri := -1
 	for level, count := range counts {
-		if count > bestCount {
+		pri := priority[level]
+		if count > bestCount || (count == bestCount && pri > bestPri) {
 			best = level
 			bestCount = count
+			bestPri = pri
 		}
 	}
 	return best

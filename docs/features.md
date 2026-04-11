@@ -448,6 +448,16 @@ Each cap is bounded between 3 and 3x the default.
 
 The `gain` command tracks every `analyze`, `analyze-change`, and MCP `get_context` call, recording file count, blast radius, confidence, and duration. Usage data is stored in `.contextception/history.sqlite`.
 
+### Accuracy flags (accuracy)
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--since` | 30 | Lookback window in days |
+| `--format` | (text) | Output format: `json` |
+| `--file` | (all) | Filter to a specific file path |
+
+The `accuracy` command computes precision, recall, and usefulness metrics from LLM feedback submitted via the `rate_context` MCP tool.
+
 ---
 
 ## MCP Server
@@ -466,6 +476,7 @@ Start with `contextception mcp`. Communicates via stdio using the Model Context 
 | `get_structure` | Return directory structure with file counts and language distribution. |
 | `get_archetypes` | Detect representative files across architectural layers. |
 | `analyze_change` | Analyze the impact of a git diff / PR. Returns blast radius, test gaps, coupling signals. |
+| `rate_context` | Rate how useful a previous get_context result was. Accepts structured feedback for precision/recall tracking. |
 
 ### get_context parameters
 
@@ -480,6 +491,18 @@ Start with `contextception mcp`. Communicates via stdio using the Model Context 
 | `max_related` | integer | no | 10 | Cap on related entries |
 | `max_likely_modify` | integer | no | 15 | Cap on likely_modify entries |
 | `max_tests` | integer | no | 5 | Cap on test entries |
+
+### rate_context parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `file` | string | yes | -- | File that was analyzed |
+| `usefulness` | integer | yes | -- | 1-5 rating (1=not useful, 5=essential) |
+| `useful_files` | string[] | no | [] | Which must_read/related files were actually useful |
+| `unnecessary_files` | string[] | no | [] | Files in must_read that were NOT needed |
+| `missing_files` | string[] | no | [] | Files you needed that were NOT suggested |
+| `modified_files` | string[] | no | [] | Files you actually modified |
+| `notes` | string | no | -- | Brief explanation of rating |
 
 ### search parameters
 

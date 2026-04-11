@@ -130,6 +130,7 @@ func NewRootCmd() *cobra.Command {
 	root.AddCommand(newHookCheckCmd())
 	root.AddCommand(newHookContextCmd())
 	root.AddCommand(newGainCmd())
+	root.AddCommand(newAccuracyCmd())
 
 	return root
 }

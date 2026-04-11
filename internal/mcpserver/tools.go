@@ -660,6 +660,54 @@ func (cs *ContextServer) handleAnalyzeChange(ctx context.Context, req *mcp.CallT
 	return jsonResult(report), nil, nil
 }
 
+// rateContextInput is the input schema for the rate_context tool.
+type rateContextInput struct {
+	File             string   `json:"file"              jsonschema:"File that was analyzed"`
+	Usefulness       int      `json:"usefulness"        jsonschema:"1-5 rating: 1=not useful, 5=essential"`
+	UsefulFiles      []string `json:"useful_files,omitempty" jsonschema:"Which must_read/related files were actually useful"`
+	UnnecessaryFiles []string `json:"unnecessary_files,omitempty" jsonschema:"Files in must_read that were NOT needed"`
+	MissingFiles     []string `json:"missing_files,omitempty" jsonschema:"Files you needed that were NOT suggested"`
+	ModifiedFiles    []string `json:"modified_files,omitempty" jsonschema:"Files you actually modified"`
+	Notes            string   `json:"notes,omitempty"   jsonschema:"Brief explanation of rating"`
+}
+
+// handleRateContext records LLM feedback about a previous get_context result.
+func (cs *ContextServer) handleRateContext(ctx context.Context, req *mcp.CallToolRequest, input rateContextInput) (*mcp.CallToolResult, any, error) {
+	if input.File == "" {
+		return errorResult("file parameter is required"), nil, nil
+	}
+	if input.Usefulness < 1 || input.Usefulness > 5 {
+		return errorResult("usefulness must be between 1 and 5"), nil, nil
+	}
+
+	hist, err := history.Open(cs.repoRoot)
+	if err != nil {
+		return errorResult(fmt.Sprintf("opening history: %v", err)), nil, nil
+	}
+	defer hist.Close()
+
+	entry := &history.FeedbackEntry{
+		FilePath:         input.File,
+		Usefulness:       input.Usefulness,
+		UsefulFiles:      input.UsefulFiles,
+		UnnecessaryFiles: input.UnnecessaryFiles,
+		MissingFiles:     input.MissingFiles,
+		ModifiedFiles:    input.ModifiedFiles,
+		Notes:            input.Notes,
+	}
+
+	_, err = hist.RecordFeedback(entry)
+	if err != nil {
+		return errorResult(fmt.Sprintf("recording feedback: %v", err)), nil, nil
+	}
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: "Feedback recorded. Thank you."},
+		},
+	}, nil, nil
+}
+
 // detectDefaultBranch finds the default branch (main or master).
 func (cs *ContextServer) detectDefaultBranch() (string, error) {
 	// Try git symbolic-ref for remote HEAD.

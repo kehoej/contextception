@@ -156,6 +156,11 @@ func (cs *ContextServer) registerTools(server *mcp.Server) {
 		Name:        "analyze_change",
 		Description: "Analyze the impact of a git diff (PR or branch). Returns changed files with blast radius, aggregated must-read context, test gaps, coupling signals, and hotspots. If base is omitted, auto-detects merge-base against the default branch (main/master).",
 	}, cs.handleAnalyzeChange)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "rate_context",
+		Description: "Rate how useful the last get_context result was for your work. Call this after completing work on a file you previously analyzed. Reports which suggested files were useful, which were unnecessary, and which needed files were missing. Helps improve recommendation quality over time.",
+	}, cs.handleRateContext)
 }
 
 // logWriter returns an io.Writer that discards output (MCP servers must not write to stdout).

@@ -267,6 +267,158 @@ func TestGainExportJSON(t *testing.T) {
 	}
 }
 
+func TestRecordAndQueryFeedback(t *testing.T) {
+	dir, err := os.MkdirTemp("", "feedback-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	store, err := Open(dir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer store.Close()
+
+	// First record a usage entry so feedback can link to it.
+	usage := &UsageEntry{
+		Source:            "mcp",
+		Tool:              "get_context",
+		FilesAnalyzed:     []string{"src/auth/login.py"},
+		MustReadCount:     4,
+		LikelyModifyCount: 2,
+		BlastLevel:        "medium",
+		Confidence:        0.9,
+		DurationMs:        100,
+	}
+	_, err = store.RecordUsage(usage)
+	if err != nil {
+		t.Fatalf("RecordUsage: %v", err)
+	}
+
+	// Record feedback.
+	fb := &FeedbackEntry{
+		FilePath:         "src/auth/login.py",
+		Usefulness:       4,
+		UsefulFiles:      []string{"src/auth/session.py", "src/auth/types.py"},
+		UnnecessaryFiles: []string{"src/utils/helpers.py"},
+		MissingFiles:     []string{"src/auth/tokens.py"},
+		ModifiedFiles:    []string{"src/auth/session.py"},
+		Notes:            "Good recommendations overall",
+	}
+	id, err := store.RecordFeedback(fb)
+	if err != nil {
+		t.Fatalf("RecordFeedback: %v", err)
+	}
+	if id <= 0 {
+		t.Fatalf("expected positive feedback ID, got %d", id)
+	}
+
+	// Record a second feedback with lower rating.
+	fb2 := &FeedbackEntry{
+		FilePath:         "src/config/settings.py",
+		Usefulness:       2,
+		UsefulFiles:      []string{"src/config/defaults.py"},
+		UnnecessaryFiles: []string{"src/db/models.py", "src/api/routes.py"},
+		MissingFiles:     []string{"src/config/env.py"},
+		Notes:            "Missing key dependency on env.py",
+	}
+	_, err = store.RecordFeedback(fb2)
+	if err != nil {
+		t.Fatalf("RecordFeedback 2: %v", err)
+	}
+
+	// Test feedback count.
+	count, err := store.FeedbackCount()
+	if err != nil {
+		t.Fatalf("FeedbackCount: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("feedback count = %d, want 2", count)
+	}
+
+	// Test accuracy metrics.
+	metrics, err := store.GetAccuracyMetrics(time.Now().Add(-1 * time.Hour))
+	if err != nil {
+		t.Fatalf("GetAccuracyMetrics: %v", err)
+	}
+	if metrics.TotalRatings != 2 {
+		t.Errorf("total ratings = %d, want 2", metrics.TotalRatings)
+	}
+	if metrics.AvgUsefulness != 3.0 { // (4 + 2) / 2
+		t.Errorf("avg usefulness = %.1f, want 3.0", metrics.AvgUsefulness)
+	}
+
+	// Precision: useful / (useful + unnecessary)
+	// useful=3 (2+1), unnecessary=3 (1+2)
+	// precision = 3/6 = 0.5
+	if metrics.MustReadPrecision < 0.49 || metrics.MustReadPrecision > 0.51 {
+		t.Errorf("precision = %.2f, want ~0.50", metrics.MustReadPrecision)
+	}
+
+	// Recall: useful / (useful + missing)
+	// useful=3, missing=2 (1+1)
+	// recall = 3/5 = 0.6
+	if metrics.MustReadRecall < 0.59 || metrics.MustReadRecall > 0.61 {
+		t.Errorf("recall = %.2f, want ~0.60", metrics.MustReadRecall)
+	}
+
+	// Test lowest rated.
+	lowest, err := store.GetLowestRated(time.Now().Add(-1*time.Hour), 5)
+	if err != nil {
+		t.Fatalf("GetLowestRated: %v", err)
+	}
+	if len(lowest) != 2 {
+		t.Fatalf("expected 2 lowest rated, got %d", len(lowest))
+	}
+	if lowest[0].Usefulness != 2 {
+		t.Errorf("lowest[0] usefulness = %d, want 2", lowest[0].Usefulness)
+	}
+	if lowest[0].FilePath != "src/config/settings.py" {
+		t.Errorf("lowest[0] file = %q, want %q", lowest[0].FilePath, "src/config/settings.py")
+	}
+}
+
+func TestFormatAccuracySummary(t *testing.T) {
+	metrics := &AccuracyMetrics{
+		TotalRatings:         10,
+		AvgUsefulness:        3.8,
+		MustReadPrecision:    0.78,
+		MustReadRecall:       0.85,
+		LikelyModifyAccuracy: 0.72,
+	}
+
+	lowest := []RatedAnalysis{
+		{FilePath: "src/utils/helpers.py", Usefulness: 2, Notes: "Too many unrelated files"},
+	}
+
+	text := FormatAccuracySummary(metrics, lowest)
+
+	checks := []string{
+		"Recommendation Accuracy",
+		"10 rated",
+		"78%",
+		"85%",
+		"72%",
+		"3.8",
+		"helpers.py",
+	}
+	for _, check := range checks {
+		if !contains(text, check) {
+			t.Errorf("output missing %q", check)
+		}
+	}
+}
+
+func TestFormatAccuracySummaryEmpty(t *testing.T) {
+	metrics := &AccuracyMetrics{TotalRatings: 0}
+	text := FormatAccuracySummary(metrics, nil)
+
+	if !contains(text, "No feedback recorded") {
+		t.Error("expected empty state message")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }

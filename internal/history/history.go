@@ -129,6 +129,22 @@ func migrate(db *sql.DB) error {
 
 	CREATE INDEX IF NOT EXISTS idx_usage_log_created ON usage_log(created_at);
 	CREATE INDEX IF NOT EXISTS idx_usage_log_tool ON usage_log(tool);
+
+	CREATE TABLE IF NOT EXISTS feedback (
+		id                INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+		usage_id          INTEGER REFERENCES usage_log(id),
+		file_path         TEXT    NOT NULL,
+		usefulness        INTEGER NOT NULL CHECK(usefulness BETWEEN 1 AND 5),
+		useful_files      TEXT,
+		unnecessary_files TEXT,
+		missing_files     TEXT,
+		modified_files    TEXT,
+		notes             TEXT
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_feedback_file ON feedback(file_path);
+	CREATE INDEX IF NOT EXISTS idx_feedback_usefulness ON feedback(usefulness);
 	`
 	_, err := db.Exec(schema)
 	return err
@@ -713,6 +729,236 @@ func FormatGainSummary(summary *UsageSummary, topFiles []TopFile, daily []UsageP
 
 	if summary.TotalAnalyses == 0 {
 		b.WriteString("\n  No analyses recorded yet. Use contextception analyze or get_context to start tracking.\n")
+	}
+
+	return b.String()
+}
+
+// FeedbackEntry represents a single feedback record from the LLM.
+type FeedbackEntry struct {
+	FilePath         string   `json:"file_path"`
+	Usefulness       int      `json:"usefulness"`
+	UsefulFiles      []string `json:"useful_files,omitempty"`
+	UnnecessaryFiles []string `json:"unnecessary_files,omitempty"`
+	MissingFiles     []string `json:"missing_files,omitempty"`
+	ModifiedFiles    []string `json:"modified_files,omitempty"`
+	Notes            string   `json:"notes,omitempty"`
+}
+
+// RecordFeedback stores an LLM feedback entry, linking to the most recent usage_log for the file.
+func (s *Store) RecordFeedback(entry *FeedbackEntry) (int64, error) {
+	// Find the most recent usage_log entry for this file.
+	var usageID sql.NullInt64
+	_ = s.db.QueryRow(`
+		SELECT id FROM usage_log
+		WHERE files_analyzed LIKE ?
+		ORDER BY created_at DESC LIMIT 1`,
+		"%"+entry.FilePath+"%",
+	).Scan(&usageID)
+
+	usefulJSON, _ := json.Marshal(entry.UsefulFiles)
+	unnecessaryJSON, _ := json.Marshal(entry.UnnecessaryFiles)
+	missingJSON, _ := json.Marshal(entry.MissingFiles)
+	modifiedJSON, _ := json.Marshal(entry.ModifiedFiles)
+
+	result, err := s.db.Exec(`
+		INSERT INTO feedback
+			(usage_id, file_path, usefulness, useful_files,
+			 unnecessary_files, missing_files, modified_files, notes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		usageID, entry.FilePath, entry.Usefulness,
+		string(usefulJSON), string(unnecessaryJSON),
+		string(missingJSON), string(modifiedJSON),
+		entry.Notes,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting feedback: %w", err)
+	}
+	return result.LastInsertId()
+}
+
+// AccuracyMetrics contains precision/recall metrics computed from feedback.
+type AccuracyMetrics struct {
+	TotalRatings       int     `json:"total_ratings"`
+	AvgUsefulness      float64 `json:"avg_usefulness"`
+	MustReadPrecision  float64 `json:"must_read_precision"`
+	MustReadRecall     float64 `json:"must_read_recall"`
+	LikelyModifyAccuracy float64 `json:"likely_modify_accuracy"`
+}
+
+// GetAccuracyMetrics computes precision/recall from feedback data.
+func (s *Store) GetAccuracyMetrics(since time.Time) (*AccuracyMetrics, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	metrics := &AccuracyMetrics{}
+
+	// Get basic stats.
+	err := s.db.QueryRow(`
+		SELECT COUNT(*), COALESCE(AVG(usefulness), 0)
+		FROM feedback WHERE created_at >= ?`, sinceStr,
+	).Scan(&metrics.TotalRatings, &metrics.AvgUsefulness)
+	if err != nil {
+		return nil, err
+	}
+
+	if metrics.TotalRatings == 0 {
+		return metrics, nil
+	}
+
+	// Compute precision and recall from file lists.
+	rows, err := s.db.Query(`
+		SELECT f.useful_files, f.unnecessary_files, f.missing_files,
+		       f.modified_files, u.must_read_count, u.likely_modify_count
+		FROM feedback f
+		LEFT JOIN usage_log u ON f.usage_id = u.id
+		WHERE f.created_at >= ?`, sinceStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var totalUseful, totalUnnecessary, totalMissing int
+	var totalModified, totalLikelyModify int
+
+	for rows.Next() {
+		var usefulJSON, unnecessaryJSON, missingJSON, modifiedJSON sql.NullString
+		var mustReadCount, likelyModifyCount sql.NullInt64
+		if err := rows.Scan(&usefulJSON, &unnecessaryJSON, &missingJSON,
+			&modifiedJSON, &mustReadCount, &likelyModifyCount); err != nil {
+			return nil, err
+		}
+
+		totalUseful += countJSONArray(usefulJSON)
+		totalUnnecessary += countJSONArray(unnecessaryJSON)
+		totalMissing += countJSONArray(missingJSON)
+		totalModified += countJSONArray(modifiedJSON)
+		if likelyModifyCount.Valid {
+			totalLikelyModify += int(likelyModifyCount.Int64)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Must-read precision: useful / (useful + unnecessary)
+	if totalUseful+totalUnnecessary > 0 {
+		metrics.MustReadPrecision = float64(totalUseful) / float64(totalUseful+totalUnnecessary)
+	}
+
+	// Must-read recall: useful / (useful + missing)
+	if totalUseful+totalMissing > 0 {
+		metrics.MustReadRecall = float64(totalUseful) / float64(totalUseful+totalMissing)
+	}
+
+	// Likely-modify accuracy: modified / predicted
+	if totalLikelyModify > 0 {
+		metrics.LikelyModifyAccuracy = float64(totalModified) / float64(totalLikelyModify)
+	}
+
+	return metrics, nil
+}
+
+// countJSONArray returns the number of elements in a JSON array string.
+func countJSONArray(s sql.NullString) int {
+	if !s.Valid || s.String == "" || s.String == "null" {
+		return 0
+	}
+	var arr []string
+	if err := json.Unmarshal([]byte(s.String), &arr); err != nil {
+		return 0
+	}
+	return len(arr)
+}
+
+// RatedAnalysis represents a feedback entry with its rating for display.
+type RatedAnalysis struct {
+	FilePath   string  `json:"file_path"`
+	Usefulness int     `json:"usefulness"`
+	Notes      string  `json:"notes,omitempty"`
+	CreatedAt  string  `json:"created_at"`
+}
+
+// GetLowestRated returns the lowest-rated analyses.
+func (s *Store) GetLowestRated(since time.Time, limit int) ([]RatedAnalysis, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	rows, err := s.db.Query(`
+		SELECT file_path, usefulness, COALESCE(notes, ''), created_at
+		FROM feedback
+		WHERE created_at >= ?
+		ORDER BY usefulness ASC, created_at DESC
+		LIMIT ?`, sinceStr, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []RatedAnalysis
+	for rows.Next() {
+		var r RatedAnalysis
+		if err := rows.Scan(&r.FilePath, &r.Usefulness, &r.Notes, &r.CreatedAt); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}
+
+// FeedbackCount returns the total number of feedback entries.
+func (s *Store) FeedbackCount() (int, error) {
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM feedback").Scan(&count)
+	return count, err
+}
+
+// AccuracyExport represents the full accuracy export for JSON output.
+type AccuracyExport struct {
+	Metrics    *AccuracyMetrics `json:"metrics"`
+	LowestRated []RatedAnalysis `json:"lowest_rated,omitempty"`
+}
+
+// FormatAccuracySummary produces the human-readable accuracy dashboard text.
+func FormatAccuracySummary(metrics *AccuracyMetrics, lowestRated []RatedAnalysis) string {
+	var b strings.Builder
+
+	b.WriteString("Recommendation Accuracy")
+	fmt.Fprintf(&b, " (%d rated analyses)\n", metrics.TotalRatings)
+	b.WriteString(strings.Repeat("=", 50) + "\n\n")
+
+	if metrics.TotalRatings == 0 {
+		b.WriteString("  No feedback recorded yet.\n")
+		b.WriteString("  Use the rate_context MCP tool after get_context to start tracking accuracy.\n")
+		return b.String()
+	}
+
+	fmt.Fprintf(&b, "  Must-read precision:    %3.0f%%  (recommended files that were useful)\n",
+		metrics.MustReadPrecision*100)
+	fmt.Fprintf(&b, "  Must-read recall:       %3.0f%%  (needed files that were recommended)\n",
+		metrics.MustReadRecall*100)
+	fmt.Fprintf(&b, "  Likely-modify accuracy: %3.0f%%  (predicted modifications that happened)\n",
+		metrics.LikelyModifyAccuracy*100)
+
+	stars := strings.Repeat("*", int(metrics.AvgUsefulness+0.5))
+	fmt.Fprintf(&b, "  Overall usefulness:     %s %.1f / 5.0\n", stars, metrics.AvgUsefulness)
+
+	if len(lowestRated) > 0 {
+		b.WriteString("\n  Lowest-rated analyses:\n")
+		b.WriteString("  " + strings.Repeat("-", 46) + "\n")
+		for _, r := range lowestRated {
+			name := r.FilePath
+			if len(name) > 30 {
+				name = "..." + name[len(name)-27:]
+			}
+			line := fmt.Sprintf("  %-32s *%d", name, r.Usefulness)
+			if r.Notes != "" {
+				notes := r.Notes
+				if len(notes) > 40 {
+					notes = notes[:37] + "..."
+				}
+				line += fmt.Sprintf("  %q", notes)
+			}
+			b.WriteString(line + "\n")
+		}
 	}
 
 	return b.String()

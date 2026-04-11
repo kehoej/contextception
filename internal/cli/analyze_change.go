@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/kehoej/contextception/internal/analyzer"
 	"github.com/kehoej/contextception/internal/change"
@@ -81,6 +82,8 @@ func runAnalyzeChange(refRange string) error {
 	}
 	base, head := parts[0], parts[1]
 
+	start := time.Now()
+
 	// Build the change report using the shared package.
 	cfg := change.Config{
 		RepoRoot: repoRoot,
@@ -113,12 +116,18 @@ func runAnalyzeChange(refRange string) error {
 		return nil
 	}
 
+	durationMs := time.Since(start).Milliseconds()
+
 	// Record to history (best-effort).
 	if hist, err := history.Open(repoRoot); err == nil {
 		defer hist.Close()
 		commitSHA, _ := gitHeadSHA()
 		branch, _ := gitCurrentBranch()
 		hist.RecordRun(report, commitSHA, branch)
+
+		// Record usage analytics.
+		entry := history.UsageEntryFromChangeReport("cli", nil, report, durationMs, mode, tokenBudget)
+		_, _ = hist.RecordUsage(entry)
 	}
 
 	// CI mode.

@@ -13,6 +13,7 @@ import (
 	"github.com/kehoej/contextception/internal/analyzer"
 	"github.com/kehoej/contextception/internal/config"
 	"github.com/kehoej/contextception/internal/db"
+	"github.com/kehoej/contextception/internal/history"
 	"github.com/kehoej/contextception/internal/model"
 	"github.com/spf13/cobra"
 )
@@ -127,6 +128,7 @@ func runHookContext() error {
 		},
 	})
 
+	start := time.Now()
 	resultCh := make(chan *model.AnalysisOutput, 1)
 	errCh := make(chan error, 1)
 	go func() {
@@ -148,6 +150,16 @@ func runHookContext() error {
 		emitHookAllow("")
 		return nil
 	}
+	durationMs := time.Since(start).Milliseconds()
+
+	// Record usage analytics (best-effort, non-blocking for hook latency).
+	go func() {
+		if hist, hErr := history.Open(root); hErr == nil {
+			entry := history.UsageEntryFromAnalysis("hook", "get_context", []string{target}, output, durationMs, "hook", 0)
+			_, _ = hist.RecordUsage(entry)
+			hist.Close()
+		}
+	}()
 
 	// Format and emit.
 	additional := formatHookContext(output)

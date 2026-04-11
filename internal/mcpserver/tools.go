@@ -16,6 +16,7 @@ import (
 	"github.com/kehoej/contextception/internal/classify"
 	"github.com/kehoej/contextception/internal/db"
 	"github.com/kehoej/contextception/internal/grader"
+	"github.com/kehoej/contextception/internal/history"
 	"github.com/kehoej/contextception/internal/indexer"
 	"github.com/kehoej/contextception/internal/model"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -148,6 +149,7 @@ func (cs *ContextServer) handleGetContext(ctx context.Context, req *mcp.CallTool
 		},
 	})
 
+	start := time.Now()
 	var output *model.AnalysisOutput
 	if len(targets) == 1 {
 		output, err = a.Analyze(targets[0])
@@ -156,6 +158,14 @@ func (cs *ContextServer) handleGetContext(ctx context.Context, req *mcp.CallTool
 	}
 	if err != nil {
 		return errorResult(fmt.Sprintf("analysis failed: %v", err)), nil, nil
+	}
+	durationMs := time.Since(start).Milliseconds()
+
+	// Record usage analytics (best-effort).
+	if hist, hErr := history.Open(cs.repoRoot); hErr == nil {
+		entry := history.UsageEntryFromAnalysis("mcp", "get_context", targets, output, durationMs, input.Mode, input.TokenBudget)
+		_, _ = hist.RecordUsage(entry)
+		hist.Close()
 	}
 
 	return jsonResult(output), nil, nil
@@ -633,9 +643,18 @@ func (cs *ContextServer) handleAnalyzeChange(ctx context.Context, req *mcp.CallT
 		},
 	}
 
+	start := time.Now()
 	report, err := change.BuildReport(idx, cfg, base, head)
 	if err != nil {
 		return errorResult(fmt.Sprintf("analyzing change: %v", err)), nil, nil
+	}
+	durationMs := time.Since(start).Milliseconds()
+
+	// Record usage analytics (best-effort).
+	if hist, hErr := history.Open(cs.repoRoot); hErr == nil {
+		entry := history.UsageEntryFromChangeReport("mcp", nil, report, durationMs, "", 0)
+		_, _ = hist.RecordUsage(entry)
+		hist.Close()
 	}
 
 	return jsonResult(report), nil, nil

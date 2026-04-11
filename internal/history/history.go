@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/kehoej/contextception/internal/model"
@@ -107,6 +108,27 @@ func migrate(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_runs_branch ON analysis_runs(branch);
 	CREATE INDEX IF NOT EXISTS idx_file_risks_path ON file_risks(file_path);
 	CREATE INDEX IF NOT EXISTS idx_hotspot_path ON hotspot_history(file_path);
+
+	CREATE TABLE IF NOT EXISTS usage_log (
+		id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+		source              TEXT    NOT NULL,
+		tool                TEXT    NOT NULL,
+		files_analyzed      TEXT    NOT NULL,
+		file_count          INTEGER NOT NULL DEFAULT 1,
+		must_read_count     INTEGER NOT NULL DEFAULT 0,
+		likely_modify_count INTEGER NOT NULL DEFAULT 0,
+		test_count          INTEGER NOT NULL DEFAULT 0,
+		blast_level         TEXT,
+		confidence          REAL,
+		response_tokens     INTEGER,
+		duration_ms         INTEGER,
+		mode                TEXT,
+		token_budget        INTEGER
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_usage_log_created ON usage_log(created_at);
+	CREATE INDEX IF NOT EXISTS idx_usage_log_tool ON usage_log(tool);
 	`
 	_, err := db.Exec(schema)
 	return err
@@ -343,3 +365,372 @@ func (s *Store) RunCount() (int, error) {
 	err := s.db.QueryRow("SELECT COUNT(*) FROM analysis_runs").Scan(&count)
 	return count, err
 }
+
+// UsageEntry represents a single usage tracking record.
+type UsageEntry struct {
+	Source           string   // "mcp", "cli", "hook"
+	Tool             string   // "get_context", "analyze", "analyze_change"
+	FilesAnalyzed    []string // file paths analyzed
+	MustReadCount    int
+	LikelyModifyCount int
+	TestCount        int
+	BlastLevel       string
+	Confidence       float64
+	ResponseTokens   int
+	DurationMs       int64
+	Mode             string
+	TokenBudget      int
+}
+
+// RecordUsage stores a usage log entry.
+func (s *Store) RecordUsage(entry *UsageEntry) (int64, error) {
+	filesJSON, err := json.Marshal(entry.FilesAnalyzed)
+	if err != nil {
+		return 0, fmt.Errorf("marshaling files: %w", err)
+	}
+
+	result, err := s.db.Exec(`
+		INSERT INTO usage_log
+			(source, tool, files_analyzed, file_count, must_read_count,
+			 likely_modify_count, test_count, blast_level, confidence,
+			 response_tokens, duration_ms, mode, token_budget)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		entry.Source, entry.Tool, string(filesJSON), len(entry.FilesAnalyzed),
+		entry.MustReadCount, entry.LikelyModifyCount, entry.TestCount,
+		entry.BlastLevel, entry.Confidence, entry.ResponseTokens,
+		entry.DurationMs, entry.Mode, entry.TokenBudget,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("inserting usage: %w", err)
+	}
+	return result.LastInsertId()
+}
+
+// UsageSummary contains aggregate usage statistics.
+type UsageSummary struct {
+	TotalAnalyses   int     `json:"total_analyses"`
+	TotalFiles      int     `json:"total_files"`
+	AvgConfidence   float64 `json:"avg_confidence"`
+	AvgDurationMs   float64 `json:"avg_duration_ms"`
+	BlastLevelCounts map[string]int `json:"blast_level_counts"`
+}
+
+// sqliteDatetime formats a time for SQLite comparison (matches datetime('now') format).
+const sqliteDatetimeFmt = "2006-01-02 15:04:05"
+
+// GetUsageSummary returns aggregate usage statistics since the given time.
+func (s *Store) GetUsageSummary(since time.Time) (*UsageSummary, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	summary := &UsageSummary{
+		BlastLevelCounts: make(map[string]int),
+	}
+
+	err := s.db.QueryRow(`
+		SELECT COUNT(*), COALESCE(SUM(file_count), 0),
+		       COALESCE(AVG(confidence), 0), COALESCE(AVG(duration_ms), 0)
+		FROM usage_log WHERE created_at >= ?`, sinceStr,
+	).Scan(&summary.TotalAnalyses, &summary.TotalFiles,
+		&summary.AvgConfidence, &summary.AvgDurationMs)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := s.db.Query(`
+		SELECT COALESCE(blast_level, 'unknown'), COUNT(*)
+		FROM usage_log WHERE created_at >= ?
+		GROUP BY blast_level`, sinceStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var level string
+		var count int
+		if err := rows.Scan(&level, &count); err != nil {
+			return nil, err
+		}
+		summary.BlastLevelCounts[level] = count
+	}
+	return summary, rows.Err()
+}
+
+// UsagePeriod represents usage data for a time period.
+type UsagePeriod struct {
+	Period        string  `json:"period"`
+	Analyses      int     `json:"analyses"`
+	Files         int     `json:"files"`
+	AvgConfidence float64 `json:"avg_confidence"`
+	AvgDurationMs float64 `json:"avg_duration_ms"`
+}
+
+// GetUsageByPeriod returns usage statistics grouped by the given period.
+// period must be "day", "week", or "month".
+func (s *Store) GetUsageByPeriod(period string, since time.Time, limit int) ([]UsagePeriod, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	var groupExpr string
+	switch period {
+	case "week":
+		groupExpr = "strftime('%Y-W%W', created_at)"
+	case "month":
+		groupExpr = "strftime('%Y-%m', created_at)"
+	default: // "day"
+		groupExpr = "date(created_at)"
+	}
+
+	//nolint:gosec // groupExpr is from hardcoded switch, not user input
+	query := fmt.Sprintf(`
+		SELECT %s as period, COUNT(*), COALESCE(SUM(file_count), 0),
+		       COALESCE(AVG(confidence), 0), COALESCE(AVG(duration_ms), 0)
+		FROM usage_log
+		WHERE created_at >= ?
+		GROUP BY period
+		ORDER BY period DESC
+		LIMIT ?`, groupExpr)
+
+	rows, err := s.db.Query(query, sinceStr, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []UsagePeriod
+	for rows.Next() {
+		var p UsagePeriod
+		if err := rows.Scan(&p.Period, &p.Analyses, &p.Files,
+			&p.AvgConfidence, &p.AvgDurationMs); err != nil {
+			return nil, err
+		}
+		results = append(results, p)
+	}
+	return results, rows.Err()
+}
+
+// TopFile represents a frequently analyzed file.
+type TopFile struct {
+	File     string `json:"file"`
+	Count    int    `json:"count"`
+	LastSeen string `json:"last_seen"`
+}
+
+// GetTopFiles returns the most frequently analyzed files.
+func (s *Store) GetTopFiles(since time.Time, limit int) ([]TopFile, error) {
+	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
+
+	rows, err := s.db.Query(`
+		SELECT files_analyzed, COUNT(*) as cnt, MAX(created_at) as last_seen
+		FROM usage_log
+		WHERE created_at >= ?
+		GROUP BY files_analyzed
+		ORDER BY cnt DESC
+		LIMIT ?`, sinceStr, limit*3) // fetch extra since we need to expand JSON arrays
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Aggregate counts by individual file path (files_analyzed is a JSON array).
+	fileCounts := make(map[string]*TopFile)
+	for rows.Next() {
+		var filesJSON string
+		var count int
+		var lastSeen string
+		if err := rows.Scan(&filesJSON, &count, &lastSeen); err != nil {
+			return nil, err
+		}
+
+		var files []string
+		if err := json.Unmarshal([]byte(filesJSON), &files); err != nil {
+			continue
+		}
+		for _, f := range files {
+			if existing, ok := fileCounts[f]; ok {
+				existing.Count += count
+				if lastSeen > existing.LastSeen {
+					existing.LastSeen = lastSeen
+				}
+			} else {
+				fileCounts[f] = &TopFile{File: f, Count: count, LastSeen: lastSeen}
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Sort by count descending.
+	result := make([]TopFile, 0, len(fileCounts))
+	for _, tf := range fileCounts {
+		result = append(result, *tf)
+	}
+	sortTopFiles(result)
+	if len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
+// sortTopFiles sorts TopFile entries by count descending.
+func sortTopFiles(files []TopFile) {
+	for i := 1; i < len(files); i++ {
+		for j := i; j > 0 && files[j].Count > files[j-1].Count; j-- {
+			files[j], files[j-1] = files[j-1], files[j]
+		}
+	}
+}
+
+// UsageCount returns the total number of usage log entries.
+func (s *Store) UsageCount() (int, error) {
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM usage_log").Scan(&count)
+	return count, err
+}
+
+// UsageEntryFromAnalysis creates a UsageEntry from an analysis output.
+func UsageEntryFromAnalysis(source, tool string, files []string, output *model.AnalysisOutput, durationMs int64, mode string, tokenBudget int) *UsageEntry {
+	entry := &UsageEntry{
+		Source:        source,
+		Tool:          tool,
+		FilesAnalyzed: files,
+		DurationMs:    durationMs,
+		Mode:          mode,
+		TokenBudget:   tokenBudget,
+	}
+
+	if output != nil {
+		entry.MustReadCount = len(output.MustRead)
+		entry.TestCount = len(output.Tests)
+		entry.Confidence = output.Confidence
+
+		// Count likely_modify entries across all packages.
+		for _, entries := range output.LikelyModify {
+			entry.LikelyModifyCount += len(entries)
+		}
+
+		if output.BlastRadius != nil {
+			entry.BlastLevel = output.BlastRadius.Level
+		}
+
+		// Estimate response tokens (rough: JSON bytes / 4).
+		if data, err := json.Marshal(output); err == nil {
+			entry.ResponseTokens = len(data) / 4
+		}
+	}
+
+	return entry
+}
+
+// UsageEntryFromChangeReport creates a UsageEntry from a change report.
+func UsageEntryFromChangeReport(source string, files []string, report *model.ChangeReport, durationMs int64, mode string, tokenBudget int) *UsageEntry {
+	entry := &UsageEntry{
+		Source:        source,
+		Tool:          "analyze_change",
+		FilesAnalyzed: files,
+		DurationMs:    durationMs,
+		Mode:          mode,
+		TokenBudget:   tokenBudget,
+	}
+
+	if report != nil {
+		entry.MustReadCount = len(report.MustRead)
+		entry.TestCount = len(report.Tests)
+
+		for _, entries := range report.LikelyModify {
+			entry.LikelyModifyCount += len(entries)
+		}
+
+		if report.BlastRadius != nil {
+			entry.BlastLevel = report.BlastRadius.Level
+		}
+
+		// Estimate response tokens.
+		if data, err := json.Marshal(report); err == nil {
+			entry.ResponseTokens = len(data) / 4
+		}
+
+		// Extract changed file paths for the files_analyzed field.
+		if len(files) == 0 {
+			for _, cf := range report.ChangedFiles {
+				entry.FilesAnalyzed = append(entry.FilesAnalyzed, cf.File)
+			}
+		}
+	}
+
+	return entry
+}
+
+// GainExport represents the full analytics export for JSON/CSV output.
+type GainExport struct {
+	Summary *UsageSummary `json:"summary"`
+	TopFiles []TopFile    `json:"top_files"`
+	Daily   []UsagePeriod `json:"daily,omitempty"`
+	Weekly  []UsagePeriod `json:"weekly,omitempty"`
+	Monthly []UsagePeriod `json:"monthly,omitempty"`
+}
+
+// FormatGainSummary produces the human-readable gain dashboard text.
+func FormatGainSummary(summary *UsageSummary, topFiles []TopFile, daily []UsagePeriod) string {
+	var b strings.Builder
+
+	b.WriteString("Contextception Analytics\n")
+	b.WriteString(strings.Repeat("=", 50) + "\n\n")
+
+	// KPIs
+	avgBlast := dominantBlastLevel(summary.BlastLevelCounts)
+	fmt.Fprintf(&b, "  Analyses run:     %-10d Avg confidence:  %.2f\n",
+		summary.TotalAnalyses, summary.AvgConfidence)
+	fmt.Fprintf(&b, "  Files analyzed:   %-10d Avg blast radius: %s\n",
+		summary.TotalFiles, avgBlast)
+	fmt.Fprintf(&b, "  Avg duration:     %dms\n",
+		int(summary.AvgDurationMs))
+
+	// Top files
+	if len(topFiles) > 0 {
+		b.WriteString("\n  Top analyzed files:\n")
+		b.WriteString("  " + strings.Repeat("-", 46) + "\n")
+		for _, f := range topFiles {
+			name := f.File
+			if len(name) > 35 {
+				name = "..." + name[len(name)-32:]
+			}
+			fmt.Fprintf(&b, "  %-37s %3d analyses\n", name, f.Count)
+		}
+	}
+
+	// Daily trend
+	if len(daily) > 0 {
+		b.WriteString("\n  Daily activity:\n")
+		b.WriteString("  " + strings.Repeat("-", 46) + "\n")
+		// Show in chronological order (daily is DESC, reverse it).
+		for i := len(daily) - 1; i >= 0; i-- {
+			d := daily[i]
+			bar := strings.Repeat("|", min(d.Analyses, 30))
+			fmt.Fprintf(&b, "  %-12s %3d  %s\n", d.Period, d.Analyses, bar)
+		}
+	}
+
+	if summary.TotalAnalyses == 0 {
+		b.WriteString("\n  No analyses recorded yet. Use contextception analyze or get_context to start tracking.\n")
+	}
+
+	return b.String()
+}
+
+// dominantBlastLevel returns the most common blast level.
+func dominantBlastLevel(counts map[string]int) string {
+	if len(counts) == 0 {
+		return "n/a"
+	}
+	best := ""
+	bestCount := 0
+	for level, count := range counts {
+		if count > bestCount {
+			best = level
+			bestCount = count
+		}
+	}
+	return best
+}
+

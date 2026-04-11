@@ -334,6 +334,7 @@ contextception status                   Index status and diagnostics
 contextception mcp                      Start MCP server (stdio transport)
 contextception update                   Check for and install the latest version
 contextception setup                    Configure contextception for your AI editor
+contextception gain                     Show usage analytics dashboard
 ```
 
 ### Global flags
@@ -434,6 +435,18 @@ Each cap is bounded between 3 and 3x the default.
 | `history hotspots` | Files that frequently appear as hotspots |
 | `history distribution` | Blast radius distribution over time |
 | `history file <path>` | Risk history for a specific file |
+
+### Gain flags (gain)
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--daily` | false | Day-by-day breakdown |
+| `--weekly` | false | Week-by-week breakdown |
+| `--monthly` | false | Month-by-month breakdown |
+| `--since` | 30 | Lookback window in days |
+| `--format` | (text) | Output format: `json` or `csv` |
+
+The `gain` command tracks every `analyze`, `analyze-change`, and MCP `get_context` call, recording file count, blast radius, confidence, and duration. Usage data is stored in `.contextception/history.sqlite`.
 
 ---
 

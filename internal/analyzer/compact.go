@@ -161,6 +161,12 @@ func compactMustReadReason(entry model.MustReadEntry) string {
 		parts = append(parts, "imported by")
 	case "mutual":
 		parts = append(parts, "mutual import")
+	case "same_package":
+		parts = append(parts, "same package")
+	case "":
+		// no direction
+	default:
+		parts = append(parts, entry.Direction)
 	}
 
 	// Tags.

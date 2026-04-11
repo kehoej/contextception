@@ -520,7 +520,8 @@ func (s *Store) GetUsageByPeriod(period string, since time.Time, limit int) ([]U
 
 	//nolint:gosec // groupExpr is from hardcoded switch, not user input
 	query := fmt.Sprintf(`
-		SELECT %s as period, COUNT(*), COALESCE(SUM(file_count), 0),
+		SELECT %s as period, COUNT(*),
+		       COALESCE(SUM(CASE WHEN tool != 'analyze_change' THEN file_count ELSE 0 END), 0),
 		       COALESCE(AVG(confidence), 0), COALESCE(AVG(duration_ms), 0)
 		FROM usage_log
 		WHERE created_at >= ?
@@ -627,14 +628,16 @@ func (s *Store) UsageCount() (int, error) {
 	return count, err
 }
 
-// FilesWithUsage returns the set of files that have usage_log entries since the given time.
+// FilesWithUsage returns the set of files that have context analysis entries since the given time.
+// Only includes analyze/get_context entries, not analyze_change (which lists changed files, not
+// files whose dependency context was individually analyzed).
 // This satisfies the session.UsageLogQuerier interface.
 func (s *Store) FilesWithUsage(since time.Time) (map[string]bool, error) {
 	sinceStr := since.UTC().Format(sqliteDatetimeFmt)
 
 	rows, err := s.db.Query(`
 		SELECT files_analyzed FROM usage_log
-		WHERE created_at >= ?`, sinceStr)
+		WHERE created_at >= ? AND tool != 'analyze_change'`, sinceStr)
 	if err != nil {
 		return nil, err
 	}
@@ -804,15 +807,25 @@ type FeedbackEntry struct {
 
 // RecordFeedback stores an LLM feedback entry, linking to the most recent usage_log for the file.
 func (s *Store) RecordFeedback(entry *FeedbackEntry) (int64, error) {
-	// Find the most recent usage_log entry for this file.
-	// Use JSON-quoted path to avoid false matches (e.g. "db.go" matching "db_test.go").
+	// Find the most recent context analysis (not change report) for this file.
+	// Prefer analyze/get_context over analyze_change since feedback is about
+	// context analysis quality. Use JSON-quoted path to avoid false matches.
 	var usageID sql.NullInt64
 	_ = s.db.QueryRow(`
 		SELECT id FROM usage_log
-		WHERE files_analyzed LIKE ?
+		WHERE files_analyzed LIKE ? AND tool != 'analyze_change'
 		ORDER BY created_at DESC LIMIT 1`,
 		`%"`+entry.FilePath+`"%`,
 	).Scan(&usageID)
+	// Fall back to analyze_change if no context analysis exists.
+	if !usageID.Valid {
+		_ = s.db.QueryRow(`
+			SELECT id FROM usage_log
+			WHERE files_analyzed LIKE ?
+			ORDER BY created_at DESC LIMIT 1`,
+			`%"`+entry.FilePath+`"%`,
+		).Scan(&usageID)
+	}
 
 	usefulJSON, _ := json.Marshal(entry.UsefulFiles)
 	unnecessaryJSON, _ := json.Marshal(entry.UnnecessaryFiles)

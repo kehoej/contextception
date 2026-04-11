@@ -262,7 +262,7 @@ Make your AI agent smarter. Add to your `~/.claude.json` (Claude Code) or equiva
 }
 ```
 
-This exposes eight tools to the AI agent:
+This exposes nine tools to the AI agent:
 
 | Tool | Description |
 |------|-------------|
@@ -274,6 +274,7 @@ This exposes eight tools to the AI agent:
 | `get_structure` | Return directory structure with file counts and language distribution |
 | `get_archetypes` | Detect representative files across architectural layers |
 | `analyze_change` | Analyze the impact of a git diff / PR (blast radius, test gaps, coupling) |
+| `rate_context` | Rate how useful a previous `get_context` result was (feedback for accuracy tracking) |
 
 Works with **Claude Code**, **Cursor**, **Windsurf**, and any MCP-compatible tool.
 
@@ -306,6 +307,10 @@ contextception status                   Show index status and diagnostics
 contextception mcp                      Start the MCP server (stdio transport)
 contextception update                   Check for and install the latest version
 contextception setup                    Configure contextception for your AI editor
+contextception gain                     Show usage analytics dashboard
+contextception accuracy                 Show recommendation accuracy from LLM feedback
+contextception discover                 Find files edited without get_context being called
+contextception session                  Show contextception adoption across Claude Code sessions
 ```
 
 ### Key Flags
@@ -314,6 +319,7 @@ contextception setup                    Configure contextception for your AI edi
 |------|-------------|
 | `--mode plan\|implement\|review` | Shape output for AI workflow stage |
 | `--token-budget N` | Cap output to fit token limits |
+| `--compact` | Token-optimized text summary (~60-75% fewer tokens than JSON) |
 | `--ci --fail-on high\|medium` | Exit codes for CI pipelines |
 | `--cap N` | Limit must_read entries (overflow to related) |
 | `--no-external` | Exclude external dependencies |
@@ -333,6 +339,23 @@ The update command detects your install method and acts accordingly:
 - **go install:** suggests `go install ...@latest`
 
 Disable the automatic check with `--no-update-check`, `CONTEXTCEPTION_NO_UPDATE_CHECK=1`, or set `update.check: false` in the global config at `<config-dir>/contextception/config.yaml` (where `<config-dir>` is `~/Library/Application Support` on macOS, `~/.config` on Linux, `%AppData%` on Windows).
+
+---
+
+## Analytics & Feedback
+
+Contextception tracks its own usage and recommendation quality:
+
+```bash
+contextception gain                     # Usage dashboard: analysis counts, top files, trends
+contextception accuracy                 # Recommendation quality: precision, recall from LLM feedback
+contextception discover                 # Find files edited without context being checked
+contextception session                  # Adoption rates per Claude Code session
+```
+
+The `rate_context` MCP tool lets AI agents submit structured feedback after using `get_context` — which files were useful, unnecessary, or missing. This creates a closed feedback loop for measuring and improving recommendation quality over time.
+
+All analytics are deterministic and stored locally in `.contextception/history.sqlite`. Export with `--format json` or `--format csv` for dashboards.
 
 ---
 

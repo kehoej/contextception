@@ -142,7 +142,7 @@ Schema migrations are versioned (currently v4, 4 migrations). The indexer checks
 
 ### MCP Server (`internal/mcpserver/`)
 
-Exposes contextception as an MCP server over stdio transport. Eight tools:
+Exposes contextception as an MCP server over stdio transport. Nine tools:
 
 | Tool | Purpose |
 |------|---------|
@@ -154,8 +154,26 @@ Exposes contextception as an MCP server over stdio transport. Eight tools:
 | `get_structure` | Directory structure + language distribution |
 | `get_archetypes` | Detect representative files per layer |
 | `analyze_change` | PR/branch impact analysis |
+| `rate_context` | Record LLM feedback on recommendation quality |
 
 The server lazy-initializes the index on first tool call and runs migrations if needed.
+
+### History & Analytics (`internal/history/`)
+
+Persistent storage for analysis results and usage analytics. Stored in `.contextception/history.sqlite` (separate from the index, which gets rebuilt frequently).
+
+**Tables:**
+- `analysis_runs` / `file_risks` / `hotspot_history` — blast radius trends over time
+- `usage_log` — tracks every `analyze`, `get_context`, and `analyze_change` call with file count, blast radius, confidence, duration, and response tokens
+- `feedback` — structured LLM feedback from `rate_context` (usefulness rating, which files were useful/unnecessary/missing)
+
+The `gain` and `accuracy` CLI commands query these tables.
+
+### Session Intelligence (`internal/session/`)
+
+Parses Claude Code session JSONL files to extract tool usage patterns. The `discover` and `session` CLI commands use this to measure contextception adoption: how often `get_context` is called before files are edited.
+
+Cross-references the `usage_log` table to detect hook-injected context (which doesn't appear in session JSONL files).
 
 ### Update Subsystem (`internal/update/`)
 

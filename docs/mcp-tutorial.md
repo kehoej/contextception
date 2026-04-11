@@ -375,3 +375,4 @@ This catches cases where a change in one file has ripple effects the agent did n
 | `get_structure` | none | Directory structure and languages |
 | `get_archetypes` | `categories` | Representative files per architectural layer |
 | `analyze_change` | `base`, `head` | PR/branch impact analysis |
+| `rate_context` | `file` (required), `usefulness` (required, 1-5), `useful_files`, `unnecessary_files`, `missing_files`, `modified_files`, `notes` | Rate recommendation quality for feedback tracking |

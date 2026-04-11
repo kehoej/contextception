@@ -105,9 +105,23 @@ Analyze the impact of a git diff (PR or branch). Returns blast radius, test gaps
 - `base` — base git ref (auto-detects merge-base if omitted)
 - `head` — head git ref (defaults to HEAD)
 
+### rate_context
+
+Rate how useful a previous `get_context` result was. Structured feedback for accuracy tracking.
+
+**Parameters:**
+- `file` (required) — file that was analyzed
+- `usefulness` (required) — 1-5 rating (1=not useful, 5=essential)
+- `useful_files` — which must_read/related files were actually useful
+- `unnecessary_files` — files in must_read that were NOT needed
+- `missing_files` — files you needed that were NOT suggested
+- `modified_files` — files you actually modified
+- `notes` — brief explanation of rating
+
 ## Recommended agent workflow
 
 1. On project start: call `get_structure` then `get_entrypoints` for orientation
 2. Before each file modification: call `get_context` on the target file
 3. Read `must_read` files before making changes
-4. After a set of changes: call `analyze_change` to verify impact
+4. After completing work on a file: call `rate_context` with feedback on which files were useful
+5. After a set of changes: call `analyze_change` to verify impact

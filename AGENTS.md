@@ -36,7 +36,9 @@ internal/indexer/     Scan → extract → resolve → store pipeline
 internal/analyzer/    Dependency graph traversal, scoring, categorization
 internal/change/      PR/branch diff impact analysis
 internal/db/          SQLite storage (migrations in internal/db/migrations/)
-internal/mcpserver/   MCP server with 8 tools
+internal/mcpserver/   MCP server with 9 tools
+internal/history/     Usage tracking, feedback storage, analytics queries
+internal/session/     Claude Code session parser (discover, adoption)
 ```
 
 ## Adding a New Language

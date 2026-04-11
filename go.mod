@@ -12,7 +12,7 @@ require (
 	github.com/tidwall/sjson v1.2.5
 	golang.org/x/mod v0.35.0
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.48.1
+	modernc.org/sqlite v1.48.2
 )
 
 require (

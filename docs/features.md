@@ -335,6 +335,9 @@ contextception mcp                      Start MCP server (stdio transport)
 contextception update                   Check for and install the latest version
 contextception setup                    Configure contextception for your AI editor
 contextception gain                     Show usage analytics dashboard
+contextception accuracy                 Show recommendation accuracy from feedback
+contextception discover                 Find files edited without get_context
+contextception session                  Show adoption across Claude Code sessions
 ```
 
 ### Global flags
@@ -457,6 +460,25 @@ The `gain` command tracks every `analyze`, `analyze-change`, and MCP `get_contex
 | `--file` | (all) | Filter to a specific file path |
 
 The `accuracy` command computes precision, recall, and usefulness metrics from LLM feedback submitted via the `rate_context` MCP tool.
+
+### Discover flags (discover)
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--since` | 7 | Lookback window in days |
+| `--format` | (text) | Output format: `json` |
+| `--all` | false | Include test files in missed list |
+
+The `discover` command scans Claude Code session files to find supported files that were edited without `get_context` being called first.
+
+### Session flags (session)
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--limit` | 10 | Max sessions to show |
+| `--format` | (text) | Output format: `json` |
+
+The `session` command shows contextception adoption across recent Claude Code sessions with per-session coverage percentages.
 
 ---
 

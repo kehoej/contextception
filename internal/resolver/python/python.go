@@ -69,7 +69,7 @@ func (r *Resolver) DetectPackageRoots() ([]PackageRoot, error) {
 		if fileExists(filepath.Join(absSubdir, "pyproject.toml")) || fileExists(filepath.Join(absSubdir, "setup.py")) {
 			roots = appendIfNewPath(roots, PackageRoot{Path: subdir, DetectionMethod: "monorepo_subdir"})
 			if dirExists(filepath.Join(absSubdir, "src")) {
-				roots = appendIfNewPath(roots, PackageRoot{Path: filepath.Join(subdir, "src"), DetectionMethod: "src_layout"})
+				roots = appendIfNewPath(roots, PackageRoot{Path: filepath.ToSlash(filepath.Join(subdir, "src")), DetectionMethod: "src_layout"})
 			}
 		}
 	}
@@ -177,7 +177,7 @@ func (r *Resolver) resolveRelative(srcFile string, fact model.ImportFact) model.
 			}
 		}
 		// Check for __init__.py in the base dir itself.
-		initPath := filepath.Join(baseDir, "__init__.py")
+		initPath := filepath.ToSlash(filepath.Join(baseDir, "__init__.py"))
 		if fileExists(filepath.Join(r.repoRoot, initPath)) {
 			return model.ResolveResult{
 				ResolvedPath:     initPath,
@@ -273,13 +273,13 @@ func resolveModulePath(repoRoot, base, modulePath string) string {
 	relPath := strings.ReplaceAll(modulePath, ".", string(filepath.Separator))
 
 	// Try as .py file.
-	pyFile := filepath.Join(base, relPath+".py")
+	pyFile := filepath.ToSlash(filepath.Join(base, relPath+".py"))
 	if fileExists(filepath.Join(repoRoot, pyFile)) {
 		return pyFile
 	}
 
 	// Try as package __init__.py.
-	initFile := filepath.Join(base, relPath, "__init__.py")
+	initFile := filepath.ToSlash(filepath.Join(base, relPath, "__init__.py"))
 	if fileExists(filepath.Join(repoRoot, initFile)) {
 		return initFile
 	}

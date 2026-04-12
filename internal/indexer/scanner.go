@@ -190,7 +190,7 @@ func (s *Scanner) scanFile(absPath, lang string) (ScannedFile, error) {
 	}
 
 	return ScannedFile{
-		Path:         relPath,
+		Path:         filepath.ToSlash(relPath),
 		AbsPath:      absPath,
 		ContentHash:  fmt.Sprintf("%x", hash),
 		Language:     lang,

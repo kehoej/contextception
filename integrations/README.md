@@ -38,7 +38,10 @@ contextception setup --editor cursor
 contextception setup --editor windsurf
 ```
 
-Use `--dry-run` to preview changes, or `--uninstall` to reverse. For Claude Code, this also installs hooks that remind the AI to call `get_context` before editing files.
+Use `--dry-run` to preview changes, or `--uninstall` to reverse. For Claude Code, this installs:
+- MCP server configuration
+- PreToolUse hooks that remind the AI to call `get_context` before editing files
+- `/pr-risk` and `/pr-fix` slash commands for AI-assisted PR review
 
 ## Manual Configuration
 
@@ -150,6 +153,17 @@ All integrations expose the same nine tools:
 ## Supported Languages
 
 Contextception supports repositories using: Python, TypeScript/JavaScript, Go, Java, Rust.
+
+## Slash Commands
+
+Two slash commands are included for AI-assisted PR review. These are installed automatically by `contextception setup` for Claude Code.
+
+| Command | File | Description |
+|---------|------|-------------|
+| `/pr-risk` | [`claude-code/pr-risk.md`](claude-code/pr-risk.md) | Run risk analysis and present a human-friendly review with verdicts, test coverage, and next steps |
+| `/pr-fix` | [`claude-code/pr-fix.md`](claude-code/pr-fix.md) | Analyze risk, then build an ordered fix plan for every issue (test gaps, coupling, fragility) |
+
+For Cursor/Windsurf, place the command files in `.cursor/rules/` or `.windsurf/rules/` respectively. For other agents, see [`pr-risk-review.md`](pr-risk-review.md) for the full prompt template.
 
 ## Further Reading
 

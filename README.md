@@ -172,13 +172,47 @@ $ contextception analyze-change origin/main
 
 Returns a PR-level impact report with:
 
+- **Per-file risk scoring:** every changed file gets a risk score (0–100) and tier (SAFE/REVIEW/TEST/CRITICAL)
+- **Risk triage:** files grouped by tier with human-readable risk narratives explaining why each file is flagged
 - **Test gaps:** changed files with no test coverage, flagged before merge
+- **Test suggestions:** auto-generated recommendations for high-risk untested files (which test file to create, what to test)
 - **Coupling detection:** pairs of changed files that depend on each other
 - **Hidden coupling:** co-change partners *not in your diff* that may need updating
-- **Per-file blast radius:** which specific changes carry the most risk
+- **Aggregate risk:** overall PR risk score with percentile ranking against historical baselines (after 10+ analyses)
 - **Aggregated must_read:** merged context across all changed files
 
-Use `--ci --fail-on high` to gate PRs automatically. Results are stored in a local history database, enabling trend tracking with `contextception history`:
+### Risk Tiers
+
+| Tier | Score | Meaning |
+|------|-------|---------|
+| **SAFE** | 0–20 | New files, well-tested utilities, low coupling |
+| **REVIEW** | 21–50 | Moderate risk, standard code review sufficient |
+| **TEST** | 51–75 | High risk, targeted testing recommended |
+| **CRITICAL** | 76–100 | Maximum risk, regressions likely without careful review |
+
+Risk scores combine change status, structural factors (importer count, co-change frequency, fragility, mutual dependencies), and test coverage adjustments.
+
+### Token-optimized output
+
+Use `--compact` for a text summary optimized for LLM consumption (~60–75% fewer tokens than JSON):
+
+```bash
+$ contextception analyze-change --compact
+```
+
+### CI integration
+
+Use `--ci --fail-on` to gate PRs automatically. A risk badge is printed to stderr:
+
+```bash
+# Fail on high blast radius
+contextception analyze-change --ci --fail-on high
+
+# Fail only if risk triage has CRITICAL files
+contextception analyze-change --ci --fail-on critical
+```
+
+Results are stored in a local history database, enabling trend tracking with `contextception history`:
 
 ```bash
 $ contextception history hotspots     # Files that repeatedly appear as hotspots
@@ -249,7 +283,20 @@ Contextception averages ~1,000 tokens per analysis vs. Repomix's full-repo outpu
 
 ## MCP Setup (30 seconds)
 
-Make your AI agent smarter. Add to your `~/.claude.json` (Claude Code) or equivalent MCP config:
+Make your AI agent smarter. The `setup` command auto-detects your editor and configures everything:
+
+```bash
+# Claude Code (MCP server + hooks + slash commands)
+contextception setup
+
+# Cursor or Windsurf
+contextception setup --editor cursor
+contextception setup --editor windsurf
+```
+
+Use `--dry-run` to preview changes, or `--uninstall` to reverse.
+
+Or configure manually — add to your `~/.claude.json` (Claude Code) or equivalent MCP config:
 
 ```json
 {
@@ -273,10 +320,21 @@ This exposes nine tools to the AI agent:
 | `get_entrypoints` | Return entrypoint and foundation files for project orientation |
 | `get_structure` | Return directory structure with file counts and language distribution |
 | `get_archetypes` | Detect representative files across architectural layers |
-| `analyze_change` | Analyze the impact of a git diff / PR (blast radius, test gaps, coupling) |
+| `analyze_change` | Analyze the impact of a git diff / PR (risk scoring, triage, test gaps, coupling) |
 | `rate_context` | Rate how useful a previous `get_context` result was (feedback for accuracy tracking) |
 
 Works with **Claude Code**, **Cursor**, **Windsurf**, and any MCP-compatible tool.
+
+### Slash Commands
+
+Two built-in slash commands for AI-assisted PR review (installed automatically by `contextception setup`):
+
+| Command | Description |
+|---------|-------------|
+| `/pr-risk` | Run risk analysis on the current branch and present an actionable, human-friendly review |
+| `/pr-fix` | Analyze risk, then build an ordered plan to fix every issue found (test gaps, coupling, fragility) |
+
+These work by combining contextception's deterministic risk analysis with the LLM's ability to explain and translate — contextception computes the scores, the LLM presents them in plain language. See [`integrations/`](integrations/) for setup details.
 
 ---
 
@@ -320,7 +378,7 @@ contextception session                  Show contextception adoption across Clau
 | `--mode plan\|implement\|review` | Shape output for AI workflow stage |
 | `--token-budget N` | Cap output to fit token limits |
 | `--compact` | Token-optimized text summary (~60-75% fewer tokens than JSON) |
-| `--ci --fail-on high\|medium` | Exit codes for CI pipelines |
+| `--ci --fail-on high\|medium\|critical` | Exit codes for CI pipelines |
 | `--cap N` | Limit must_read entries (overflow to related) |
 | `--no-external` | Exclude external dependencies |
 | `--no-update-check` | Disable automatic update version check |

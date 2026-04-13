@@ -31,16 +31,30 @@ make lint     # Run golangci-lint
 
 ```
 cmd/contextception/    CLI entrypoint
+cmd/gen-schema/        JSON schema generator
 internal/
-  analyzer/            Core analysis engine
+  analyzer/            Core analysis engine (scoring, categorization, risk triage)
   change/              PR/branch diff analysis
-  cli/                 Command handlers
-  config/              Configuration parsing
-  db/                  SQLite database layer
+  classify/            File role classification
+  cli/                 Command handlers (cobra subcommands)
+  config/              Configuration parsing (per-repo + global)
+  db/                  SQLite database layer (migrations, store, search)
   extractor/           Language-specific extractors (python, typescript, golang, java, rust)
-  git/                 Git history signals
-  indexer/             Incremental indexing
+  git/                 Git history signal extraction
+  grader/              Internal quality evaluation framework
+  history/             Historical analysis, usage tracking, and feedback storage
+  indexer/             Incremental indexing pipeline
+  mcpserver/           MCP server (tools, stdio transport)
+  model/               Shared data types
   resolver/            Module resolution (per-language)
+  session/             Claude Code session parser (discover, adoption)
+  update/              Version check, self-update, install method detection
+  validation/          Fixture-based validation framework
+  version/             Version injection (set via ldflags)
+protocol/              JSON Schema specifications
+schema/                Go types for schema generation
+integrations/          MCP config examples and slash commands
+testdata/              Test fixtures (synthetic repos + expected outputs)
 ```
 
 ## Adding a New Language

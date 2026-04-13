@@ -98,6 +98,57 @@ Where Ce = files the subject imports (outdegree), Ca = files that import the sub
 
 ---
 
+## Risk Triage
+
+The `analyze-change` command assigns a per-file **risk score** (0--100) and groups files into tiers:
+
+| Tier | Score Range | Meaning |
+|------|-------------|---------|
+| `SAFE` | 0--20 | New files, well-tested utilities, low coupling |
+| `REVIEW` | 21--50 | Moderate risk, standard code review sufficient |
+| `TEST` | 51--75 | High risk, targeted testing recommended |
+| `CRITICAL` | 76--100 | Maximum risk, regressions likely without careful review |
+
+### Risk Score Formula
+
+The score combines four components:
+
+1. **Base score** by change status: added=10 (20 with exports), modified=30, deleted=5, renamed=5
+2. **Structural risk** (modified files only): normalized importer count, co-change frequency, fragility, mutual dependencies, circular dependencies
+3. **Coverage adjustment**: direct tests ×0.7, dependency tests ×0.85, no tests ×1.2
+4. **Clamp** to [0, 100]
+
+### Per-file fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `risk_score` | int | Computed risk score (0--100) |
+| `risk_tier` | string | `SAFE`, `REVIEW`, `TEST`, or `CRITICAL` |
+| `risk_factors` | []string | Factors contributing to the score |
+| `risk_narrative` | string | Human-readable risk explanation |
+
+### Report-level fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `risk_triage` | object | Files grouped by tier (critical, test, review, safe) |
+| `aggregate_risk.score` | int | Max per-file score across the PR |
+| `aggregate_risk.percentile` | int | Percentile vs. historical scores (after 10+ analyses) |
+| `aggregate_risk.regression_risk` | string | Summary of regression risk from critical files |
+| `aggregate_risk.test_coverage_ratio` | float | Ratio of changed files with direct tests |
+| `test_suggestions` | []object | Suggested tests for high-risk untested files |
+
+### Evidence-Gated Same-Package Filtering
+
+Same-package siblings (Go, Java, Rust) are only included in `must_read` if they have structural evidence:
+- Direct import/call edge
+- Co-change frequency >= 2
+- Filename prefix match
+
+This reduces noise in large packages where most siblings are irrelevant.
+
+---
+
 ## Hotspot Detection
 
 Identifies files that are both high-churn AND structural bottlenecks:
@@ -370,19 +421,24 @@ contextception session                  Show adoption across Claude Code session
 | `--signatures` | false | Include code signatures for must_read symbols |
 | `--stable-threshold` | adaptive | Indegree threshold for the stable flag |
 | `--ci` | false | CI mode: suppress output, exit code reflects blast radius |
-| `--fail-on` | high | Blast radius level that triggers non-zero exit (`high` or `medium`) |
+| `--fail-on` | high | Trigger non-zero exit: `high`, `medium`, or `critical` (risk triage) |
 | `--mode` | (none) | Workflow mode: `plan`, `implement`, or `review` |
 | `--token-budget` | 0 | Target token budget (auto-adjusts caps) |
 | `--compact` | false | Token-optimized text summary (~60-75% fewer tokens than JSON) |
 
 ### CI mode
 
-When `--ci` is set, output is suppressed and the exit code reflects blast radius:
+When `--ci` is set, output is suppressed and the exit code reflects blast radius. A risk badge is also printed to stderr:
+
+```
+contextception: main..HEAD blast_radius=high files=27
+RISK: 72/100 | 1 CRITICAL | 2 TEST | 5 REVIEW | 19 SAFE
+```
 
 | Exit code | Meaning |
 |-----------|---------|
 | 0 | Blast radius below threshold |
-| 1 | Medium blast radius (with `--fail-on medium`) |
+| 1 | Medium blast radius (with `--fail-on medium`) or CRITICAL files (with `--fail-on critical`) |
 | 2 | High blast radius |
 
 ```bash
@@ -391,6 +447,9 @@ contextception analyze-change --ci --fail-on high
 
 # Fail on medium or high
 contextception analyze-change --ci --fail-on medium
+
+# Fail only if risk triage has CRITICAL files
+contextception analyze-change --ci --fail-on critical
 ```
 
 ### Workflow modes

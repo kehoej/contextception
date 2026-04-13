@@ -603,3 +603,145 @@ func TestSetup_UnsupportedEditor(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestSetup_SlashCommand_Install(t *testing.T) {
+	home := t.TempDir()
+	cmdPath := filepath.Join(home, ".claude", "commands", "pr-risk.md")
+
+	changed, err := ensureSlashCommand(cmdPath, prRiskCommand, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true for fresh install")
+	}
+
+	// Verify file was written.
+	data, err := os.ReadFile(cmdPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "contextception analyze-change") {
+		t.Fatal("command file should contain contextception analyze-change")
+	}
+	if !strings.Contains(string(data), "One-Sentence Verdict") {
+		t.Fatal("command file should contain review structure")
+	}
+}
+
+func TestSetup_SlashCommand_Idempotent(t *testing.T) {
+	home := t.TempDir()
+	cmdPath := filepath.Join(home, ".claude", "commands", "pr-risk.md")
+
+	// First install.
+	_, err := ensureSlashCommand(cmdPath, prRiskCommand, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Second install should be no-op.
+	changed, err := ensureSlashCommand(cmdPath, prRiskCommand, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Fatal("expected changed=false on second install")
+	}
+}
+
+func TestSetup_SlashCommand_Remove(t *testing.T) {
+	home := t.TempDir()
+	cmdPath := filepath.Join(home, ".claude", "commands", "pr-risk.md")
+
+	// Install first.
+	_, err := ensureSlashCommand(cmdPath, prRiskCommand, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove.
+	changed, err := removeSlashCommand(cmdPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true for removal")
+	}
+
+	// File should be gone.
+	if _, err := os.Stat(cmdPath); !os.IsNotExist(err) {
+		t.Fatal("command file should be removed")
+	}
+}
+
+func TestSetup_SlashCommand_RemoveNonExistent(t *testing.T) {
+	home := t.TempDir()
+	cmdPath := filepath.Join(home, ".claude", "commands", "pr-risk.md")
+
+	changed, err := removeSlashCommand(cmdPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Fatal("expected changed=false when file doesn't exist")
+	}
+}
+
+func TestSetup_SlashCommand_DryRun(t *testing.T) {
+	home := t.TempDir()
+	cmdPath := filepath.Join(home, ".claude", "commands", "pr-risk.md")
+
+	changed, err := ensureSlashCommand(cmdPath, prRiskCommand, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("dry-run should report changed=true")
+	}
+
+	// File should NOT be written.
+	if _, err := os.Stat(cmdPath); !os.IsNotExist(err) {
+		t.Fatal("dry-run should not write the file")
+	}
+}
+
+func TestSetup_DetectEditors(t *testing.T) {
+	home := t.TempDir()
+
+	// No editors installed.
+	editors := detectInstalledEditors(home)
+	if len(editors) != 0 {
+		t.Fatalf("expected 0 editors, got %v", editors)
+	}
+
+	// Install Claude Code.
+	os.MkdirAll(filepath.Join(home, ".claude"), 0o755)
+	editors = detectInstalledEditors(home)
+	if len(editors) != 1 || editors[0] != "claude" {
+		t.Fatalf("expected [claude], got %v", editors)
+	}
+
+	// Also install Cursor.
+	os.MkdirAll(filepath.Join(home, ".cursor"), 0o755)
+	editors = detectInstalledEditors(home)
+	if len(editors) != 2 {
+		t.Fatalf("expected 2 editors, got %v", editors)
+	}
+}
+
+func TestSetup_SlashCommandPaths(t *testing.T) {
+	tests := []struct {
+		editor string
+		expect string
+	}{
+		{"claude", ".claude/commands/pr-risk.md"},
+		{"cursor", ".cursor/rules/pr-risk.md"},
+		{"windsurf", ".windsurf/rules/pr-risk.md"},
+	}
+	for _, tt := range tests {
+		got := slashCommandPath("/home/test", tt.editor)
+		if !strings.HasSuffix(got, tt.expect) {
+			t.Errorf("editor=%s: got %q, want suffix %q", tt.editor, got, tt.expect)
+		}
+	}
+}

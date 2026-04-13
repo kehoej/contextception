@@ -146,6 +146,18 @@ func migrate(db *sql.DB) error {
 
 	CREATE INDEX IF NOT EXISTS idx_feedback_file ON feedback(file_path);
 	CREATE INDEX IF NOT EXISTS idx_feedback_usefulness ON feedback(usefulness);
+
+	CREATE TABLE IF NOT EXISTS risk_scores (
+		id            INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+		file_path     TEXT    NOT NULL,
+		risk_score    INTEGER NOT NULL,
+		score_version INTEGER NOT NULL DEFAULT 1,
+		ref_range     TEXT
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_risk_scores_version ON risk_scores(score_version);
+	CREATE INDEX IF NOT EXISTS idx_risk_scores_file ON risk_scores(file_path);
 	`
 	_, err := db.Exec(schema)
 	return err

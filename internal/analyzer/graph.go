@@ -528,6 +528,10 @@ func collectCandidates(idx *db.Index, subject string, repoRoot string) ([]candid
 	// Fetch git history signals (non-fatal if unavailable).
 	enrichWithGitSignals(idx, candidates, allPaths, subject)
 
+	// Evidence gate: filter same-package siblings without structural evidence.
+	// Runs after enrichWithGitSignals so CoChangeFreq is populated.
+	filterSamePackageSiblings(candidates, subject)
+
 	// Convert to slice (exclude subject — it's handled separately).
 	result := make([]candidate, 0, len(candidates))
 	for _, c := range candidates {
@@ -864,6 +868,37 @@ func prioritizeByRustPrefix(siblings []string, subject string) []string {
 		}
 	}
 	return append(withPrefix, without...)
+}
+
+// filterSamePackageSiblings removes same-package siblings that lack structural evidence.
+// A sibling is kept if it has: a direct import/call edge, co-change frequency >= 2,
+// or a prefix match. Siblings without evidence are removed from the candidate map.
+// This runs after enrichWithGitSignals so CoChangeFreq is populated.
+func filterSamePackageSiblings(candidates map[string]*candidate, subject string) {
+	for p, c := range candidates {
+		if p == subject || c.Distance == 0 {
+			continue
+		}
+		// Only filter same-package siblings (Go, Java, Rust).
+		isSamePackage := c.IsSamePackageSibling || c.IsGoSamePackage || c.IsJavaSamePackage || c.IsRustSameModule
+		if !isSamePackage {
+			continue
+		}
+		// Keep if has direct import/call edge.
+		if c.IsImport || c.IsImporter {
+			continue
+		}
+		// Keep if co-change frequency >= 2.
+		if c.CoChangeFreq >= 2 {
+			continue
+		}
+		// Keep if has prefix match.
+		if c.HasPrefixMatch || c.HasJavaClassPrefix || c.HasRustModulePrefix {
+			continue
+		}
+		// No evidence: remove from candidates.
+		delete(candidates, p)
+	}
 }
 
 // enrichWithGitSignals populates churn and co-change data on candidates.

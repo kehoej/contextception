@@ -122,7 +122,7 @@ func runAnalyze(files []string) error {
 			level = output.BlastRadius.Level
 		}
 		fmt.Fprintf(os.Stderr, "contextception: %s blast_radius=%s\n", output.Subject, level)
-		handleCIExit(level)
+		handleCIExit(level, nil)
 		return nil
 	}
 

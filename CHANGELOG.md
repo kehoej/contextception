@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-04-12
+
+### Added
+
+- **Per-file risk scoring:** every changed file in `analyze-change` gets a 0-100 risk score with tier (SAFE/REVIEW/TEST/CRITICAL), contributing factors, and a human-readable narrative explaining why
+- **Aggregate risk and triage:** change reports now include an overall risk assessment with risk triage grouping files by tier, plus historical percentile ranking ("riskier than 80% of past changes")
+- **Test suggestions:** change reports automatically suggest which tests to write or run based on risk analysis and coverage gaps
+- **`rate_context` MCP tool:** LLMs can submit structured feedback (usefulness 1-5, useful/unnecessary/missing files) on `get_context` results, enabling closed-loop accuracy measurement
+- **`contextception gain` command:** usage analytics dashboard showing analysis counts, top files, confidence trends, and blast radius distribution over time (daily/weekly/monthly breakdowns, JSON export)
+- **`contextception discover` command:** scans Claude Code sessions to find files edited without `get_context` being called first — surfaces missed adoption opportunities
+- **`contextception accuracy` command:** precision, recall, and usefulness metrics computed from LLM feedback submitted via `rate_context`
+- **`contextception session` command:** adoption tracking across Claude Code sessions showing per-session coverage percentages
+- **Compact output mode:** `--compact` flag on `analyze` produces a token-optimized text summary (~60-75% fewer tokens than JSON)
+- **Usage analytics tracking:** all CLI and MCP operations record duration, mode, and result metrics to the history database
+- **Working tree fallback for `analyze-change`:** diffs uncommitted working tree changes when no committed changes exist between refs, supporting pre-PR workflows
+- **Auto-reindex on `analyze-change`:** ensures the index reflects files on disk before analysis
+
+### Changed
+
+- **Change reports sorted by risk:** changed files are now sorted by risk score descending
+
+### Fixed
+
+- **Cross-platform file path normalization:** file paths are normalized to forward slashes, fixing path resolution on Windows (#8)
+
 ## [1.0.6] - 2026-04-09
 
 ### Fixed

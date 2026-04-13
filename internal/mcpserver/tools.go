@@ -649,11 +649,39 @@ func (cs *ContextServer) handleAnalyzeChange(ctx context.Context, req *mcp.CallT
 	}
 	durationMs := time.Since(start).Milliseconds()
 
-	// Record usage analytics (best-effort).
+	// Record usage analytics and risk scores (best-effort).
 	if hist := cs.ensureHistory(); hist != nil {
+		// Store risk scores for percentile tracking.
+		var riskEntries []history.RiskScoreEntry
+		for _, cf := range report.ChangedFiles {
+			if cf.RiskScore > 0 {
+				riskEntries = append(riskEntries, history.RiskScoreEntry{
+					FilePath:  cf.File,
+					RiskScore: cf.RiskScore,
+					RefRange:  base + ".." + head,
+				})
+			}
+		}
+		_ = hist.StoreRiskScores(riskEntries)
+
+		// Compute percentile for aggregate risk.
+		if report.AggregateRisk != nil {
+			if pct, err := hist.ComputePercentile(report.AggregateRisk.Score); err == nil && pct > 0 {
+				report.AggregateRisk.Percentile = pct
+			}
+		}
+
 		entry := history.UsageEntryFromChangeReport("mcp", nil, report, durationMs, "", 0)
 		_, _ = hist.RecordUsage(entry)
 	}
+
+	// Sort changed files by risk score descending, then alphabetically.
+	sort.Slice(report.ChangedFiles, func(i, j int) bool {
+		if report.ChangedFiles[i].RiskScore != report.ChangedFiles[j].RiskScore {
+			return report.ChangedFiles[i].RiskScore > report.ChangedFiles[j].RiskScore
+		}
+		return report.ChangedFiles[i].File < report.ChangedFiles[j].File
+	})
 
 	return jsonResult(report), nil, nil
 }

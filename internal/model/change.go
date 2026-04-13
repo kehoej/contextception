@@ -8,3 +8,6 @@ type ChangedFile = schema.ChangedFile
 type ChangeSummary = schema.ChangeSummary
 type CouplingPair = schema.CouplingPair
 type HiddenCouplingEntry = schema.HiddenCouplingEntry
+type RiskTriage = schema.RiskTriage
+type AggregateRisk = schema.AggregateRisk
+type TestSuggestion = schema.TestSuggestion

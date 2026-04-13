@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/kehoej/contextception/internal/config"
+	"github.com/kehoej/contextception/internal/model"
 	"github.com/kehoej/contextception/internal/update"
 	"github.com/kehoej/contextception/internal/version"
 	"github.com/spf13/cobra"
@@ -55,6 +56,11 @@ func NewRootCmd() *cobra.Command {
 				if exe, err := os.Executable(); err == nil {
 					os.Remove(exe + ".bak") //nolint:errcheck
 				}
+			}
+
+			// Check if setup needs re-running after an update.
+			if msg := CheckSetupFreshness(); msg != "" {
+				fmt.Fprintln(os.Stderr, msg)
 			}
 
 			// Skip repo root detection for commands that don't need it.
@@ -164,7 +170,7 @@ func registerAnalysisFlags(cmd *cobra.Command) {
 	cmd.Flags().IntVar(&maxTests, "max-tests", 0, "max test entries (default 5, 0 = default)")
 	cmd.Flags().BoolVar(&signatures, "signatures", false, "include code signatures for must_read symbols")
 	cmd.Flags().BoolVar(&ciMode, "ci", false, "CI mode: suppress output, exit code reflects blast radius")
-	cmd.Flags().StringVar(&failOn, "fail-on", "high", "blast radius level that triggers non-zero exit (high, medium)")
+	cmd.Flags().StringVar(&failOn, "fail-on", "high", "blast radius level that triggers non-zero exit (high, medium, critical)")
 	cmd.Flags().StringVar(&mode, "mode", "", "workflow mode: plan, implement, review (adjusts caps)")
 	cmd.Flags().IntVar(&tokenBudget, "token-budget", 0, "target token budget for output (adjusts caps automatically)")
 	cmd.Flags().BoolVar(&compactOutput, "compact", false, "token-optimized text summary (~60-75% fewer tokens than JSON)")
@@ -172,11 +178,16 @@ func registerAnalysisFlags(cmd *cobra.Command) {
 
 // handleCIExit checks the blast radius level and exits with an appropriate code
 // in CI mode. Returns true if the caller should return (CI mode handled the output).
-func handleCIExit(level string) bool {
+// The optional report parameter enables --fail-on=critical to check risk triage.
+func handleCIExit(level string, report *model.ChangeReport) bool {
 	if !ciMode {
 		return false
 	}
 	switch failOn {
+	case "critical":
+		if report != nil && report.RiskTriage != nil && len(report.RiskTriage.Critical) > 0 {
+			os.Exit(1)
+		}
 	case "medium":
 		if level == "high" {
 			os.Exit(2)

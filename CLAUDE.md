@@ -59,7 +59,7 @@ make help       # List all targets
 cmd/contextception/    CLI entrypoint
 cmd/gen-schema/        JSON schema generator
 internal/
-  analyzer/            Core analysis engine (scoring, categorization, cycles)
+  analyzer/            Core analysis engine (scoring, categorization, risk triage, cycles)
   change/              PR/branch diff analysis
   classify/            File role classification
   cli/                 Command handlers (cobra subcommands)

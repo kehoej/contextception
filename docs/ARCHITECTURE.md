@@ -119,11 +119,23 @@ The historical cap prevents co-change signals from overwhelming structural evide
 Analyzes the impact of a git diff (PR or branch):
 
 1. Diffs `base..head` to find changed files
-2. Analyzes each changed file independently
-3. Detects coupling between changed files (structural edges)
-4. Identifies test gaps (changed files with no test coverage)
-5. Surfaces hidden coupling (co-change partners not in the diff)
-6. Aggregates blast radius across all changed files
+2. Analyzes each changed file independently (full per-file AnalysisOutput)
+3. Computes per-file risk scores (0--100) with tier classification (SAFE/REVIEW/TEST/CRITICAL)
+4. Detects coupling between changed files (structural edges)
+5. Identifies test gaps (changed files with no test coverage)
+6. Surfaces hidden coupling (co-change partners not in the diff)
+7. Aggregates blast radius and risk triage across all changed files
+8. Generates test suggestions for high-risk untested files
+
+### Risk Scoring Engine (`internal/analyzer/risk.go`)
+
+Per-file risk scoring for change analysis. Formula: `base_score + structural_risk * coverage_multiplier`, clamped to [0, 100].
+
+- **Base score**: added=10 (20 with exports), modified=30, deleted=5, renamed=5
+- **Structural risk**: normalized importer count, co-change frequency, fragility (Ce/(Ca+Ce)), mutual deps, cycles
+- **Coverage adjustment**: direct tests ×0.7, dependency tests ×0.85, no tests ×1.2
+- **Evidence gating**: same-package siblings filtered unless they have import edges, co-change ≥2, or prefix match
+- **Percentile ranking**: stored in `history.sqlite` `risk_scores` table, computed after 10+ records
 
 ### Database Layer (`internal/db/`)
 

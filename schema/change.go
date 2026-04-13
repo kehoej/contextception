@@ -40,8 +40,40 @@ type ChangeReport struct {
 	// Hidden coupling: co-change partners not in the diff.
 	HiddenCoupling []HiddenCouplingEntry `json:"hidden_coupling,omitempty"`
 
+	// Risk triage: files grouped by risk tier.
+	RiskTriage *RiskTriage `json:"risk_triage,omitempty"`
+
+	// Aggregate risk score across all changed files.
+	AggregateRisk *AggregateRisk `json:"aggregate_risk,omitempty"`
+
+	// Test suggestions for high-risk untested files.
+	TestSuggestions []TestSuggestion `json:"test_suggestions,omitempty"`
+
 	// Index stats at time of analysis.
 	Stats *IndexStats `json:"stats,omitempty"`
+}
+
+// RiskTriage groups files by risk tier.
+type RiskTriage struct {
+	Critical []string `json:"critical"`
+	Test     []string `json:"test"`
+	Review   []string `json:"review"`
+	Safe     []string `json:"safe"`
+}
+
+// AggregateRisk summarizes overall PR risk.
+type AggregateRisk struct {
+	Score             int     `json:"score"`
+	Percentile        int     `json:"percentile,omitempty"`
+	RegressionRisk    string  `json:"regression_risk,omitempty"`
+	TestCoverageRatio float64 `json:"test_coverage_ratio"`
+}
+
+// TestSuggestion suggests a test for a file missing coverage.
+type TestSuggestion struct {
+	File          string `json:"file"`
+	SuggestedTest string `json:"suggested_test"`
+	Reason        string `json:"reason"`
 }
 
 // ChangedFile represents a single file in the diff with its individual analysis.
@@ -54,6 +86,12 @@ type ChangedFile struct {
 
 	// Whether this file is indexed (new files may not be).
 	Indexed bool `json:"indexed"`
+
+	// Per-file risk scoring.
+	RiskScore     int      `json:"risk_score,omitempty"`
+	RiskTier      string   `json:"risk_tier,omitempty"`
+	RiskFactors   []string `json:"risk_factors,omitempty"`
+	RiskNarrative string   `json:"risk_narrative,omitempty"`
 }
 
 // ChangeSummary provides aggregate statistics about the change.

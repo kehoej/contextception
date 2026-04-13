@@ -12,6 +12,7 @@ import (
 	"github.com/kehoej/contextception/internal/change"
 	"github.com/kehoej/contextception/internal/db"
 	"github.com/kehoej/contextception/internal/history"
+	"github.com/kehoej/contextception/internal/indexer"
 	"github.com/kehoej/contextception/internal/model"
 	"github.com/spf13/cobra"
 )
@@ -58,6 +59,14 @@ func runAnalyzeChange(refRange string) error {
 		return fmt.Errorf("opening index: %w", err)
 	}
 	defer idx.Close()
+
+	// Auto-reindex to ensure the index reflects current files on disk.
+	// This is especially important for pre-PR workflows where new files
+	// (tests, source) exist on disk but aren't committed yet.
+	if err := autoReindex(idx); err != nil {
+		// Non-fatal: proceed with stale index rather than failing.
+		fmt.Fprintf(os.Stderr, "Warning: auto-reindex failed: %v\n", err)
+	}
 
 	// Determine the ref range.
 	if refRange == "" {
@@ -125,6 +134,26 @@ func runAnalyzeChange(refRange string) error {
 		branch, _ := gitCurrentBranch()
 		hist.RecordRun(report, commitSHA, branch)
 
+		// Record risk scores for percentile tracking.
+		var riskEntries []history.RiskScoreEntry
+		for _, cf := range report.ChangedFiles {
+			if cf.RiskScore > 0 {
+				riskEntries = append(riskEntries, history.RiskScoreEntry{
+					FilePath:  cf.File,
+					RiskScore: cf.RiskScore,
+					RefRange:  refRange,
+				})
+			}
+		}
+		_ = hist.StoreRiskScores(riskEntries)
+
+		// Compute percentile for aggregate risk (best-effort).
+		if report.AggregateRisk != nil {
+			if pct, err := hist.ComputePercentile(report.AggregateRisk.Score); err == nil && pct > 0 {
+				report.AggregateRisk.Percentile = pct
+			}
+		}
+
 		// Record usage analytics.
 		entry := history.UsageEntryFromChangeReport("cli", nil, report, durationMs, mode, tokenBudget)
 		_, _ = hist.RecordUsage(entry)
@@ -135,7 +164,12 @@ func runAnalyzeChange(refRange string) error {
 		level := report.BlastRadius.Level
 		fmt.Fprintf(os.Stderr, "contextception: %s blast_radius=%s files=%d\n",
 			refRange, level, len(report.ChangedFiles))
-		handleCIExit(level)
+		// Append risk badge.
+		badge := analyzer.FormatRiskBadge(report)
+		if badge != "" {
+			fmt.Fprintln(os.Stderr, badge)
+		}
+		handleCIExit(level, report)
 		return nil
 	}
 
@@ -353,6 +387,21 @@ func gitCurrentBranch() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// autoReindex runs an incremental index update to ensure new/modified files
+// on disk are reflected in the analysis. This is silent — no output unless verbose.
+func autoReindex(idx *db.Index) error {
+	ix, err := indexer.NewIndexer(indexer.Config{
+		RepoRoot: repoRoot,
+		Index:    idx,
+		Verbose:  verbose,
+		Config:   repoCfg,
+	})
+	if err != nil {
+		return err
+	}
+	return ix.Run()
 }
 
 // formatBlastLevel returns a formatted blast radius level with visual indicator.

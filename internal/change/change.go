@@ -40,6 +40,20 @@ func BuildReport(idx *db.Index, cfg Config, base, head string) (*model.ChangeRep
 		return nil, fmt.Errorf("running git diff: %w", err)
 	}
 
+	// Fallback: if no committed changes found, diff the working tree against base.
+	// This supports the pre-PR workflow where changes aren't committed yet.
+	workingTree := false
+	if len(diffs) == 0 {
+		diffs, err = GitDiffWorkingTree(cfg.RepoRoot, base)
+		if err != nil {
+			return nil, fmt.Errorf("running git diff (working tree): %w", err)
+		}
+		if len(diffs) > 0 {
+			workingTree = true
+			refRange = base + "..working-tree"
+		}
+	}
+
 	if len(diffs) == 0 {
 		return &model.ChangeReport{
 			SchemaVersion: ChangeSchemaVersion,
@@ -51,6 +65,7 @@ func BuildReport(idx *db.Index, cfg Config, base, head string) (*model.ChangeRep
 			Tests:         []model.TestEntry{},
 		}, nil
 	}
+	_ = workingTree // available for future use (e.g., labeling output)
 
 	// Filter to analyzable files (existing, non-deleted, in the index).
 	var analyzable []string
@@ -91,13 +106,15 @@ func BuildReport(idx *db.Index, cfg Config, base, head string) (*model.ChangeRep
 		}
 	}
 
-	// Run per-file analysis for individual blast radius.
+	// Run per-file analysis for individual blast radius and risk scoring.
+	perFileAnalysis := make(map[string]*model.AnalysisOutput)
 	perFileBlast := make(map[string]*model.BlastRadius)
 	for _, file := range analyzable {
 		single, err := a.Analyze(file)
 		if err != nil {
 			continue
 		}
+		perFileAnalysis[file] = single
 		perFileBlast[file] = single.BlastRadius
 	}
 
@@ -107,6 +124,30 @@ func BuildReport(idx *db.Index, cfg Config, base, head string) (*model.ChangeRep
 			changedFiles[i].BlastRadius = br
 		}
 	}
+
+	// Compute per-file risk scores.
+	maxIndegree, _ := idx.GetMaxIndegree()
+	changedPaths := make([]string, len(diffs))
+	for i, d := range diffs {
+		changedPaths[i] = d.Path
+	}
+	for i := range changedFiles {
+		pfa := perFileAnalysis[changedFiles[i].File]
+		score, factors := analyzer.ComputeRiskScore(changedFiles[i], pfa, idx, changedPaths, maxIndegree)
+		changedFiles[i].RiskScore = score
+		changedFiles[i].RiskTier = analyzer.AssignRiskTier(score)
+		changedFiles[i].RiskFactors = factors
+		changedFiles[i].RiskNarrative = analyzer.GenerateNarrative(changedFiles[i], pfa, idx)
+	}
+
+	// Build risk triage.
+	triage := buildRiskTriage(changedFiles)
+
+	// Build aggregate risk.
+	aggRisk := buildAggregateRisk(changedFiles, perFileAnalysis, triage)
+
+	// Generate test suggestions.
+	testSuggestions := analyzer.GenerateTestSuggestions(changedFiles, perFileAnalysis)
 
 	// Detect coupling between changed files.
 	coupling := DetectCoupling(idx, analyzable)
@@ -126,13 +167,16 @@ func BuildReport(idx *db.Index, cfg Config, base, head string) (*model.ChangeRep
 
 	// Build the change report.
 	report := &model.ChangeReport{
-		SchemaVersion:  "1.0",
-		RefRange:       refRange,
-		ChangedFiles:   changedFiles,
-		Summary:        summary,
-		Coupling:       coupling,
-		TestGaps:       testGaps,
-		HiddenCoupling: hiddenCoupling,
+		SchemaVersion:   "1.0",
+		RefRange:        refRange,
+		ChangedFiles:    changedFiles,
+		Summary:         summary,
+		Coupling:        coupling,
+		TestGaps:        testGaps,
+		HiddenCoupling:  hiddenCoupling,
+		RiskTriage:      triage,
+		AggregateRisk:   aggRisk,
+		TestSuggestions: testSuggestions,
 	}
 
 	if analysis != nil {
@@ -153,6 +197,165 @@ func BuildReport(idx *db.Index, cfg Config, base, head string) (*model.ChangeRep
 	return report, nil
 }
 
+// buildRiskTriage groups changed files by risk tier.
+func buildRiskTriage(files []model.ChangedFile) *model.RiskTriage {
+	triage := &model.RiskTriage{
+		Critical: []string{},
+		Test:     []string{},
+		Review:   []string{},
+		Safe:     []string{},
+	}
+	for _, f := range files {
+		switch f.RiskTier {
+		case analyzer.TierCritical:
+			triage.Critical = append(triage.Critical, f.File)
+		case analyzer.TierTest:
+			triage.Test = append(triage.Test, f.File)
+		case analyzer.TierReview:
+			triage.Review = append(triage.Review, f.File)
+		default:
+			triage.Safe = append(triage.Safe, f.File)
+		}
+	}
+	sort.Strings(triage.Critical)
+	sort.Strings(triage.Test)
+	sort.Strings(triage.Review)
+	sort.Strings(triage.Safe)
+	return triage
+}
+
+// buildAggregateRisk computes the aggregate risk for the entire PR.
+func buildAggregateRisk(files []model.ChangedFile, analyses map[string]*model.AnalysisOutput, triage *model.RiskTriage) *model.AggregateRisk {
+	maxScore := 0
+	testedCount := 0
+	totalNonTest := 0
+
+	for _, f := range files {
+		if f.RiskScore > maxScore {
+			maxScore = f.RiskScore
+		}
+		if !isTestFile(f.File) {
+			totalNonTest++
+			a := analyses[f.File]
+			if a != nil {
+				for _, t := range a.Tests {
+					if t.Direct {
+						testedCount++
+						break
+					}
+				}
+			}
+		}
+	}
+
+	var coverageRatio float64
+	if totalNonTest > 0 {
+		coverageRatio = float64(testedCount) / float64(totalNonTest)
+	}
+
+	// Generate regression risk summary.
+	// Triggers for: CRITICAL tier files, or any modified file with 10+ importers.
+	regressionRisk := ""
+	var regressionFiles []string
+	if len(triage.Critical) > 0 {
+		regressionFiles = triage.Critical
+	} else {
+		// Find high-importer files across all tiers (foundation files).
+		for _, f := range files {
+			a := analyses[f.File]
+			if a == nil || f.Status != "modified" {
+				continue
+			}
+			importerCount := 0
+			for _, entry := range a.MustRead {
+				if entry.Direction == "imported_by" {
+					importerCount++
+				}
+			}
+			if importerCount >= 10 {
+				regressionFiles = append(regressionFiles, f.File)
+			}
+		}
+	}
+	if len(regressionFiles) > 0 {
+		regressionRisk = buildRegressionSummary(regressionFiles, analyses)
+	} else if allAdded(files) {
+		regressionRisk = "No modifications to existing code. Low regression risk."
+	}
+
+	return &model.AggregateRisk{
+		Score:             maxScore,
+		RegressionRisk:    regressionRisk,
+		TestCoverageRatio: coverageRatio,
+	}
+}
+
+// buildRegressionSummary generates a brief summary of regression risk from critical files.
+func buildRegressionSummary(criticalFiles []string, analyses map[string]*model.AnalysisOutput) string {
+	var parts []string
+	for _, file := range criticalFiles {
+		a := analyses[file]
+		if a == nil {
+			continue
+		}
+		importerCount := 0
+		untestedImporters := 0
+		for _, entry := range a.MustRead {
+			if entry.Direction == "imported_by" {
+				importerCount++
+			}
+		}
+		// Count untested importers (rough heuristic: importers not in test files).
+		for _, entry := range a.MustRead {
+			if entry.Direction == "imported_by" {
+				hasTest := false
+				for _, t := range a.Tests {
+					if t.Direct && strings.Contains(t.File, strings.TrimSuffix(filepath.Base(entry.File), filepath.Ext(entry.File))) {
+						hasTest = true
+						break
+					}
+				}
+				if !hasTest {
+					untestedImporters++
+				}
+			}
+		}
+		base := filepath.Base(file)
+		if untestedImporters > 0 {
+			parts = append(parts, fmt.Sprintf("%s: %d importers, %d untested", base, importerCount, untestedImporters))
+		} else if importerCount > 0 {
+			parts = append(parts, fmt.Sprintf("%s: %d importers", base, importerCount))
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	summary := strings.Join(parts, "; ")
+	if len(summary) > 300 {
+		summary = summary[:297] + "..."
+	}
+	return summary
+}
+
+// allAdded returns true if all files in the changeset are added.
+func allAdded(files []model.ChangedFile) bool {
+	for _, f := range files {
+		if f.Status != "added" {
+			return false
+		}
+	}
+	return true
+}
+
+// isTestFile is a local helper to avoid circular import with classify.
+func isTestFile(path string) bool {
+	base := filepath.Base(path)
+	return strings.HasSuffix(base, "_test.go") ||
+		strings.HasPrefix(base, "test_") ||
+		strings.Contains(base, ".test.") ||
+		strings.Contains(base, ".spec.")
+}
+
 // DiffEntry represents a file changed in a git diff.
 type DiffEntry struct {
 	Path   string
@@ -167,7 +370,23 @@ func GitDiffFiles(repoRoot, base, head string) ([]DiffEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("git diff failed: %w", err)
 	}
+	return parseDiffOutput(out), nil
+}
 
+// GitDiffWorkingTree returns files changed in the working tree vs a base ref.
+// This includes both staged and unstaged changes — everything that differs from base.
+func GitDiffWorkingTree(repoRoot, base string) ([]DiffEntry, error) {
+	cmd := exec.Command("git", "diff", "--name-status", "--no-renames", base)
+	cmd.Dir = repoRoot
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git diff (working tree) failed: %w", err)
+	}
+	return parseDiffOutput(out), nil
+}
+
+// parseDiffOutput parses git diff --name-status output into DiffEntry slice.
+func parseDiffOutput(out []byte) []DiffEntry {
 	var entries []DiffEntry
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		if line == "" {
@@ -185,8 +404,7 @@ func GitDiffFiles(repoRoot, base, head string) ([]DiffEntry, error) {
 
 		entries = append(entries, DiffEntry{Path: path, Status: status})
 	}
-
-	return entries, nil
+	return entries
 }
 
 // ParseGitStatus converts git's single-letter status code to a human-readable string.
@@ -289,13 +507,24 @@ func DetectTestGaps(analyzable []string, analysis *model.AnalysisOutput) []strin
 }
 
 // HasTestForFile checks if any test file appears to test the given file.
+// Uses stem matching first, then falls back to same-directory matching for Go files
+// (where any _test.go in the same package tests all files in that package).
 func HasTestForFile(file string, analysis *model.AnalysisOutput) bool {
 	if analysis == nil {
 		return false
 	}
 	base := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+	dir := filepath.Dir(file)
 	for _, t := range analysis.Tests {
-		if t.Direct && strings.Contains(filepath.Base(t.File), base) {
+		if !t.Direct {
+			continue
+		}
+		// Stem match: test filename contains the source stem.
+		if strings.Contains(filepath.Base(t.File), base) {
+			return true
+		}
+		// Same-directory match for Go: any _test.go in the same package covers all files.
+		if strings.HasSuffix(file, ".go") && filepath.Dir(t.File) == dir {
 			return true
 		}
 	}

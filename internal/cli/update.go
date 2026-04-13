@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/kehoej/contextception/internal/update"
 	"github.com/kehoej/contextception/internal/version"
@@ -52,6 +53,13 @@ func newUpdateCmd() *cobra.Command {
 			}
 
 			fmt.Printf("Updated contextception from %s to %s\n", currentVersion, latestVersion)
+
+			// Auto-run setup to install updated slash commands.
+			fmt.Println("\nUpdating editor integrations...")
+			if err := runSetup("auto", false, false); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: auto-setup failed: %v\n", err)
+				fmt.Fprintln(os.Stderr, "Run 'contextception setup' manually to update editor commands.")
+			}
 			return nil
 		},
 	}

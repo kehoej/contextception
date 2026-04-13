@@ -1288,10 +1288,40 @@ func TestAnalyzeChangeMCP(t *testing.T) {
 	for _, f := range report.ChangedFiles {
 		if f.File == "myapp/main.py" {
 			found = true
+			// Verify risk fields are populated.
+			if f.RiskScore == 0 {
+				t.Error("expected non-zero risk_score for modified myapp/main.py")
+			}
+			if f.RiskTier == "" {
+				t.Error("expected non-empty risk_tier")
+			}
+			if len(f.RiskFactors) == 0 {
+				t.Error("expected non-empty risk_factors")
+			}
 		}
 	}
 	if !found {
 		t.Error("expected myapp/main.py in changed_files")
+	}
+
+	// Verify risk triage is populated.
+	if report.RiskTriage == nil {
+		t.Error("expected risk_triage to be present")
+	}
+	if report.AggregateRisk == nil {
+		t.Error("expected aggregate_risk to be present")
+	} else if report.AggregateRisk.Score == 0 {
+		t.Error("expected non-zero aggregate risk score")
+	}
+
+	// Verify MCP sorts changed files by risk score descending.
+	for i := 1; i < len(report.ChangedFiles); i++ {
+		prev := report.ChangedFiles[i-1].RiskScore
+		curr := report.ChangedFiles[i].RiskScore
+		if prev < curr {
+			t.Errorf("changed_files not sorted by risk: file[%d]=%d < file[%d]=%d",
+				i-1, prev, i, curr)
+		}
 	}
 }
 

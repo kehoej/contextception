@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -522,6 +523,210 @@ func TestAnalyzeChangeCmd_TooManyArgs(t *testing.T) {
 	err := executeCmd("--repo", root, "analyze-change", "a..b", "extra")
 	if err == nil {
 		t.Fatal("analyze-change with too many args should error")
+	}
+}
+
+// buildTestRepoWithGit creates a git repo with an initial commit, modifies a file,
+// commits the change, and returns the repo root and the base commit SHA.
+func buildTestRepoWithGit(t *testing.T) (root string, baseSHA string) {
+	t.Helper()
+	root = createTestRepo(t)
+
+	// Initialize git and create initial commit.
+	for _, args := range [][]string{
+		{"git", "init", "-b", "main"},
+		{"git", "config", "user.email", "test@test.com"},
+		{"git", "config", "user.name", "Test"},
+		{"git", "add", "."},
+		{"git", "commit", "-m", "initial"},
+	} {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	// Get base SHA.
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseSHA = strings.TrimSpace(string(out))
+
+	// Index.
+	idxPath := db.IndexPath(root)
+	idx, err := db.OpenIndex(idxPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := idx.MigrateToLatest(); err != nil {
+		idx.Close()
+		t.Fatal(err)
+	}
+	ix, err := indexer.NewIndexer(indexer.Config{RepoRoot: root, Index: idx})
+	if err != nil {
+		idx.Close()
+		t.Fatal(err)
+	}
+	if err := ix.Run(); err != nil {
+		idx.Close()
+		t.Fatal(err)
+	}
+	idx.Close()
+
+	// Modify a file and commit.
+	if err := os.WriteFile(filepath.Join(root, "myapp/main.py"),
+		[]byte("from .models import User\nfrom .utils import helper\nimport os\n# modified\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"git", "add", "myapp/main.py"},
+		{"git", "commit", "-m", "modify main.py"},
+	} {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	return root, baseSHA
+}
+
+func TestAnalyzeChangeCmd_JSONWithRiskTriage(t *testing.T) {
+	root, baseSHA := buildTestRepoWithGit(t)
+
+	// Capture stdout.
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	err := executeCmd("--repo", root, "analyze-change", baseSHA+"..HEAD", "--json")
+
+	w.Close()
+	os.Stdout = old
+
+	if err != nil {
+		t.Fatalf("analyze-change --json: %v", err)
+	}
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	output := buf.String()
+
+	// Verify JSON contains risk_triage.
+	if !strings.Contains(output, "risk_triage") {
+		t.Errorf("JSON output should contain risk_triage: %.200s...", output)
+	}
+	if !strings.Contains(output, "aggregate_risk") {
+		t.Errorf("JSON output should contain aggregate_risk: %.200s...", output)
+	}
+	if !strings.Contains(output, "risk_score") {
+		t.Errorf("JSON output should contain per-file risk_score: %.200s...", output)
+	}
+}
+
+func TestAnalyzeChangeCmd_CompactWithRiskBadge(t *testing.T) {
+	root, baseSHA := buildTestRepoWithGit(t)
+
+	// Capture stdout.
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	err := executeCmd("--repo", root, "analyze-change", baseSHA+"..HEAD", "--compact")
+
+	w.Close()
+	os.Stdout = old
+
+	if err != nil {
+		t.Fatalf("analyze-change --compact: %v", err)
+	}
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	output := buf.String()
+
+	// Compact output should include the risk badge.
+	if !strings.Contains(output, "RISK") {
+		t.Errorf("compact output should contain risk badge: %s", output)
+	}
+}
+
+func TestAnalyzeChangeCmd_WorkingTreeFallback(t *testing.T) {
+	root := createTestRepo(t)
+
+	// Initialize git and commit.
+	for _, args := range [][]string{
+		{"git", "init", "-b", "main"},
+		{"git", "config", "user.email", "test@test.com"},
+		{"git", "config", "user.name", "Test"},
+		{"git", "add", "."},
+		{"git", "commit", "-m", "initial"},
+	} {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	// Index.
+	idxPath := db.IndexPath(root)
+	idx, err := db.OpenIndex(idxPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := idx.MigrateToLatest(); err != nil {
+		idx.Close()
+		t.Fatal(err)
+	}
+	ix, err := indexer.NewIndexer(indexer.Config{RepoRoot: root, Index: idx})
+	if err != nil {
+		idx.Close()
+		t.Fatal(err)
+	}
+	if err := ix.Run(); err != nil {
+		idx.Close()
+		t.Fatal(err)
+	}
+	idx.Close()
+
+	// Modify a file WITHOUT committing.
+	if err := os.WriteFile(filepath.Join(root, "myapp/main.py"),
+		[]byte("from .models import User\nfrom .utils import helper\nimport os\n# uncommitted change\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Capture stdout.
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Run analyze-change with HEAD..HEAD — committed diff is empty, should fall back to working tree.
+	baseSHA := "HEAD"
+	err = executeCmd("--repo", root, "analyze-change", baseSHA+"..HEAD", "--json")
+
+	w.Close()
+	os.Stdout = old
+
+	if err != nil {
+		t.Fatalf("analyze-change with working tree: %v", err)
+	}
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	output := buf.String()
+
+	// Should detect the uncommitted change via working tree fallback.
+	if !strings.Contains(output, "working-tree") {
+		t.Errorf("expected 'working-tree' in ref_range for uncommitted changes: %.200s...", output)
+	}
+	if !strings.Contains(output, "myapp/main.py") {
+		t.Errorf("should detect uncommitted myapp/main.py change: %.200s...", output)
 	}
 }
 

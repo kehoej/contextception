@@ -4636,4 +4636,180 @@ func TestNestedTestDirMatchNormStillRequiresDirMatch(t *testing.T) {
 	}
 }
 
+// --- C# helper function tests ---
+
+func TestCsharpPrefixStemMatch(t *testing.T) {
+	tests := []struct {
+		testStem    string
+		subjectStem string
+		want        bool
+	}{
+		// Documented examples: shorter test name matches longer impl name.
+		{"AutomaticLineEnder", "AutomaticLineEnderCommandHandler", true},
+		{"MakeLocalFunctionStatic", "MakeLocalFunctionStaticHelper", true},
+
+		// Two CamelCase words, valid boundary.
+		{"AutomaticLine", "AutomaticLineEnder", true},
+
+		// Test stem >= subject stem: never matches.
+		{"AutomaticLineEnderCommandHandler", "AutomaticLineEnder", false},
+		{"FooBar", "FooBar", false}, // exact match
+
+		// Only 1 CamelCase word in prefix: too short, rejected.
+		{"Auto", "AutomaticLineEnder", false},
+		{"Foo", "FooBar", false},
+
+		// Not at CamelCase boundary.
+		{"FooBa", "FooBar", false},
+		{"AutomaticLi", "AutomaticLineEnder", false},
+
+		// Empty stems.
+		{"", "FooBar", false},
+		{"FooBar", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.testStem+"_vs_"+tt.subjectStem, func(t *testing.T) {
+			if got := csharpPrefixStemMatch(tt.testStem, tt.subjectStem); got != tt.want {
+				t.Errorf("csharpPrefixStemMatch(%q, %q) = %v, want %v",
+					tt.testStem, tt.subjectStem, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsCSharpTestProjectMirror(t *testing.T) {
+	tests := []struct {
+		name      string
+		sourceDir string
+		testDir   string
+		want      bool
+	}{
+		// Standard dotted project → dotted test project.
+		{"EF Core .Tests suffix", "src/EFCore.Design/Design/Internal", "test/EFCore.Design.Tests/Design/Internal", true},
+		{"EF Core .Test suffix", "src/EFCore.Design/Design", "test/EFCore.Design.Test/Design", true},
+		{"UnitTests suffix", "src/EFCore.Design/Design", "test/EFCore.Design.UnitTests/Design", true},
+		{"IntegrationTests suffix", "src/EFCore.Design/Design", "test/EFCore.Design.IntegrationTests/Design", true},
+
+		// Jellyfin renaming: Emby.* source → Jellyfin.*.Tests test.
+		{"Jellyfin renamed project", "Emby.Server.Implementations/Session", "tests/Jellyfin.Server.Implementations.Tests/Session", true},
+
+		// Roslyn-style non-dotted: CSharp → CSharpTest.
+		{"Roslyn CSharpTest", "src/EditorFeatures/CSharp/Foo", "src/EditorFeatures/CSharpTest/Foo", true},
+		{"Non-dotted Tests suffix", "src/Features/Core/Portable", "src/Features/CoreTests/Portable", true},
+
+		// Same project: not a mirror.
+		{"Same project", "src/EFCore.Design/Design", "src/EFCore.Design/Design", false},
+
+		// Unrelated projects.
+		{"Unrelated dotted", "src/Foo.Bar/Baz", "test/Qux.Quux.Tests/Baz", false},
+		{"Unrelated non-dotted", "src/Foo/Bar", "tests/Baz/Qux", false},
+
+		// No dots, no match.
+		{"No dots no match", "MyApp/Services", "MyApp/Services", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isCSharpTestProjectMirror(tt.sourceDir, tt.testDir); got != tt.want {
+				t.Errorf("isCSharpTestProjectMirror(%q, %q) = %v, want %v",
+					tt.sourceDir, tt.testDir, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHasTestDirComponentCSharp(t *testing.T) {
+	tests := []struct {
+		dir  string
+		want bool
+	}{
+		// Standard dotted C# test project directories.
+		{"test/EFCore.Design.Tests/Design", true},
+		{"tests/Jellyfin.Api.Tests/Auth", true},
+		{"src/MyLib.Tests/Unit", true},
+		{"MyLib.Test", true},
+
+		// Roslyn-style CamelCase suffix (CSharpTest, VisualBasicTest).
+		{"src/EditorFeatures/CSharpTest/Foo", true},
+		{"src/Features/CoreTests/Portable", true},
+
+		// Case-insensitive test/tests.
+		{"Test/unit", true},
+		{"TESTS/integration", true},
+
+		// Non-test directories with dots (should not match).
+		{"src/MyApp.Core/Services", false},
+		{"src/Microsoft.Extensions.DependencyInjection/Internal", false},
+	}
+	for _, tt := range tests {
+		if got := hasTestDirComponent(tt.dir); got != tt.want {
+			t.Errorf("hasTestDirComponent(%q) = %v, want %v", tt.dir, got, tt.want)
+		}
+	}
+}
+
+func TestExtractTestStemCSharp(t *testing.T) {
+	tests := []struct {
+		base string
+		want string
+	}{
+		// C# test suffixes.
+		{"FooTests.cs", "Foo"},
+		{"FooTest.cs", "Foo"},
+		{"FooSpec.cs", "Foo"},
+
+		// C# test prefix.
+		{"TestFoo.cs", "Foo"},
+
+		// Order matters: Tests stripped before Test.
+		{"FooTests.cs", "Foo"},
+
+		// Edge cases.
+		{"Foo.cs", ""},       // not a test file pattern
+		{"Test.cs", ""},      // stem after stripping prefix is empty
+		{"Tests.cs", ""},     // stem after stripping suffix is empty
+		{"TestBase.cs", "Base"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.base, func(t *testing.T) {
+			if got := extractTestStem(tt.base); got != tt.want {
+				t.Errorf("extractTestStem(%q) = %q, want %q", tt.base, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCsharpProjectInfo(t *testing.T) {
+	tests := []struct {
+		filePath    string
+		wantProject string
+		wantRelPath string
+	}{
+		// Dotted project directory (deepest wins).
+		{"src/EFCore.Design/Design/Internal/Foo.cs", "EFCore.Design", "Design/Internal"},
+		{"Emby.Server.Implementations/Session/SessionManager.cs", "Emby.Server.Implementations", "Session"},
+		{"tests/Jellyfin.Api.Tests/Auth/HandlerTests.cs", "Jellyfin.Api.Tests", "Auth"},
+
+		// Dotted project at root level.
+		{"MyApp.Core/Services/UserService.cs", "MyApp.Core", "Services"},
+
+		// No dotted dirs: fallback to first non-root component.
+		{"src/Compilers/CSharp/Portable/Syntax/SyntaxFacts.cs", "Compilers", "CSharp/Portable/Syntax"},
+
+		// File at root: no project info.
+		{"Foo.cs", "", ""},
+
+		// File directly under src/: "src" is skipped as common root, no project.
+		{"src/Foo.cs", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.filePath, func(t *testing.T) {
+			gotProject, gotRel := csharpProjectInfo(tt.filePath)
+			if gotProject != tt.wantProject || gotRel != tt.wantRelPath {
+				t.Errorf("csharpProjectInfo(%q) = (%q, %q), want (%q, %q)",
+					tt.filePath, gotProject, gotRel, tt.wantProject, tt.wantRelPath)
+			}
+		})
+	}
+}
+
 // --- pythonTestDirs tests ---

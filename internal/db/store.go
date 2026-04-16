@@ -854,7 +854,7 @@ func (idx *Index) GetRustSiblingsInDir(dir, exclude string) ([]string, error) {
 // GetCSharpSiblingsInDir returns non-test .cs files in the given directory,
 // excluding the specified file and subdirectories.
 func (idx *Index) GetCSharpSiblingsInDir(dir, exclude string) ([]string, error) {
-	return idx.getSiblingsInDir(dir, exclude, "csharp", "", true)
+	return idx.getSiblingsInDir(dir, exclude, "cs", "", true)
 }
 
 // GetTestFilesInDir returns files in the given directory (not subdirectories) matching a suffix.

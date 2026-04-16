@@ -51,6 +51,14 @@ func likelyModifyConfidence(sc *scoredCandidate) string {
 	if sc.IsRustSameModule && sc.CoChangeFreq >= 1 {
 		return "high"
 	}
+	// C# same-namespace file with class prefix match: structural evidence of tight coupling.
+	if sc.IsCSharpSameNamespace && sc.HasCSharpClassPrefix {
+		return "high"
+	}
+	// C# same-namespace file with co-change evidence: structural + behavioral = high.
+	if sc.IsCSharpSameNamespace && sc.CoChangeFreq >= 1 {
+		return "high"
+	}
 	return "medium"
 }
 

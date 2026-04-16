@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kehoej/contextception/internal/classify"
 	csharppkg "github.com/kehoej/contextception/internal/extractor/csharp"
 	"github.com/kehoej/contextception/internal/model"
 )
@@ -388,8 +389,8 @@ func (r *Resolver) resolveSameNamespace(srcFile string) ([]model.ResolveResult, 
 			continue
 		}
 		// Skip test files as siblings.
-		stem := strings.TrimSuffix(name, ".cs")
-		if strings.HasSuffix(stem, "Test") || strings.HasSuffix(stem, "Tests") || strings.HasPrefix(stem, "Test") {
+		siblingPath := filepath.ToSlash(filepath.Join(srcDir, name))
+		if classify.IsTestFile(siblingPath) {
 			continue
 		}
 		p := filepath.Join(srcDir, name)

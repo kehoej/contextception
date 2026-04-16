@@ -93,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **5-language support:** Python, TypeScript/JavaScript, Go, Java, Rust
+- **6-language support:** Python, TypeScript/JavaScript, Go, Java, Rust, C#
 - **CLI with 10 commands:** analyze, analyze-change, search, archetypes, history, index, reindex, extensions, status, mcp
 - **MCP server** with 8 tools for integration with Claude Code, Cursor, Windsurf, and other AI tools
 - **Schema 3.2 output** with confidence scoring, role classification, code signatures, and direction field

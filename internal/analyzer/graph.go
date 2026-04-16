@@ -29,6 +29,9 @@ type candidate struct {
 	HasRustModulePrefix  bool // Rust: shares underscore-delimited filename prefix with subject
 	IsSmallRustModule    bool // Rust: directory has ≤ 20 non-test .rs files
 	HasInlineTests       bool // Rust: file contains #[cfg(test)] inline test module
+	IsCSharpSameNamespace  bool // C#: same-directory .cs file (same namespace)
+	HasCSharpClassPrefix   bool // C#: shares a CamelCase class name prefix with subject
+	IsSmallCSharpNamespace bool // C#: directory has ≤ 20 non-test .cs files
 	Signals              db.SignalRow
 	Churn                float64 // normalized 0.0-1.0
 	CoChangeFreq         int     // raw co-change frequency with subject
@@ -434,6 +437,57 @@ func collectCandidates(idx *db.Index, subject string, repoRoot string) ([]candid
 		}
 	}
 
+	// C# same-namespace discovery: C# namespaces provide implicit type visibility
+	// within the same directory, analogous to Java packages and Go packages.
+	if strings.HasSuffix(subject, ".cs") && !classify.IsTestFile(subject) {
+		subjectDir := path.Dir(subject)
+		siblings, err := idx.GetCSharpSiblingsInDir(subjectDir, subject)
+		if err == nil {
+			namespaceSize := len(siblings) + 1
+			isSmallNs := namespaceSize <= maxPackageSize
+			subjectStem := strings.TrimSuffix(path.Base(subject), ".cs")
+			siblings = prioritizeByJavaClassPrefix(siblings, subject) // CamelCase prefix works for C# too
+
+			// For large namespaces: only add class-prefix-matched siblings.
+			if !isSmallNs {
+				var filtered []string
+				for _, sf := range siblings {
+					sfStem := strings.TrimSuffix(path.Base(sf), ".cs")
+					if shareJavaClassPrefix(subjectStem, sfStem) {
+						filtered = append(filtered, sf)
+					}
+				}
+				siblings = filtered
+			}
+
+			count := 0
+			for _, sf := range siblings {
+				if _, exists := candidates[sf]; !exists {
+					candidates[sf] = &candidate{Path: sf, Distance: 1, IsCSharpSameNamespace: true}
+					count++
+					if count >= maxSiblingCandidates {
+						break
+					}
+				}
+			}
+
+			// Post-process: mark ALL C# candidates in subject's directory
+			// with IsCSharpSameNamespace/HasCSharpClassPrefix/IsSmallCSharpNamespace.
+			for _, c := range candidates {
+				if c.Path != subject && path.Dir(c.Path) == subjectDir &&
+					strings.HasSuffix(c.Path, ".cs") && !classify.IsTestFile(c.Path) {
+					c.IsCSharpSameNamespace = true
+					c.IsSmallCSharpNamespace = isSmallNs
+					c.Distance = 1
+					candidateStem := strings.TrimSuffix(path.Base(c.Path), ".cs")
+					if shareJavaClassPrefix(subjectStem, candidateStem) {
+						c.HasCSharpClassPrefix = true
+					}
+				}
+			}
+		}
+	}
+
 	// Python tests/ directory test discovery: Python projects commonly place tests
 	// in a root-level tests/ directory (e.g., tests/test_configuration_utils.py),
 	// which has no import edges back to the source files. Without this discovery,
@@ -504,6 +558,113 @@ func collectCandidates(idx *db.Index, subject string, repoRoot string) ([]candid
 				for _, tf := range testFiles {
 					if _, exists := candidates[tf]; !exists {
 						candidates[tf] = &candidate{Path: tf, Distance: 2}
+					}
+				}
+			}
+		}
+	}
+
+	// C# test discovery: C# test files live in separate .Tests project directories
+	// (e.g., tests/Jellyfin.Server.Implementations.Tests/SessionManager/SessionManagerTests.cs)
+	// with no import edges back to the source. We search the index for test files
+	// whose stem matches the subject stem, plus stems with common suffixes stripped
+	// (e.g., AutomaticLineEnderCommandHandler → AutomaticLineEnderTests.cs).
+	if strings.HasSuffix(subject, ".cs") && !classify.IsTestFile(subject) {
+		subjectStem := strings.TrimSuffix(path.Base(subject), ".cs")
+		if subjectStem != "" {
+			seen := map[string]bool{}
+			var testBasenames []string
+			addTestName := func(stem string) {
+				for _, name := range []string{
+					stem + "Tests.cs",
+					stem + "Test.cs",
+					"Test" + stem + ".cs",
+					stem + "Spec.cs",
+				} {
+					if !seen[name] {
+						seen[name] = true
+						testBasenames = append(testBasenames, name)
+					}
+				}
+			}
+
+			// Exact stem match.
+			addTestName(subjectStem)
+
+			// Strip common C# class suffixes and search for shortened stems.
+			// E.g., AutomaticLineEnderCommandHandler → AutomaticLineEnder
+			// MakeLocalFunctionStaticHelper → MakeLocalFunctionStatic
+			csharpClassSuffixes := []string{
+				"CommandHandler", "Handler", "Helpers", "Helper",
+				"Service", "Provider", "Manager", "Factory",
+				"Builder", "Adapter", "Wrapper", "Extensions",
+				"Repository", "Controller", "Options", "Configuration",
+				"Validator", "Converter", "Processor", "Client",
+			}
+			for _, suffix := range csharpClassSuffixes {
+				if stripped := strings.TrimSuffix(subjectStem, suffix); stripped != subjectStem && len(stripped) > 2 {
+					addTestName(stripped)
+				}
+			}
+
+			// CamelCase prefix search: for multi-word stems, try progressively
+			// shorter prefixes. E.g., MakeLocalFunctionStaticHelper →
+			// MakeLocalFunctionStatic, MakeLocalFunction, MakeLocal.
+			parts := splitCamelCase(subjectStem)
+			if len(parts) >= 3 {
+				// Try dropping 1 and 2 trailing words.
+				for drop := 1; drop <= 2 && drop < len(parts)-1; drop++ {
+					prefix := strings.Join(parts[:len(parts)-drop], "")
+					if len(prefix) > 3 {
+						addTestName(prefix)
+					}
+				}
+			}
+
+			testFiles, err := idx.GetTestFilesByName("", testBasenames)
+			if err == nil {
+				for _, tf := range testFiles {
+					if _, exists := candidates[tf]; !exists {
+						candidates[tf] = &candidate{Path: tf, Distance: 2}
+					}
+				}
+			}
+		}
+	}
+
+	// C# test project mirror discovery: C# test projects (e.g., tests/MyLib.Tests/)
+	// mirror source projects (e.g., src/MyLib/) with test files in corresponding
+	// subdirectories. Like Java's src/main/java ↔ src/test/java pattern, but using
+	// .NET project naming conventions. We discover the source project name, find
+	// matching test project directories, and add test files as Distance=1 candidates.
+	if strings.HasSuffix(subject, ".cs") && !classify.IsTestFile(subject) {
+		if projectName, relPath := csharpProjectInfo(subject); projectName != "" {
+			testDirs, err := idx.FindCSharpTestDirs(projectName)
+			if err == nil {
+				const maxMirrorTests = 10
+				for _, testDir := range testDirs {
+					// Look for test files in the mirrored subdirectory path.
+					var searchDir string
+					if relPath != "" {
+						searchDir = testDir + "/" + relPath
+					} else {
+						searchDir = testDir
+					}
+					testFiles, err := idx.GetTestFilesUnderDir(searchDir, ".cs")
+					if err != nil {
+						continue
+					}
+					count := 0
+					for _, tf := range testFiles {
+						if classify.IsTestFile(tf) {
+							if _, exists := candidates[tf]; !exists {
+								candidates[tf] = &candidate{Path: tf, Distance: 1, IsImporter: true}
+								count++
+								if count >= maxMirrorTests {
+									break
+								}
+							}
+						}
 					}
 				}
 			}
@@ -879,8 +1040,8 @@ func filterSamePackageSiblings(candidates map[string]*candidate, subject string)
 		if p == subject || c.Distance == 0 {
 			continue
 		}
-		// Only filter same-package siblings (Go, Java, Rust).
-		isSamePackage := c.IsSamePackageSibling || c.IsGoSamePackage || c.IsJavaSamePackage || c.IsRustSameModule
+		// Only filter same-package siblings (Go, Java, Rust, C#).
+		isSamePackage := c.IsSamePackageSibling || c.IsGoSamePackage || c.IsJavaSamePackage || c.IsRustSameModule || c.IsCSharpSameNamespace
 		if !isSamePackage {
 			continue
 		}
@@ -893,12 +1054,62 @@ func filterSamePackageSiblings(candidates map[string]*candidate, subject string)
 			continue
 		}
 		// Keep if has prefix match.
-		if c.HasPrefixMatch || c.HasJavaClassPrefix || c.HasRustModulePrefix {
+		if c.HasPrefixMatch || c.HasJavaClassPrefix || c.HasRustModulePrefix || c.HasCSharpClassPrefix {
 			continue
 		}
 		// No evidence: remove from candidates.
 		delete(candidates, p)
 	}
+}
+
+// csharpProjectInfo extracts the C# project name and the file's relative path
+// within that project from a repo-relative file path. It identifies the project
+// root as the deepest directory component that looks like a .NET project name
+// (contains dots, e.g., "MediaBrowser.Controller" or "Orleans.Runtime").
+// For simple projects without dots, uses the first meaningful directory component.
+//
+// Examples:
+//
+//	"src/EFCore.Design/Design/Internal/Foo.cs" → ("EFCore.Design", "Design/Internal")
+//	"Emby.Server.Implementations/Session/SessionManager.cs" → ("Emby.Server.Implementations", "Session")
+//	"src/Compilers/CSharp/Portable/Syntax/SyntaxFacts.cs" → ("CSharp", "Portable/Syntax")
+//	"tests/Jellyfin.Api.Tests/Auth/HandlerTests.cs" → ("Jellyfin.Api.Tests", "Auth")
+func csharpProjectInfo(filePath string) (projectName, relPath string) {
+	dir := path.Dir(filePath)
+	parts := strings.Split(dir, "/")
+
+	// Find the deepest directory component that looks like a project name (contains a dot).
+	bestIdx := -1
+	for i, part := range parts {
+		if strings.Contains(part, ".") && part != "." {
+			bestIdx = i
+		}
+	}
+
+	if bestIdx >= 0 {
+		projectName = parts[bestIdx]
+		if bestIdx+1 < len(parts) {
+			relPath = strings.Join(parts[bestIdx+1:], "/")
+		}
+		return projectName, relPath
+	}
+
+	// Fallback: no dotted directory. Use heuristics for repos like Roslyn
+	// where projects are at paths like src/Compilers/CSharp/Portable/.
+	// Skip common root dirs and use the first "interesting" component.
+	for i, part := range parts {
+		if part == "src" || part == "test" || part == "tests" || part == "." {
+			continue
+		}
+		// Use this component as the project name.
+		projectName = part
+		if i+1 < len(parts) {
+			relPath = strings.Join(parts[i+1:], "/")
+		}
+		return projectName, relPath
+	}
+
+	return "", ""
 }
 
 // enrichWithGitSignals populates churn and co-change data on candidates.

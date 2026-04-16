@@ -1869,16 +1869,654 @@
         "avg_aider_4k_recall": 0.211,
         "avg_aider_8k_precision": 0.021
       }
+    },
+    "efcore": {
+      "archetype_count": 17,
+      "files": [
+        {
+          "file": "src/EFCore.SqlServer/Extensions/SqlServerServiceCollectionExtensions.cs",
+          "archetype": "Service/Controller",
+          "indegree": 0,
+          "outdegree": 18,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 2,
+            "confidence": 1,
+            "tokens": 1317,
+            "total_files": 27,
+            "must_read_files": [
+              "src/EFCore/Storage/Internal/IJsonConvertedValueReaderWriter.cs",
+              "src/EFCore/Infrastructure/Internal/ILazyLoaderFactory.cs",
+              "src/EFCore/Metadata/Internal/IRuntimeServiceProperty.cs",
+              "src/EFCore/Query/Internal/IQueryCompiler.cs",
+              "src/EFCore/ValueGeneration/Internal/TemporaryLongValueGenerator.cs",
+              "src/EFCore/Diagnostics/Internal/ScopedLoggerFactory.cs",
+              "src/EFCore/Update/Internal/UpdateAdapterFactory.cs",
+              "src/EFCore.Design/Migrations/Internal/ISnapshotModelProcessor.cs",
+              "src/EFCore.SqlServer/Extensions/FullTextSearchResult.cs",
+              "src/EFCore.SqlServer/Extensions/SqlServerDbFunctionsExtensions.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 70,
+            "tokens": 3372,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 155,
+            "tokens": 8922,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "benchmark/EFCore.Benchmarks/Models/AdventureWorks/CountryRegion.cs",
+          "archetype": "Model/Schema",
+          "indegree": 67,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 2224,
+            "total_files": 25,
+            "must_read_files": [
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/Address.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/AddressType.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/AdventureWorksContextBase.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/BillOfMaterials.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/BusinessEntity.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/BusinessEntityAddress.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/BusinessEntityContact.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/ContactType.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/CountryRegionCurrency.cs",
+              "benchmark/EFCore.Benchmarks/Models/AdventureWorks/CreditCard.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 68,
+            "tokens": 3301,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 158,
+            "tokens": 8764,
+            "recall": 0.1,
+            "precision": 0.006
+          }
+        },
+        {
+          "file": "src/EFCore.Relational/Query/IMemberTranslatorPlugin.cs",
+          "archetype": "Middleware/Plugin",
+          "indegree": 77,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 3,
+            "confidence": 1,
+            "tokens": 2151,
+            "total_files": 28,
+            "must_read_files": [
+              "src/EFCore.Relational/Query/CollectionResultExpression.cs",
+              "src/EFCore.Relational/Query/IAggregateMethodCallTranslatorPlugin.cs",
+              "src/EFCore.Relational/Query/IMethodCallTranslatorPlugin.cs",
+              "src/EFCore.Relational/Query/ExpressionExtensions.cs",
+              "src/EFCore.Relational/Query/EnumerableExpression.cs",
+              "src/EFCore.Relational/Query/IAggregateMethodCallTranslator.cs",
+              "src/EFCore.Relational/Query/IAggregateMethodCallTranslatorProvider.cs",
+              "src/EFCore.Relational/Query/IMemberTranslator.cs",
+              "src/EFCore.Relational/Query/IMemberTranslatorProvider.cs",
+              "src/EFCore.Relational/Query/IMethodCallTranslator.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 83,
+            "tokens": 4079,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 135,
+            "tokens": 7801,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore/Storage/Json/IJsonValueReaderWriterSource.cs",
+          "archetype": "High Fan-in Utility",
+          "indegree": 185,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1585,
+            "total_files": 25,
+            "must_read_files": [
+              "src/EFCore/Storage/Json/JsonBoolReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonByteArrayReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonByteReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonCharReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonDateOnlyReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonConvertedValueReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonCastValueReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonCollectionOfNullableStructsReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonCollectionOfReferencesReaderWriter.cs",
+              "src/EFCore/Storage/Json/JsonCollectionOfStructsReaderWriter.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 67,
+            "tokens": 3267,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 135,
+            "tokens": 7489,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore.Relational/Metadata/Builders/ViewColumnBuilder.cs",
+          "archetype": "Page/Route/Endpoint",
+          "indegree": 0,
+          "outdegree": 11,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 13,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1160,
+            "total_files": 23,
+            "must_read_files": [
+              "src/EFCore/Metadata/Internal/IRuntimeTypeBase.cs",
+              "src/EFCore.Relational/Metadata/Builders/ColumnBuilder`.cs",
+              "src/EFCore.Relational/Metadata/Builders/IConventionCheckConstraintBuilder.cs",
+              "src/EFCore.Relational/Metadata/Builders/IConventionDbFunctionParameterBuilder.cs",
+              "src/EFCore.Relational/Metadata/Builders/CheckConstraintBuilder.cs",
+              "src/EFCore.Relational/Metadata/Builders/ColumnBuilder.cs",
+              "src/EFCore.Relational/Metadata/Builders/DbFunctionBuilder.cs",
+              "src/EFCore.Relational/Metadata/Builders/DbFunctionBuilderBase.cs",
+              "src/EFCore.Relational/Metadata/Builders/DbFunctionParameterBuilder.cs",
+              "src/EFCore.Relational/Metadata/Builders/IConventionDbFunctionBuilder.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 81,
+            "tokens": 4007,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 147,
+            "tokens": 8562,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore.Cosmos/Storage/Internal/SessionTokenStorageFactory.cs",
+          "archetype": "Auth/Security",
+          "indegree": 0,
+          "outdegree": 13,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 11,
+            "test_count": 2,
+            "confidence": 1,
+            "tokens": 1080,
+            "total_files": 23,
+            "must_read_files": [
+              "src/EFCore/Infrastructure/Internal/ILazyLoaderFactory.cs",
+              "src/EFCore/Metadata/Internal/IRuntimeNavigation.cs",
+              "src/EFCore/Infrastructure/IDbContextOptions.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosExecutionStrategy.cs",
+              "src/EFCore.Cosmos/Storage/Internal/ByteArrayConverter.cs",
+              "src/EFCore.Cosmos/Storage/Internal/ContainerProperties.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosJsonTimeOnlyReaderWriter.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosJsonTimeSpanReaderWriter.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosClientWrapper.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosDatabaseWrapper.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 68,
+            "tokens": 3272,
+            "recall": 0.1,
+            "precision": 0.015
+          },
+          "aider_8192": {
+            "file_count": 132,
+            "tokens": 7502,
+            "recall": 0.1,
+            "precision": 0.008
+          }
+        },
+        {
+          "file": "src/EFCore.Relational/Storage/ValueConversion/RelationalConverterMappingHints.cs",
+          "archetype": "Leaf Component",
+          "indegree": 0,
+          "outdegree": 0,
+          "cc": {
+            "must_read_count": 0,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 138,
+            "total_files": 0,
+            "must_read_files": []
+          },
+          "aider_4096": {
+            "file_count": 82,
+            "tokens": 4076,
+            "recall": 0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 126,
+            "tokens": 7339,
+            "recall": 0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore/Metadata/ConfigurationSourceExtensions.cs",
+          "archetype": "Config/Constants",
+          "indegree": 123,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 1,
+            "confidence": 1,
+            "tokens": 1705,
+            "total_files": 26,
+            "must_read_files": [
+              "src/EFCore/Metadata/AdHocMapperDependencies.cs",
+              "src/EFCore/Metadata/ConfigurationSource.cs",
+              "src/EFCore/Metadata/ConstructorBinding.cs",
+              "src/EFCore/Metadata/ContextParameterBinding.cs",
+              "src/EFCore/Metadata/DefaultValueBinding.cs",
+              "src/EFCore/Metadata/EntityTypeFullNameComparer.cs",
+              "src/EFCore/Metadata/AdHocMapper.cs",
+              "src/EFCore/Metadata/DependencyInjectionParameterBinding.cs",
+              "src/EFCore/Metadata/IConventionProperty.cs",
+              "src/EFCore/Metadata/DependencyInjectionMethodParameterBinding.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 67,
+            "tokens": 3295,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 133,
+            "tokens": 7489,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "benchmark/EFCore.Benchmarks/ChangeTracker/DbSetOperationTests.cs",
+          "archetype": "Test File",
+          "indegree": 0,
+          "outdegree": 1,
+          "cc": {
+            "must_read_count": 1,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 398,
+            "total_files": 1,
+            "must_read_files": [
+              "benchmark/EFCore.Benchmarks/Models/Orders/OrderLine.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 68,
+            "tokens": 3276,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 133,
+            "tokens": 7620,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore.Design/Design/Internal/MigrationsOperations.cs",
+          "archetype": "Database/Migration",
+          "indegree": 0,
+          "outdegree": 13,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 12,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 1140,
+            "total_files": 27,
+            "must_read_files": [
+              "src/EFCore/Design/Internal/ICSharpRuntimeAnnotationCodeGenerator.cs",
+              "src/EFCore.Design/Migrations/Design/IMigrationsCodeGenerator.cs",
+              "src/EFCore/Internal/IDbSetInitializer.cs",
+              "src/EFCore.Design/Design/Internal/ContextInfo.cs",
+              "src/EFCore.Design/Design/Internal/DatabaseOperations.cs",
+              "src/EFCore.Design/Design/Internal/AppServiceProviderFactory.cs",
+              "src/EFCore.Design/Design/Internal/DesignTimeConnectionStringResolver.cs",
+              "src/EFCore.Design/Design/Internal/DesignTimeServicesBuilder.cs",
+              "src/EFCore.Design/Design/Internal/CSharpHelper.cs",
+              "src/EFCore.Design/Design/Internal/DbContextOperations.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 81,
+            "tokens": 3997,
+            "recall": 0.1,
+            "precision": 0.012
+          },
+          "aider_8192": {
+            "file_count": 112,
+            "tokens": 6087,
+            "recall": 0.1,
+            "precision": 0.009
+          }
+        },
+        {
+          "file": "src/EFCore/Metadata/AdHocMapper.cs",
+          "archetype": "Serialization/Validation",
+          "indegree": 123,
+          "outdegree": 11,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1490,
+            "total_files": 25,
+            "must_read_files": [
+              "src/EFCore/Metadata/Internal/IRuntimeKey.cs",
+              "src/EFCore/Metadata/AdHocMapperDependencies.cs",
+              "src/EFCore/Metadata/ConfigurationSource.cs",
+              "src/EFCore/Metadata/ConfigurationSourceExtensions.cs",
+              "src/EFCore/Metadata/ConstructorBinding.cs",
+              "src/EFCore/Metadata/ContextParameterBinding.cs",
+              "src/EFCore/Metadata/DefaultValueBinding.cs",
+              "src/EFCore/Metadata/EntityTypeFullNameComparer.cs",
+              "src/EFCore/Metadata/DependencyInjectionParameterBinding.cs",
+              "src/EFCore/Metadata/DependencyInjectionMethodParameterBinding.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 66,
+            "tokens": 3221,
+            "recall": 0.1,
+            "precision": 0.015
+          },
+          "aider_8192": {
+            "file_count": 149,
+            "tokens": 8628,
+            "recall": 0.1,
+            "precision": 0.007
+          }
+        },
+        {
+          "file": "src/EFCore/Metadata/DefaultValueBinding.cs",
+          "archetype": "Error Handling",
+          "indegree": 123,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 1759,
+            "total_files": 25,
+            "must_read_files": [
+              "src/EFCore/Metadata/AdHocMapperDependencies.cs",
+              "src/EFCore/Metadata/ConfigurationSource.cs",
+              "src/EFCore/Metadata/ConfigurationSourceExtensions.cs",
+              "src/EFCore/Metadata/ConstructorBinding.cs",
+              "src/EFCore/Metadata/ContextParameterBinding.cs",
+              "src/EFCore/Metadata/EntityTypeFullNameComparer.cs",
+              "src/EFCore/Metadata/AdHocMapper.cs",
+              "src/EFCore/Metadata/DependencyInjectionParameterBinding.cs",
+              "src/EFCore/Metadata/IConventionProperty.cs",
+              "src/EFCore/Metadata/DependencyInjectionMethodParameterBinding.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 70,
+            "tokens": 3401,
+            "recall": 0.1,
+            "precision": 0.014
+          },
+          "aider_8192": {
+            "file_count": 135,
+            "tokens": 7557,
+            "recall": 0.1,
+            "precision": 0.007
+          }
+        },
+        {
+          "file": "src/EFCore.Cosmos/Storage/Internal/CosmosClientWrapper.cs",
+          "archetype": "CLI/Command",
+          "indegree": 33,
+          "outdegree": 15,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 4,
+            "confidence": 1,
+            "tokens": 2036,
+            "total_files": 29,
+            "must_read_files": [
+              "src/ef/Json.cs",
+              "src/EFCore/Infrastructure/Internal/ILazyLoaderFactory.cs",
+              "src/EFCore/Metadata/Internal/IMemberClassifier.cs",
+              "src/EFCore/Internal/ICollectionLoader`.cs",
+              "src/EFCore/Diagnostics/Internal/DelegatingDbContextLogger.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosExecutionStrategy.cs",
+              "src/EFCore.Cosmos/Storage/Internal/ByteArrayConverter.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosJsonTimeOnlyReaderWriter.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosJsonTimeSpanReaderWriter.cs",
+              "src/EFCore.Cosmos/Storage/Internal/CosmosDatabaseWrapper.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 69,
+            "tokens": 3379,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 161,
+            "tokens": 8884,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore.Relational/Diagnostics/CommandErrorEventData.cs",
+          "archetype": "Event/Message",
+          "indegree": 49,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 2051,
+            "total_files": 25,
+            "must_read_files": [
+              "src/EFCore.Relational/Diagnostics/BatchEventData.cs",
+              "src/EFCore.Relational/Diagnostics/ColumnsEventData.cs",
+              "src/EFCore.Relational/Diagnostics/CommandCorrelatedEventData.cs",
+              "src/EFCore.Relational/Diagnostics/CommandEndEventData.cs",
+              "src/EFCore.Relational/Diagnostics/CommandEventData.cs",
+              "src/EFCore.Relational/Diagnostics/CommandExecutedEventData.cs",
+              "src/EFCore.Relational/Diagnostics/CommandSource.cs",
+              "src/EFCore.Relational/Diagnostics/ConnectionCreatedEventData.cs",
+              "src/EFCore.Relational/Diagnostics/ConnectionCreatingEventData.cs",
+              "src/EFCore.Relational/Diagnostics/ConnectionEndEventData.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 79,
+            "tokens": 3980,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 133,
+            "tokens": 7407,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore.Design/Scaffolding/Internal/CSharpDbContextGenerator.Interfaces.cs",
+          "archetype": "Interface/Contract",
+          "indegree": 20,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 5,
+            "confidence": 1,
+            "tokens": 1942,
+            "total_files": 30,
+            "must_read_files": [
+              "src/EFCore.Design/Scaffolding/Internal/CSharpEntityTypeGenerator.Interfaces.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CSharpNamer.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CSharpUniqueNamer.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CSharpUtilities.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CallContext.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CSharpEntityTypeGenerator.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CandidateNamingService.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CSharpDbContextGenerator.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CSharpModelGenerator.cs",
+              "src/EFCore.Design/Scaffolding/Internal/CSharpRuntimeModelCodeGenerator.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 68,
+            "tokens": 3311,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 159,
+            "tokens": 8827,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "src/EFCore.Relational/Query/SqlExpressions/ITableBasedExpression.cs",
+          "archetype": "Orchestrator",
+          "indegree": 154,
+          "outdegree": 10,
+          "cc": {
+            "must_read_count": 10,
+            "likely_modify_count": 15,
+            "test_count": 3,
+            "confidence": 1,
+            "tokens": 1277,
+            "total_files": 28,
+            "must_read_files": [
+              "src/EFCore.Relational/Query/SqlExpressions/AtTimeZoneExpression.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/CaseExpression.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/CaseWhenClause.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/CollateExpression.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/ColumnExpression.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/ColumnValueSetter.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/CrossApplyExpression.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/CrossJoinExpression.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/DeleteExpression.cs",
+              "src/EFCore.Relational/Query/SqlExpressions/DistinctExpression.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 81,
+            "tokens": 4084,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 131,
+            "tokens": 7493,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        },
+        {
+          "file": "test/EFCore.SqlServer.FunctionalTests/ComplexTypesTrackingSqlServerTest.cs",
+          "archetype": "Hotspot",
+          "indegree": 0,
+          "outdegree": 8,
+          "cc": {
+            "must_read_count": 8,
+            "likely_modify_count": 0,
+            "test_count": 0,
+            "confidence": 1,
+            "tokens": 700,
+            "total_files": 8,
+            "must_read_files": [
+              "test/EFCore.SqlServer.FunctionalTests/JsonTypesSqlServerTestBase.cs",
+              "test/EFCore.SqlServer.FunctionalTests/SqlServerFixture.cs",
+              "test/EFCore.SqlServer.FunctionalTests/F1SqlServerFixture.cs",
+              "test/EFCore.SqlServer.FunctionalTests/ManyToManyTrackingSqlServerTestBase.cs",
+              "test/EFCore.SqlServer.FunctionalTests/QueryExpressionInterceptionSqlServerTestBase.cs",
+              "test/EFCore.SqlServer.FunctionalTests/SpatialSqlServerFixture.cs",
+              "test/EFCore.SqlServer.FunctionalTests/StoreGeneratedSqlServerTestBase.cs",
+              "test/EFCore.SqlServer.FunctionalTests/SqlServerValueGenerationScenariosTestBase.cs"
+            ]
+          },
+          "aider_4096": {
+            "file_count": 67,
+            "tokens": 3279,
+            "recall": 0.0,
+            "precision": 0.0
+          },
+          "aider_8192": {
+            "file_count": 133,
+            "tokens": 7473,
+            "recall": 0.0,
+            "precision": 0.0
+          }
+        }
+      ],
+      "repomix_tokens": 23234107,
+      "summary": {
+        "avg_cc_tokens": 1420,
+        "avg_cc_files": 22.1,
+        "avg_aider_4k_recall": 0.024,
+        "avg_aider_8k_recall": 0.029,
+        "avg_aider_4k_precision": 0.003,
+        "avg_aider_8k_precision": 0.002
+      }
     }
   },
   "aggregate": {
-    "total_files_analyzed": 51,
-    "total_repos": 6,
-    "avg_cc_tokens": 1091,
-    "avg_cc_files": 17.0,
-    "avg_aider_4k_recall": 0.182,
-    "avg_aider_8k_recall": 0.229,
-    "avg_aider_4k_precision": 0.021,
-    "avg_aider_8k_precision": 0.015
+    "total_files_analyzed": 68,
+    "total_repos": 7,
+    "avg_cc_tokens": 1174,
+    "avg_cc_files": 18.3,
+    "avg_aider_4k_recall": 0.139,
+    "avg_aider_8k_recall": 0.175,
+    "avg_aider_4k_precision": 0.016,
+    "avg_aider_8k_precision": 0.011
   }
 }

@@ -42,6 +42,15 @@ func IsTestFile(path string) bool {
 		}
 	}
 
+	// C# patterns: *Test.cs, *Tests.cs, Test*.cs, *Spec.cs
+	if strings.HasSuffix(base, ".cs") {
+		stem := strings.TrimSuffix(base, ".cs")
+		if strings.HasSuffix(stem, "Test") || strings.HasSuffix(stem, "Tests") ||
+			strings.HasPrefix(stem, "Test") || strings.HasSuffix(stem, "Spec") {
+			return true
+		}
+	}
+
 	// Rust patterns: *_test.rs (conventional), tests.rs (separate test module), and tests/ directory (below)
 	if strings.HasSuffix(base, "_test.rs") {
 		return true
@@ -61,6 +70,17 @@ func IsTestFile(path string) bool {
 	// Java: src/test/ directory (Maven/Gradle convention).
 	if strings.HasPrefix(path, "src/test/") || strings.Contains(path, "/src/test/") {
 		return true
+	}
+
+	// C#: test project directories (*.Tests/, *.Test/).
+	if strings.Contains(path, ".Tests/") || strings.Contains(path, ".Test/") {
+		return true
+	}
+	// Also check if path starts with a test project directory.
+	for _, part := range strings.Split(path, "/") {
+		if strings.HasSuffix(part, ".Tests") || strings.HasSuffix(part, ".Test") {
+			return true
+		}
 	}
 
 	return false

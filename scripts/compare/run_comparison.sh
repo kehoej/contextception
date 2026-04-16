@@ -58,6 +58,7 @@ declare -a REPOS=(
     "terraform|go|"
     "spring-boot|java|"
     "tokio|rust|"
+    "efcore|csharp|https://github.com/dotnet/efcore.git"
 )
 
 # ─── Preflight checks ────────────────────────────────────────────────────────

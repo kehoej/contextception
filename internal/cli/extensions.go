@@ -10,6 +10,7 @@ import (
 	pyextractor "github.com/kehoej/contextception/internal/extractor/python"
 	rustextractor "github.com/kehoej/contextception/internal/extractor/rust"
 	tsextractor "github.com/kehoej/contextception/internal/extractor/typescript"
+	csharpextractor "github.com/kehoej/contextception/internal/extractor/csharp"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,7 @@ func newExtensionsCmd() *cobra.Command {
 				goextractor.New(),
 				javaextractor.New(),
 				rustextractor.New(),
+				csharpextractor.New(),
 			}
 
 			var exts []string

@@ -167,7 +167,7 @@ func (a *Analyzer) Analyze(filePath string) (*model.AnalysisOutput, error) {
 				entry.Direction = "imports"
 			case sc.IsImporter:
 				entry.Direction = "imported_by"
-			case sc.IsSamePackageSibling || sc.IsGoSamePackage || sc.IsJavaSamePackage || sc.IsRustSameModule:
+			case sc.IsSamePackageSibling || sc.IsGoSamePackage || sc.IsJavaSamePackage || sc.IsRustSameModule || sc.IsCSharpSameNamespace:
 				entry.Direction = "same_package"
 			}
 			entry.Role = classify.ClassifyRole(

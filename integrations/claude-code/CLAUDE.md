@@ -19,7 +19,7 @@ Add to your `~/.claude.json` or project `.claude/settings.json`:
 
 ## Instructions for Claude Code
 
-Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Java, or Rust code. Before modifying a file, call `get_context` on it to understand its dependency context. The tool auto-indexes and stays current automatically. If `.contextception/` is not in `.gitignore`, add it.
+Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Java, Rust, or C# code. Before modifying a file, call `get_context` on it to understand its dependency context. The tool auto-indexes and stays current automatically. If `.contextception/` is not in `.gitignore`, add it.
 
 ### When to use each tool
 

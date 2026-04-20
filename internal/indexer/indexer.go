@@ -24,6 +24,7 @@ import (
 	pyextractor "github.com/kehoej/contextception/internal/extractor/python"
 	rustextractor "github.com/kehoej/contextception/internal/extractor/rust"
 	tsextractor "github.com/kehoej/contextception/internal/extractor/typescript"
+	csharpextractor "github.com/kehoej/contextception/internal/extractor/csharp"
 	gitpkg "github.com/kehoej/contextception/internal/git"
 	"github.com/kehoej/contextception/internal/resolver"
 	goresolver "github.com/kehoej/contextception/internal/resolver/golang"
@@ -31,6 +32,7 @@ import (
 	pyresolver "github.com/kehoej/contextception/internal/resolver/python"
 	rustresolver "github.com/kehoej/contextception/internal/resolver/rust"
 	tsresolver "github.com/kehoej/contextception/internal/resolver/typescript"
+	csharpresolver "github.com/kehoej/contextception/internal/resolver/csharp"
 )
 
 // Config configures the indexer.
@@ -71,6 +73,7 @@ func NewIndexer(cfg Config) (*Indexer, error) {
 	goExt := goextractor.New()
 	javaExt := javaextractor.New()
 	rustExt := rustextractor.New()
+	csharpExt := csharpextractor.New()
 	pyRes := pyresolver.New(cfg.RepoRoot)
 
 	roots, err := pyRes.DetectPackageRoots()
@@ -94,12 +97,16 @@ func NewIndexer(cfg Config) (*Indexer, error) {
 	for _, ext := range rustExt.Extensions() {
 		extractors[ext] = rustExt
 	}
+	for _, ext := range csharpExt.Extensions() {
+		extractors[ext] = csharpExt
+	}
 
 	tsRes := tsresolver.New(cfg.RepoRoot)
 	tsRes.DetectWorkspaces()
 	goRes := goresolver.New(cfg.RepoRoot)
 	javaRes := javaresolver.New(cfg.RepoRoot)
 	rustRes := rustresolver.New(cfg.RepoRoot)
+	csharpRes := csharpresolver.New(cfg.RepoRoot)
 
 	resolvers := map[string]resolver.Resolver{
 		"python":     pyRes,
@@ -108,6 +115,7 @@ func NewIndexer(cfg Config) (*Indexer, error) {
 		"go":         goRes,
 		"java":       javaRes,
 		"rust":       rustRes,
+		"csharp":     csharpRes,
 	}
 
 	return &Indexer{

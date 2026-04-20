@@ -51,6 +51,14 @@ func likelyModifyConfidence(sc *scoredCandidate) string {
 	if sc.IsRustSameModule && sc.CoChangeFreq >= 1 {
 		return "high"
 	}
+	// C# same-namespace file with class prefix match: structural evidence of tight coupling.
+	if sc.IsCSharpSameNamespace && sc.HasCSharpClassPrefix {
+		return "high"
+	}
+	// C# same-namespace file with co-change evidence: structural + behavioral = high.
+	if sc.IsCSharpSameNamespace && sc.CoChangeFreq >= 1 {
+		return "high"
+	}
 	return "medium"
 }
 
@@ -79,6 +87,11 @@ func isLikelyModify(sc *scoredCandidate) bool {
 	// Rust same-module: implicit module visibility creates structural coupling.
 	// Only qualify if there's evidence of tight coupling (prefix match, small module).
 	if sc.IsRustSameModule && sc.Distance == 1 && (sc.HasRustModulePrefix || sc.IsSmallRustModule) {
+		return true
+	}
+	// C# same-namespace: implicit namespace visibility creates structural coupling.
+	// Only qualify if there's evidence of tight coupling (class prefix match, small namespace).
+	if sc.IsCSharpSameNamespace && sc.Distance == 1 && (sc.HasCSharpClassPrefix || sc.IsSmallCSharpNamespace) {
 		return true
 	}
 	return false
@@ -120,12 +133,12 @@ func buildSignals(sc *scoredCandidate, cfg *config.Config, stableThresh int) []s
 	if sc.IsImporter {
 		signals = append(signals, "imported_by")
 	}
-	if sc.IsGoSamePackage || sc.IsSamePackageSibling || sc.IsJavaSamePackage || sc.IsRustSameModule {
+	if sc.IsGoSamePackage || sc.IsSamePackageSibling || sc.IsJavaSamePackage || sc.IsRustSameModule || sc.IsCSharpSameNamespace {
 		signals = append(signals, "same_package")
 	}
 	if sc.IsTransitiveCaller {
 		signals = append(signals, "transitive_caller")
-	} else if sc.Distance == 2 && !sc.IsImport && !sc.IsImporter && !sc.IsSamePackageSibling && !sc.IsGoSamePackage && !sc.IsJavaSamePackage && !sc.IsRustSameModule {
+	} else if sc.Distance == 2 && !sc.IsImport && !sc.IsImporter && !sc.IsSamePackageSibling && !sc.IsGoSamePackage && !sc.IsJavaSamePackage && !sc.IsRustSameModule && !sc.IsCSharpSameNamespace {
 		signals = append(signals, "two_hop")
 	}
 

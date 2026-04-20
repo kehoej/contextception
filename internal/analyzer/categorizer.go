@@ -4,6 +4,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/kehoej/contextception/internal/classify"
 	"github.com/kehoej/contextception/internal/config"
@@ -214,7 +215,12 @@ func categorize(scored []scoredCandidate, subject string, cfg *config.Config, ca
 		}
 
 		if sc.Distance <= 1 {
-			if sc.IsImport {
+			// C# same-namespace siblings route to samePackageSiblings even if they have
+			// import edges, because C# using directives import namespaces (not files),
+			// so the "import edge" is to an arbitrary representative file, not a direct dependency.
+			if sc.IsCSharpSameNamespace {
+				samePackageSiblings = append(samePackageSiblings, sc.Path)
+			} else if sc.IsImport {
 				forwardImports = append(forwardImports, sc.Path)
 			} else if sc.IsSamePackageSibling || sc.IsGoSamePackage || sc.IsJavaSamePackage || sc.IsRustSameModule {
 				samePackageSiblings = append(samePackageSiblings, sc.Path)
@@ -563,10 +569,21 @@ func filterTestCandidates(candidates []scoredCandidate, subject string, mustRead
 		importsSubject := sc.IsImporter
 		subjectStemMatch := testStem != "" && subjectStem != "" && testStem == subjectStem
 
+		// C# prefix stem matching: test stems often drop class suffixes.
+		// E.g., AutomaticLineEnderCommandHandler → AutomaticLineEnderTests (stem: AutomaticLineEnder).
+		// Match when the test stem is a CamelCase prefix of the subject stem.
+		if !subjectStemMatch && strings.HasSuffix(subject, ".cs") && testStem != "" && subjectStem != "" {
+			subjectStemMatch = csharpPrefixStemMatch(testStem, subjectStem)
+		}
+
 		// I-017: Cross-directory stem matches require the test to import the subject.
 		// Without this, generic stems like "entity" or "config" match hundreds of
 		// unrelated test files in large repos with repeated module names.
-		if subjectStemMatch && !sameDir && !testsSubdir {
+		// Exception: C# test projects (*.Tests/) use interface-based testing where
+		// tests reference interfaces, not implementations. Stem match alone suffices
+		// when the test lives in a recognized C# test project directory.
+		inCSharpTestProject := strings.HasSuffix(sc.Path, ".cs") && hasTestDirComponent(testDir)
+		if subjectStemMatch && !sameDir && !testsSubdir && !inCSharpTestProject {
 			subjectStemMatch = importsSubject
 		}
 
@@ -693,11 +710,16 @@ func filterTestCandidates(candidates []scoredCandidate, subject string, mustRead
 		javaMirrorDir := isJavaTestMirror(subjectDir, testDir)
 		mirrorDirQualified := javaMirrorDir && (importsSubject || subjectStemMatch)
 
+		// C# test project mirror: source project ↔ test project directory.
+		// E.g., src/EFCore.Design/ ↔ test/EFCore.Design.Tests/
+		csharpMirror := strings.HasSuffix(subject, ".cs") && isCSharpTestProjectMirror(subjectDir, testDir)
+		csharpMirrorQualified := csharpMirror && (importsSubject || subjectStemMatch)
+
 		// A test qualifies as "direct" when structural signals confirm it targets
 		// the subject: co-located (same dir or __tests__/) with an import or stem
 		// match, or stem match from any location. Importing the subject alone is
 		// insufficient — many consumers import a file without being tests *for* it.
-		isDirect := sameDirQualified || testsSubdirQualified || subjectStemMatch || initMatch || initParentMatch || parentDirStemMatch || nestedTestDirMatch || nestedTestDirImporter || mirrorDirQualified
+		isDirect := sameDirQualified || testsSubdirQualified || subjectStemMatch || initMatch || initParentMatch || parentDirStemMatch || nestedTestDirMatch || nestedTestDirImporter || mirrorDirQualified || csharpMirrorQualified
 
 		// Rust integration test classification: tests/ directory at crate root.
 		if !isDirect && strings.HasSuffix(subject, ".rs") && !classify.IsTestFile(subject) {
@@ -811,11 +833,25 @@ func filterTestCandidates(candidates []scoredCandidate, subject string, mustRead
 	return result, totalBeforeCap
 }
 
-// hasTestDirComponent returns true if any path component is "test" or "tests".
+// hasTestDirComponent returns true if any path component is "test" or "tests",
+// or matches C# test project patterns (*.Tests, *.Test).
 func hasTestDirComponent(dir string) bool {
 	for _, part := range strings.Split(dir, "/") {
-		if part == "test" || part == "tests" {
+		lower := strings.ToLower(part)
+		if lower == "test" || lower == "tests" {
 			return true
+		}
+		// C# test project directories: Foo.Tests, Foo.Test, FooTest, FooTests
+		if strings.HasSuffix(part, ".Tests") || strings.HasSuffix(part, ".Test") {
+			return true
+		}
+		// Roslyn-style: CSharpTest, VisualBasicTest (CamelCase ending in Test/Tests)
+		if len(part) > 4 && (strings.HasSuffix(part, "Test") || strings.HasSuffix(part, "Tests")) {
+			// Ensure it's not just "Test" or "Tests" alone (already handled above).
+			prefix := strings.TrimSuffix(strings.TrimSuffix(part, "s"), "Test")
+			if len(prefix) > 0 && prefix[0] != '.' {
+				return true
+			}
 		}
 	}
 	return false
@@ -854,6 +890,22 @@ func extractTestStem(base string) string {
 			return stem[:len(stem)-5]
 		}
 		if strings.HasSuffix(stem, "Test") {
+			return stem[:len(stem)-4]
+		}
+		if strings.HasPrefix(stem, "Test") {
+			return stem[4:]
+		}
+	}
+	// C#: FooTest.cs, FooTests.cs, TestFoo.cs, FooSpec.cs
+	if strings.HasSuffix(base, ".cs") {
+		stem := strings.TrimSuffix(base, ".cs")
+		if strings.HasSuffix(stem, "Tests") {
+			return stem[:len(stem)-5]
+		}
+		if strings.HasSuffix(stem, "Test") {
+			return stem[:len(stem)-4]
+		}
+		if strings.HasSuffix(stem, "Spec") {
 			return stem[:len(stem)-4]
 		}
 		if strings.HasPrefix(stem, "Test") {
@@ -901,6 +953,36 @@ func normalizePyDirStem(stem string) string {
 		return stem[1:]
 	}
 	return ""
+}
+
+// csharpPrefixStemMatch checks if the test stem is a CamelCase prefix of the
+// subject stem after stripping common C# class suffixes. This handles the common
+// pattern where tests use a shorter name than the implementation:
+//
+//	AutomaticLineEnderCommandHandler → AutomaticLineEnder (test stem)
+//	MakeLocalFunctionStaticHelper → MakeLocalFunctionStatic (test stem)
+//
+// Requires at least 2 CamelCase words in the prefix to avoid false positives.
+func csharpPrefixStemMatch(testStem, subjectStem string) bool {
+	if len(testStem) >= len(subjectStem) {
+		return false
+	}
+	// The test stem must be a prefix of the subject stem at a CamelCase boundary.
+	if !strings.HasPrefix(subjectStem, testStem) {
+		return false
+	}
+	// Verify boundary: the character after the prefix must be uppercase (CamelCase word start).
+	rest := subjectStem[len(testStem):]
+	if len(rest) == 0 {
+		return false // exact match, not prefix
+	}
+	runes := []rune(rest)
+	if !unicode.IsUpper(runes[0]) {
+		return false
+	}
+	// Require ≥2 CamelCase words in the test stem to prevent overly short prefixes.
+	testParts := splitCamelCase(testStem)
+	return len(testParts) >= 2
 }
 
 // normalizePyStem strips trailing digits from a Python filename stem.
@@ -958,6 +1040,87 @@ func isJavaTestMirror(sourceDir, testDir string) bool {
 
 	expectedTestDir := prefix + "src/test/java/" + suffix
 	return testDir == expectedTestDir
+}
+
+// isCSharpTestProjectMirror detects C# test project directory patterns.
+// Source projects map to test projects via naming conventions:
+//
+//	src/EFCore.Design/Design/Internal → test/EFCore.Design.Tests/Design/Internal
+//	Emby.Server.Implementations/Session → tests/Jellyfin.Server.Implementations.Tests/Session
+//	src/EditorFeatures/CSharp/Foo → src/EditorFeatures/CSharpTest/Foo
+//
+// The function extracts the deepest dotted directory component from each path
+// and checks if they share a project name relationship.
+func isCSharpTestProjectMirror(sourceDir, testDir string) bool {
+	srcParts := strings.Split(sourceDir, "/")
+	testParts := strings.Split(testDir, "/")
+
+	// Find deepest dotted component in each path.
+	srcProject := ""
+	for _, p := range srcParts {
+		if strings.Contains(p, ".") && p != "." {
+			srcProject = p
+		}
+	}
+	testProject := ""
+	for _, p := range testParts {
+		if strings.Contains(p, ".") && p != "." {
+			testProject = p
+		}
+	}
+
+	if srcProject == "" || testProject == "" {
+		// Fallback: check for CSharp ↔ CSharpTest pattern (no dots).
+		for _, sp := range srcParts {
+			if sp == "src" || sp == "test" || sp == "tests" || sp == "." {
+				continue
+			}
+			for _, tp := range testParts {
+				if tp == sp+"Test" || tp == sp+"Tests" {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	if srcProject == testProject {
+		return false // same project, not a mirror
+	}
+
+	// Check if testProject is srcProject + test suffix.
+	testSuffixes := []string{".Tests", ".Test", ".UnitTests", ".IntegrationTests", "Tests", "Test"}
+	for _, suffix := range testSuffixes {
+		if testProject == srcProject+suffix {
+			return true
+		}
+	}
+
+	// Check if srcProject is a suffix of testProject (handles Jellyfin renaming).
+	// E.g., "Server.Implementations" in testProject "Jellyfin.Server.Implementations.Tests"
+	// matches source "Emby.Server.Implementations".
+	for _, suffix := range testSuffixes {
+		stripped := strings.TrimSuffix(testProject, suffix)
+		if stripped != testProject && stripped != "" {
+			// Check if source project shares a dotted suffix with stripped test project.
+			if strings.HasSuffix(stripped, srcProject) || strings.HasSuffix(srcProject, stripped) {
+				return true
+			}
+			// Check if the non-dotted parts match (e.g., both contain "Server.Implementations").
+			srcDotParts := strings.Split(srcProject, ".")
+			strippedDotParts := strings.Split(stripped, ".")
+			if len(srcDotParts) >= 2 && len(strippedDotParts) >= 2 {
+				// Compare from the end: do the last N-1 components match?
+				srcTail := strings.Join(srcDotParts[1:], ".")
+				strippedTail := strings.Join(strippedDotParts[1:], ".")
+				if srcTail == strippedTail && srcTail != "" {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 // testMatchesMustReadStem returns true if the test file's stem matches

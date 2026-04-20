@@ -61,6 +61,7 @@ An `ImportFact` represents one import statement: the raw specifier, line number,
 | Go | Regex | Standard library filtering via known packages |
 | Java | Regex | Package imports, standard library filtering |
 | Rust | Regex | `use`, `mod`, `extern crate`, multi-line imports |
+| C# | Regex | `using` directives, `global using`, `using static`, aliases |
 
 **Adding a new language:**
 
@@ -86,6 +87,7 @@ Each language has unique resolution rules:
 - **Go** — go.mod + go.work, same-package sibling discovery
 - **Java** — package-to-directory mapping, mirror-directory test discovery
 - **Rust** — Cargo workspaces, mod.rs, crate/super/self paths
+- **C#** — .csproj project detection, namespace-to-file mapping, filename search fallback
 
 Unresolved imports (external packages, dynamic imports) are stored separately and contribute to the confidence score.
 

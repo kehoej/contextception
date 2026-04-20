@@ -27,7 +27,7 @@ What actually happened. Include the JSON output if relevant.
 - **OS:** (e.g., macOS 14, Ubuntu 24.04, Windows 11)
 - **Contextception version:** (`contextception --version`)
 - **Go version:** (`go version`, if built from source)
-- **Language of analyzed files:** (Python, TypeScript, Go, Java, Rust)
+- **Language of analyzed files:** (Python, TypeScript, Go, Java, Rust, C#)
 
 ## Additional Context
 

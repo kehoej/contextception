@@ -25,7 +25,7 @@ contextception --version
 
 ### Supported languages
 
-Your project must use one or more of: Python, TypeScript/JavaScript, Go, Java, Rust.
+Your project must use one or more of: Python, TypeScript/JavaScript, Go, Java, Rust, C#.
 
 ### MCP-compatible agent
 
@@ -270,7 +270,7 @@ Check blast_radius to assess risk.
 For a global instruction that applies to all projects, add to `~/.claude/CLAUDE.md`:
 
 ```
-Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Java, or Rust code.
+Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Java, Rust, or C# code.
 Before modifying a file, call get_context on it to understand its dependency context.
 ```
 
@@ -347,7 +347,7 @@ Then register it in `~/.claude/settings.json`:
 }
 ```
 
-This fires before every file edit, reminding the agent to check dependencies first. It skips non-code files (markdown, JSON, config) and only triggers for the five supported languages.
+This fires before every file edit, reminding the agent to check dependencies first. It skips non-code files (markdown, JSON, config) and only triggers for the six supported languages.
 
 ### Use get_context for deleted files too
 

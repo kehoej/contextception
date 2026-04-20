@@ -45,12 +45,16 @@ func gradeMustRead(out *model.AnalysisOutput, fg *FileGrade) float64 {
 	// Symbol coverage: check what fraction of entries have symbols.
 	// Entries with direction "same_package" are excluded from the symbol rate
 	// because same-package files have no import edges to derive symbols from.
+	// C# files (.cs) are also excluded because C# uses namespace-level imports
+	// (using directives), so individual type symbols can't be derived from the
+	// import statement — the resolver maps namespaces to representative files.
+	isCSharp := strings.HasSuffix(out.Subject, ".cs")
 	if len(out.MustRead) > 0 {
 		withSymbols := 0
 		eligibleForSymbols := 0
 		withDirection := 0
 		for _, e := range out.MustRead {
-			if e.Direction != "" && e.Direction != "same_package" {
+			if e.Direction != "" && e.Direction != "same_package" && !isCSharp {
 				eligibleForSymbols++
 				if len(e.Symbols) > 0 {
 					withSymbols++

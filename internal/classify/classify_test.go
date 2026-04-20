@@ -27,6 +27,16 @@ func TestIsTestFile(t *testing.T) {
 		{"src/utils/helpers.spec.ts", true},
 		{"__tests__/integration.ts", true},
 		{"src/__tests__/unit.tsx", true},
+		// C# patterns
+		{"Services/FooTest.cs", true},
+		{"Services/FooTests.cs", true},
+		{"Services/TestFoo.cs", true},
+		{"Services/FooSpec.cs", true},
+		{"Services/Foo.cs", false},
+		{"Services/Contest.cs", false},   // "Contest" contains "test" but isn't a test
+		{"Services/Manifest.cs", false},  // ends with "est" but isn't a test
+		{"test/EFCore.Tests/FooTest.cs", true},
+		{"tests/MyLib.Tests/BarTests.cs", true},
 		// Non-test files
 		{"mylib/api.py", false},
 		{"mylib/models.py", false},

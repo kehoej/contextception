@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-04-21
+
+### Added
+
+- **C# first-class language support:** full extractor for C# covering classes, interfaces, structs, enums, methods, properties, fields, events, delegates, and namespace resolution — bringing supported languages to 6
+- **Auto-reindexing in `analyze`:** the `analyze` command now automatically reindexes stale or missing files before analysis, ensuring results always reflect the current state of the codebase
+
 ## [1.0.7] - 2026-04-12
 
 ### Added

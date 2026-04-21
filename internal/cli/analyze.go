@@ -64,6 +64,12 @@ func runAnalyze(files []string) error {
 	}
 	defer idx.Close()
 
+	// Auto-reindex to ensure the index reflects current files on disk.
+	if err := autoReindex(idx); err != nil {
+		// Non-fatal: proceed with stale index rather than failing.
+		fmt.Fprintf(os.Stderr, "Warning: auto-reindex failed: %v\n", err)
+	}
+
 	// Convert all files to repo-relative paths.
 	targets := make([]string, len(files))
 	for i, file := range files {

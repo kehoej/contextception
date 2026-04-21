@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/kehoej/contextception/internal/extractor"
+	csextractor "github.com/kehoej/contextception/internal/extractor/csharp"
 	goextractor "github.com/kehoej/contextception/internal/extractor/golang"
 	pyextractor "github.com/kehoej/contextception/internal/extractor/python"
 	tsextractor "github.com/kehoej/contextception/internal/extractor/typescript"
@@ -19,11 +20,13 @@ func init() {
 	py := pyextractor.New()
 	ts := tsextractor.New()
 	go_ := goextractor.New()
+	cs := csextractor.New()
 
 	definitionExtractors = map[string]extractor.DefinitionExtractor{
 		".py": py,
 		".ts": ts, ".tsx": ts, ".js": ts, ".jsx": ts, ".mts": ts, ".cts": ts, ".mjs": ts, ".cjs": ts,
 		".go": go_,
+		".cs": cs,
 	}
 }
 

@@ -22,7 +22,7 @@ Contextception builds a dependency graph of your repository and returns ranked, 
   <strong>97% Precision (independent ground truth)</strong> &nbsp;&middot;&nbsp;
   <strong>Tested across 16 repos</strong> &nbsp;&middot;&nbsp;
   <strong>Sub-second Analysis</strong> &nbsp;&middot;&nbsp;
-  <strong>5 Languages</strong> &nbsp;&middot;&nbsp;
+  <strong>6 Languages</strong> &nbsp;&middot;&nbsp;
   <strong>Free & Open Source</strong>
 </p>
 
@@ -71,7 +71,7 @@ $ contextception index
 Indexed 2,638 files, 10,087 edges in 0.9s
 ```
 
-Scans your codebase, extracts imports across 5 languages, resolves dependencies, computes git history signals. **Incremental:** only changed files reprocessed.
+Scans your codebase, extracts imports across 6 languages, resolves dependencies, computes git history signals. **Incremental:** only changed files reprocessed.
 
 ### 2. Analyze any file
 
@@ -347,6 +347,7 @@ These work by combining contextception's deterministic risk analysis with the LL
 | **Go** | Regex | go.mod + go.work, same-package resolution | `.go` |
 | **Java** | Regex | Package-to-directory, mirror-directory test discovery | `.java` |
 | **Rust** | Regex | Cargo workspaces, mod.rs, crate/super/self paths, inline test detection | `.rs` |
+| **C#** | Regex | .csproj project detection, namespace-to-file resolution, filename search fallback | `.cs` |
 
 ---
 
@@ -457,7 +458,7 @@ generated:
 
 ## Tested Across 16 Repositories
 
-Indexed and analyzed real-world codebases spanning all 5 supported languages:
+Indexed and analyzed real-world codebases spanning all 6 supported languages:
 
 | Repository | Language | Files |
 |-----------|----------|-------|
@@ -475,10 +476,12 @@ Indexed and analyzed real-world codebases spanning all 5 supported languages:
 | Kafka | Java | 3,200+ |
 | Tokio | Rust | 1,021 |
 | Bevy | Rust | 2,400+ |
+| EF Core | C# | 5,708 |
+| Jellyfin | C# | 1,971 |
 | Medusa | TypeScript | 1,800+ |
 | supermemory | TypeScript | 200+ |
 
-**Tested across 419 files spanning all 5 supported languages.**
+**Tested across 419+ files spanning all 6 supported languages.**
 
 ---
 
@@ -488,7 +491,7 @@ Contextception is a standalone static analysis tool, not an AI coding assistant.
 
 | Capability | Contextception | Aider repo-map | Repomix |
 |------------|:-:|:-:|:-:|
-| Static dependency graph | Full (5 languages) | Partial (tree-sitter) | No |
+| Static dependency graph | Full (6 languages) | Partial (tree-sitter) | No |
 | Per-file relevance ranking | Yes | PageRank-based | No (full dump) |
 | Explainability (direction, symbols, role) | Yes | No | No |
 | Blast radius / risk scoring | Yes | No | No |

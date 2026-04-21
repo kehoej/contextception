@@ -152,7 +152,7 @@ All integrations expose the same nine tools:
 
 ## Supported Languages
 
-Contextception supports repositories using: Python, TypeScript/JavaScript, Go, Java, Rust.
+Contextception supports repositories using: Python, TypeScript/JavaScript, Go, Java, Rust, C#.
 
 ## Slash Commands
 

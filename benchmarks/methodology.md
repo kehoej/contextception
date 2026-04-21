@@ -24,6 +24,7 @@ Repos were cloned with full git history on February 23, 2026.
 | [Tokio](https://github.com/tokio-rs/tokio) | Rust | 763 | 1,454 | A (3.79) | Tier 2: validated CC output |
 | [Terraform](https://github.com/hashicorp/terraform) | Go | 1,885 | 94,417 | A (3.78) | Tier 2: validated CC output |
 | [Zulip](https://github.com/zulip/zulip) | Python/TS | 2,638 | 10,087 | A (3.96) | Tier 2: validated CC output |
+| [EF Core](https://github.com/dotnet/efcore) | C# | 5,708 | 47,206 | A (3.85) | Tier 2: validated CC output |
 | [Spring Boot](https://github.com/spring-projects/spring-boot) | Java | 7,978 | 15,658 | A (3.76) | Tier 2: validated CC output |
 
 ## File Selection
@@ -239,6 +240,31 @@ The only non-zero results are for `tfdiags/compare.go` (a high fan-in utility wi
 
 Zulip is a mixed Python/TypeScript repo. Aider performs better on the Python files (which use standard imports that produce tree-sitter edges) than the TypeScript ones. Best result: `statuspage/view.py` at 57%, a small webhook handler with well-known imports.
 
+### EF Core (C#, 5,708 files)
+
+| File | Archetype | CC must_read | Aider@4K Recall | Aider@8K Recall | CC Tokens |
+|------|-----------|:-------:|:----------:|:----------:|:--------:|
+| `SqlServerServiceCollectionExtensions.cs` | Service | 10 | 0% | 0% | 1,317 |
+| `CountryRegion.cs` | Model | 10 | 0% | 10% | 2,224 |
+| `IMemberTranslatorPlugin.cs` | Plugin | 10 | 0% | 0% | 2,151 |
+| `IJsonValueReaderWriterSource.cs` | Utility | 10 | 0% | 0% | 1,585 |
+| `ViewColumnBuilder.cs` | Endpoint | 10 | 0% | 0% | 1,160 |
+| `SessionTokenStorageFactory.cs` | Auth | 10 | 10% | 10% | 1,080 |
+| `RelationalConverterMappingHints.cs` | Leaf | 0 | 0% | 0% | 138 |
+| `ConfigurationSourceExtensions.cs` | Config | 10 | 0% | 0% | 1,705 |
+| `DbSetOperationTests.cs` | Test | 1 | 0% | 0% | 398 |
+| `MigrationsOperations.cs` | Migration | 10 | 10% | 10% | 1,140 |
+| `AdHocMapper.cs` | Serialization | 10 | 10% | 10% | 1,490 |
+| `DefaultValueBinding.cs` | Error | 10 | 10% | 10% | 1,759 |
+| `CosmosClientWrapper.cs` | CLI | 10 | 0% | 0% | 2,036 |
+| `CommandErrorEventData.cs` | Event | 10 | 0% | 0% | 2,051 |
+| `CSharpDbContextGenerator.Interfaces.cs` | Interface | 10 | 0% | 0% | 1,942 |
+| `ITableBasedExpression.cs` | Orchestrator | 10 | 0% | 0% | 1,277 |
+| `ComplexTypesTrackingSqlServerTest.cs` | Hotspot | 8 | 0% | 0% | 700 |
+| **Average** | | **8.8** | **2%** | **3%** | **1,420** |
+
+C# uses namespace-level `using` directives that Aider's tree-sitter parser cannot resolve to files. At 5,708 files, Aider outputs 126–161 files per query (its tree-sitter-based global ranking) but only 2–3% overlap with actual dependencies. The few hits (10% recall on 4 files) come from files that happen to appear in Aider's global ranking by coincidence, not because it traced the import path. Contextception resolves namespaces via `.csproj` project detection, namespace-to-directory mapping, and same-namespace sibling discovery.
+
 ### Spring Boot (Java, 7,978 files)
 
 | File | Archetype | CC must_read | Aider@4K Recall | Aider@8K Recall | CC Tokens |
@@ -269,6 +295,7 @@ Complete failure. Aider outputs only 10–19 files per analysis (compared to 60�
 | Tokio | 763 | 0% | 0% | 1% | 0% |
 | Terraform | 1,885 | 3% | 0% | 8% | 0% |
 | Zulip | 2,638 | 21% | 20% | 27% | 25% |
+| EF Core | 5,708 | 2% | 0% | 3% | 0% |
 | Spring Boot | 7,978 | 0% | 0% | 0% | 0% |
 
 Medians tell a starker story than means: outside httpx, Aider's median recall is 0–25%.
@@ -290,16 +317,16 @@ CC averages **91–234 tokens per relevant must_read file**. Total output is 3�
 
 | Metric | CC | Aider@4K | Aider@8K |
 |--------|---:|---------:|---------:|
-| Avg recall (all 51 files) | 100%† | 18% | 23% |
-| Avg precision (all 51 files) | 100%† | 2.1% | 1.5% |
-| Avg tokens per analysis | 1,091 | 3,600 | 7,200 |
-| Languages with >0% recall | 4/4 | 2/4 | 2/4 |
+| Avg recall (all 68 files) | 100%† | 14% | 18% |
+| Avg precision (all 68 files) | 100%† | 1.6% | 1.2% |
+| Avg tokens per analysis | 1,174 | 3,600 | 7,200 |
+| Languages with >0% recall | 5/5 | 2/5 | 3/5 |
 
 † Against own output; see Tier 2 ground truth caveat.
 
 ---
 
-## Why Aider Gets 0% on Go, Java, and Rust
+## Why Aider Gets 0% on Go, Java, Rust, and C#
 
 Aider uses tree-sitter to parse source files and extract definitions (classes, functions, methods) and references (identifiers used). It then builds a graph and applies PageRank to select the most "important" files.
 
@@ -314,8 +341,11 @@ The critical gap: **tree-sitter parses syntax, not semantics**. It doesn't resol
 | **Rust** | `mod` declarations | `mod write_guard;` → `write_guard.rs` |
 | **Rust** | `crate::` path resolution | `use crate::sync::batch_semaphore` → which file? |
 | **Rust** | Cargo workspace resolution | Cross-crate dependencies via `Cargo.toml` |
+| **C#** | Namespace → file mapping | `using Microsoft.EntityFrameworkCore` → which files? |
+| **C#** | .csproj project structure | Multi-project solutions with dotted directory names |
+| **C#** | Same-namespace visibility | Files in the same directory share implicit type visibility |
 
-Contextception resolves all of these via language-specific resolvers (Go: go.mod/go.work, Java: package conventions, Rust: Cargo.toml + mod tree).
+Contextception resolves all of these via language-specific resolvers (Go: go.mod/go.work, Java: package conventions, Rust: Cargo.toml + mod tree, C#: .csproj detection + namespace-to-directory mapping).
 
 For Python and TypeScript, Aider fares better because tree-sitter can extract import paths that are more directly mappable to files — though it still misses tsconfig paths, workspace packages, and Python package-relative imports.
 
@@ -325,7 +355,7 @@ For Python and TypeScript, Aider fares better because tree-sitter can extract im
 
 1. **Aider's intended use case.** Aider's repo-map is designed as internal context for its own LLM-based editing workflow. It provides code signatures (class/function definitions) alongside file references, which is valuable for an LLM that needs to understand APIs. We're evaluating the file selection aspect only, ignoring the signature content that makes Aider's output useful within its own system.
 
-2. **Contextception as ground truth.** For 5 of 6 repos, CC's output is the ground truth. This makes CC's recall/precision numbers meaningless in isolation. The comparison is still valid because Aider's recall is measured against the same ground truth — if CC's ground truth is wrong, Aider's numbers would also be wrong (potentially in Aider's favor if CC over-includes files).
+2. **Contextception as ground truth.** For 6 of 7 repos, CC's output is the ground truth. This makes CC's recall/precision numbers meaningless in isolation. The comparison is still valid because Aider's recall is measured against the same ground truth — if CC's ground truth is wrong, Aider's numbers would also be wrong (potentially in Aider's favor if CC over-includes files).
 
 3. **Composite score bias.** The 4-dimension rubric awards points for explainability and actionability. Aider's repo-map is a flat file list by design — it can't score well on these dimensions regardless of file selection quality. The recall/precision dimensions are the fair comparison.
 

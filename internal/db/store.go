@@ -851,6 +851,12 @@ func (idx *Index) GetRustSiblingsInDir(dir, exclude string) ([]string, error) {
 	return idx.getSiblingsInDir(dir, exclude, "rs", "", true)
 }
 
+// GetCSharpSiblingsInDir returns non-test .cs files in the given directory,
+// excluding the specified file and subdirectories.
+func (idx *Index) GetCSharpSiblingsInDir(dir, exclude string) ([]string, error) {
+	return idx.getSiblingsInDir(dir, exclude, "cs", "", true)
+}
+
 // GetTestFilesInDir returns files in the given directory (not subdirectories) matching a suffix.
 // Used for Go (_test.go) and Rust test discovery.
 func (idx *Index) GetTestFilesInDir(dir, suffix string) ([]string, error) {
@@ -882,6 +888,89 @@ func (idx *Index) GetTestFilesInDir(dir, suffix string) ([]string, error) {
 		results = append(results, p)
 	}
 	return results, rows.Err()
+}
+
+// GetTestFilesUnderDir returns files under the given directory (including subdirectories)
+// matching a suffix. Used for C# test project discovery where tests are organized
+// in subdirectories mirroring the source project structure.
+func (idx *Index) GetTestFilesUnderDir(dir, suffix string) ([]string, error) {
+	var pattern string
+	if dir == "." || dir == "" {
+		pattern = "%"
+	} else {
+		pattern = dir + "/%"
+	}
+	suffixPattern := "%" + suffix
+
+	rows, err := idx.DB.Query(
+		`SELECT path FROM files WHERE path LIKE ? AND path LIKE ? ORDER BY path`,
+		pattern, suffixPattern,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		results = append(results, p)
+	}
+	return results, rows.Err()
+}
+
+// FindCSharpTestDirs searches the index for directories that look like C# test
+// projects matching the given source project name. It checks for patterns like:
+// ProjectName.Tests/, ProjectName.Test/, ProjectName.UnitTests/, ProjectNameTests/.
+// Returns repo-relative directory paths that contain indexed .cs files.
+func (idx *Index) FindCSharpTestDirs(projectName string) ([]string, error) {
+	// Build test project name variants.
+	variants := []string{
+		projectName + ".Tests",
+		projectName + ".Test",
+		projectName + ".UnitTests",
+		projectName + ".IntegrationTests",
+		projectName + "Tests",
+		projectName + "Test",
+	}
+
+	// Query for directories that contain .cs files and match test project patterns.
+	dirSet := make(map[string]bool)
+	for _, variant := range variants {
+		// Look for files under any path containing this test project directory name.
+		patterns := []string{
+			variant + "/%.cs",       // root level: ProjectName.Tests/...
+			"%/" + variant + "/%.cs", // nested: test/ProjectName.Tests/... or tests/ProjectName.Tests/...
+		}
+		for _, pat := range patterns {
+			rows, err := idx.DB.Query(`SELECT DISTINCT path FROM files WHERE path LIKE ? LIMIT 1`, pat)
+			if err != nil {
+				continue
+			}
+			for rows.Next() {
+				var p string
+				if err := rows.Scan(&p); err == nil {
+					// Extract the directory up to and including the test project name.
+					varIdx := strings.Index(p, variant+"/")
+					if varIdx >= 0 {
+						dir := p[:varIdx+len(variant)]
+						dirSet[dir] = true
+					}
+				}
+			}
+			rows.Close()
+		}
+	}
+
+	var dirs []string
+	for d := range dirSet {
+		dirs = append(dirs, d)
+	}
+	sort.Strings(dirs)
+	return dirs, nil
 }
 
 // GetTestFilesByName searches recursively under a directory prefix for files

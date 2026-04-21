@@ -1,12 +1,12 @@
 # How Contextception Compares
 
-A context quality comparison between Contextception, [Aider's repo-map](https://aider.chat/docs/repomap.html), and [Repomix](https://github.com/yamadashy/repomix), tested across 6 repos, 51 files, and 4 languages.
+A context quality comparison between Contextception, [Aider's repo-map](https://aider.chat/docs/repomap.html), and [Repomix](https://github.com/yamadashy/repomix), tested across 7 repos, 68 files, and 5 languages.
 
 ## TL;DR
 
 - On httpx (independent fixture ground truth): **97% recall vs. Aider@4K's 83%** (Aider@8K: 90%), at 5x fewer tokens
 - Aider's recall drops from **97% → 0%** as repos grow from 60 → 7,978 files
-- Contextception averages **1,091 tokens** per analysis; Aider@4K averages **3,600 tokens** with lower recall
+- Contextception averages **1,174 tokens** per analysis; Aider@4K averages **3,600 tokens** with lower recall
 
 ## Limitations
 
@@ -14,8 +14,8 @@ Read these first — they're the reason you should (or shouldn't) trust these nu
 
 1. **Aider's repo-map serves a different purpose.** It's designed as internal LLM context for Aider's own editing workflow, not as a standalone dependency analysis tool. We're evaluating it outside its intended use case.
 2. **Independent ground truth exists only for httpx.** The httpx comparisons use 5 expert-verified [fixture files](data/fixtures/) with hand-curated `must_read` lists. For other repos, ground truth is Contextception's own output, validated at grade A (3.76–3.97) across 23 evaluation rounds.
-3. **Aider gets 0% on Go, Java, and Rust** because its tree-sitter parser doesn't resolve module imports for these languages. This is a real limitation of the tool, not a testing artifact — but it means the comparison is lopsided for 3 of 6 repos.
-4. **Sample size: 51 files across 6 repos**, selected by archetype diversity (one file per structural role per repo). Not exhaustive.
+3. **Aider gets 0–3% on Go, Java, Rust, and C#** because its tree-sitter parser doesn't resolve module imports for these languages. This is a real limitation of the tool, not a testing artifact — but it means the comparison is lopsided for 4 of 7 repos.
+4. **Sample size: 68 files across 7 repos**, selected by archetype diversity (one file per structural role per repo). Not exhaustive.
 
 ## What We Measured
 
@@ -44,12 +44,13 @@ The key finding: Aider's recall degrades as repository size increases, while Con
 | Tokio | Rust | 763 | 0% | 1% | 812 |
 | Terraform | Go | 1,885 | 3% | 8% | 941 |
 | Zulip | Python/TS | 2,638 | 21% | 27% | 837 |
+| EF Core | C# | 5,708 | 2% | 3% | 1,420 |
 | Spring Boot | Java | 7,978 | 0% | 0% | 2,109 |
 
 **Why this happens:**
 
 - **Python (httpx → Zulip):** Aider uses PageRank on a global definition graph. In a small repo, globally important files overlap with local dependencies. In a large repo, globally popular files (models.py, utils.py) crowd out the specific imports that matter for a given file.
-- **Go, Java, Rust:** Aider's tree-sitter parser doesn't resolve module specifiers to file paths. `import "internal/tfdiags"` doesn't create an edge to any file — it just notes that symbols are referenced. Contextception resolves these via go.mod, Java package conventions, and Cargo workspaces.
+- **Go, Java, Rust, C#:** Aider's tree-sitter parser doesn't resolve module specifiers to file paths. `import "internal/tfdiags"` doesn't create an edge to any file — it just notes that symbols are referenced. Contextception resolves these via go.mod, Java package conventions, Cargo workspaces, and .csproj project detection.
 - **TypeScript:** Aider doesn't resolve tsconfig paths, workspace packages, or barrel exports. `@excalidraw/utils` doesn't map to `packages/utils/src/index.ts`.
 
 ### httpx Deep Dive (Fixture Ground Truth)
@@ -67,12 +68,12 @@ Contextception matches or exceeds Aider's best recall while maintaining near-per
 
 ### Token Efficiency
 
-| Tool | httpx | Zulip | Excalidraw | Terraform | Tokio | Spring Boot |
-|------|------:|------:|-----------:|----------:|------:|------------:|
-| **Contextception** | 748 | 837 | 990 | 941 | 812 | 2,109 |
-| **Aider@4K** | ~3,300 | ~4,200 | ~3,300 | ~3,700 | ~3,200 | ~4,200 |
-| **Aider@8K** | ~6,700 | ~7,200 | ~6,900 | ~6,900 | ~7,000 | ~8,400 |
-| **Repomix** | 198K | 17.6M | 2.5M | 5.6M | 1.4M | 9.8M |
+| Tool | httpx | Zulip | Excalidraw | Terraform | Tokio | EF Core | Spring Boot |
+|------|------:|------:|-----------:|----------:|------:|--------:|------------:|
+| **Contextception** | 748 | 837 | 990 | 941 | 812 | 1,420 | 2,109 |
+| **Aider@4K** | ~3,300 | ~4,200 | ~3,300 | ~3,700 | ~3,200 | ~3,400 | ~4,200 |
+| **Aider@8K** | ~6,700 | ~7,200 | ~6,900 | ~6,900 | ~7,000 | ~7,100 | ~8,400 |
+| **Repomix** | 198K | 17.6M | 2.5M | 5.6M | 1.4M | 23.2M | 9.8M |
 
 *Values are average tokens per file analysis.*
 
@@ -152,6 +153,33 @@ Rust's module system (crate paths, `mod` declarations, `use` re-exports) is invi
 </details>
 
 <details>
+<summary>EF Core (C#, 5,708 files) — Aider avg recall: 3% @8K</summary>
+
+| File | Archetype | CC must_read | Aider@4K Recall | Aider@8K Recall |
+|------|-----------|-------------:|----------------:|----------------:|
+| `SqlServerServiceCollectionExtensions.cs` | Service | 10 | 0% | 0% |
+| `CountryRegion.cs` | Model | 10 | 0% | 10% |
+| `IMemberTranslatorPlugin.cs` | Plugin | 10 | 0% | 0% |
+| `IJsonValueReaderWriterSource.cs` | Utility | 10 | 0% | 0% |
+| `ViewColumnBuilder.cs` | Endpoint | 10 | 0% | 0% |
+| `SessionTokenStorageFactory.cs` | Auth | 10 | 10% | 10% |
+| `RelationalConverterMappingHints.cs` | Leaf | 0 | 0% | 0% |
+| `ConfigurationSourceExtensions.cs` | Config | 10 | 0% | 0% |
+| `DbSetOperationTests.cs` | Test | 1 | 0% | 0% |
+| `MigrationsOperations.cs` | Migration | 10 | 10% | 10% |
+| `AdHocMapper.cs` | Serialization | 10 | 10% | 10% |
+| `DefaultValueBinding.cs` | Error | 10 | 10% | 10% |
+| `CosmosClientWrapper.cs` | CLI | 10 | 0% | 0% |
+| `CommandErrorEventData.cs` | Event | 10 | 0% | 0% |
+| `CSharpDbContextGenerator.Interfaces.cs` | Interface | 10 | 0% | 0% |
+| `ITableBasedExpression.cs` | Orchestrator | 10 | 0% | 0% |
+| `ComplexTypesTrackingSqlServerTest.cs` | Hotspot | 8 | 0% | 0% |
+
+C# uses namespace-level `using` directives (`using Microsoft.EntityFrameworkCore;`), which Aider's tree-sitter parser cannot resolve to specific files. At 5,708 files, Aider outputs 130–160 files per query but finds only 2–3% of actual dependencies. Contextception resolves namespaces via `.csproj` project detection, namespace-to-directory mapping, and same-namespace sibling discovery.
+
+</details>
+
+<details>
 <summary>Spring Boot (Java, 7,978 files) — Aider avg recall: 0% @8K</summary>
 
 | File | Archetype | CC must_read | Aider@4K Recall | Aider@8K Recall |
@@ -186,7 +214,7 @@ These fixtures were written by inspecting httpx source code directly — not der
 
 ### Tier 2: Validated CC Output (Other Repos)
 
-For the remaining 5 repos, ground truth is Contextception's own `must_read` output, independently validated at grade A across 23 evaluation rounds and 16 repos. Validation grades:
+For the remaining 6 repos, ground truth is Contextception's own `must_read` output, independently validated at grade A across evaluation rounds. Validation grades:
 
 | Repo | Grade | Evaluation Rounds |
 |------|-------|-------------------|
@@ -195,6 +223,7 @@ For the remaining 5 repos, ground truth is Contextception's own `must_read` outp
 | Terraform | A (3.78) | Rounds 13–18 |
 | Tokio | A (3.79) | Rounds 11, 20–23 |
 | Spring Boot | A (3.76) | Rounds 13, 19 |
+| EF Core | A (3.85) | C# Rounds 5–6 |
 
 This creates a circular validation concern: Contextception gets 100% recall against its own output by definition. The comparison is still meaningful because Aider's recall is measured against the same ground truth — but "CC recall = 100%" should be read as "CC's output was validated as grade A" rather than "CC found everything."
 
@@ -232,6 +261,6 @@ See [methodology.md](methodology.md) for:
 
 ## Raw Data
 
-- [`data/results.json`](data/results.json) — Complete results for all 6 repos, 51 files
+- [`data/results.json`](data/results.json) — Complete results for all 7 repos, 68 files
 - [`data/fixtures/`](data/fixtures/) — httpx fixture ground truth files
 - [`scripts/compare/`](../scripts/compare/) — Comparison scripts

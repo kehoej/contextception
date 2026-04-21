@@ -2,7 +2,7 @@
 
 Complete reference for Contextception's capabilities, output format, and configuration options.
 
-**Schema version:** 3.2 | **Languages:** Python, TypeScript/JavaScript, Go, Java, Rust
+**Schema version:** 3.2 | **Languages:** Python, TypeScript/JavaScript, Go, Java, Rust, C#
 
 ---
 
@@ -140,7 +140,7 @@ The score combines four components:
 
 ### Evidence-Gated Same-Package Filtering
 
-Same-package siblings (Go, Java, Rust) are only included in `must_read` if they have structural evidence:
+Same-package siblings (Go, Java, Rust, C#) are only included in `must_read` if they have structural evidence:
 - Direct import/call edge
 - Co-change frequency >= 2
 - Filename prefix match
@@ -365,6 +365,23 @@ Compact labels on `likely_modify` and `related` entries:
 **Resolution:** `Cargo.toml` package and workspace detection, `crate::`/`super::`/`self::` path resolution, `mod.rs` conventions, inline `#[cfg(test)]` module detection.
 
 **Definitions extracted:** Functions, structs, enums, traits, type aliases, constants/statics.
+
+### C#
+
+**Extractor:** Regex | **Extensions:** `.cs`
+
+| Import pattern | Example |
+|---------------|---------|
+| Namespace using | `using System.Collections.Generic;` |
+| Static using | `using static System.Math;` |
+| Alias using | `using Dict = System.Collections.Generic.Dictionary;` |
+| Global using | `global using System.Linq;` |
+| Global static using | `global using static System.Console;` |
+| Global alias using | `global using Env = System.Environment;` |
+
+**Resolution:** `.csproj` project detection for source root discovery, namespace-to-file path mapping, filename search fallback for non-conventional layouts. Same-namespace sibling discovery.
+
+**Definitions extracted:** Classes, interfaces, structs, enums, records, methods, properties, delegates, constants/readonly fields.
 
 ---
 
@@ -671,3 +688,5 @@ The update check can also be disabled per-invocation with `--no-update-check` or
 | String-computed imports | All | Import paths constructed at runtime cannot be resolved |
 | No macro expansion | Rust | `macro_rules!` and procedural macros not analyzed |
 | No annotation processing | Java | Annotation-based dependencies not detected |
+| No attribute processing | C# | Attribute-based dependencies (e.g., `[DependsOn]`) not detected |
+| Namespace-level imports only | C# | `using` directives import namespaces, not individual types — resolved to representative files |

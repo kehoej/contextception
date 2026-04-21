@@ -84,6 +84,7 @@ func NewScanner(repoRoot string, configIgnore []string) *Scanner {
 			".go":   "go",
 			".java": "java",
 			".rs":   "rust",
+			".cs":   "csharp",
 		},
 		ignoreDirs:           ignoredDirs,
 		configIgnorePrefixes: configIgnore,

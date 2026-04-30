@@ -104,7 +104,7 @@ The MCP server and CLI analysis handlers are the highest-risk area. `tools.go`, 
 
 `history.go` is a foundation file — 10 other files import it. The changes here are relatively safe (low fragility, good test coverage), but because so many things depend on it, verify the migration schema is backward-compatible.
 
-`root.go`, `analyze_change.go`, and `hook_context.go` are standard CLI wiring changes — lower risk since they have test coverage.
+`root.go`, `analyze_change.go`, and `compact.go` are standard CLI wiring changes — lower risk since they have test coverage.
 
 **19 files are low risk** (new CLI commands with tests, documentation updates) — no special attention needed.
 

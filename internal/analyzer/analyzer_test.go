@@ -2715,22 +2715,6 @@ func TestCapsResolveNegativeUsesDefault(t *testing.T) {
 	}
 }
 
-func TestCapsResolveHookMode(t *testing.T) {
-	c := Caps{Mode: "hook"}.resolve()
-	if c.MaxMustRead != 5 {
-		t.Errorf("MaxMustRead = %d, want 5", c.MaxMustRead)
-	}
-	if c.MaxLikelyModify != 0 {
-		t.Errorf("MaxLikelyModify = %d, want 0", c.MaxLikelyModify)
-	}
-	if c.MaxTests != 2 {
-		t.Errorf("MaxTests = %d, want 2", c.MaxTests)
-	}
-	if c.MaxRelated != 0 {
-		t.Errorf("MaxRelated = %d, want 0", c.MaxRelated)
-	}
-}
-
 func TestCategorizeCustomMustReadCap(t *testing.T) {
 	root := createOverflowProject(t)
 	idx := openTestIndex(t)

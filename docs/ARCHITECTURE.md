@@ -187,7 +187,7 @@ The `gain` and `accuracy` CLI commands query these tables.
 
 Parses Claude Code session JSONL files to extract tool usage patterns. The `discover` and `session` CLI commands use this to measure contextception adoption: how often `get_context` is called before files are edited.
 
-Cross-references the `usage_log` table to detect hook-injected context (which doesn't appear in session JSONL files).
+Cross-references the `usage_log` table to detect any context that was injected outside the session JSONL stream — historically this included PreToolUse hook output (the hook was removed; the cross-reference logic remains so older sessions still parse correctly).
 
 ### Update Subsystem (`internal/update/`)
 

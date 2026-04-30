@@ -36,7 +36,6 @@ var modePresets = map[string][4]int{
 	"plan":      {15, 5, 3, 15}, // must_read, likely_modify, tests, related
 	"implement": {10, 20, 5, 5},
 	"review":    {5, 10, 10, 5},
-	"hook":      {5, 0, 2, 0}, // compact output for PreToolUse hooks
 }
 
 // Token estimation constants (chars per token ≈ 4).

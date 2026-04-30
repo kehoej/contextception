@@ -56,7 +56,7 @@ func newUpdateCmd() *cobra.Command {
 
 			// Auto-run setup to install updated slash commands.
 			fmt.Println("\nUpdating editor integrations...")
-			if err := runSetup("auto", false, false); err != nil {
+			if err := runSetup("auto", false, false, false); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: auto-setup failed: %v\n", err)
 				fmt.Fprintln(os.Stderr, "Run 'contextception setup' manually to update editor commands.")
 			}

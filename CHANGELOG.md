@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Claude Code PreToolUse hook (`hook-check` / `hook-context`).** Earlier versions of `contextception setup` registered a hook that injected dependency context into every Edit/Write. In real LLM use it proved too noisy — it fired on small leaf files, on tiny edits, and on first-touch new files where the context wasn't load-bearing. The forcing mechanism is gone; agents now opt in via instructions instead. `contextception setup` silently strips any leftover hook entries from `~/.claude/settings.json` on its next run.
+
+### Added
+
+- **`integrations/AGENTS.md`** — canonical, trigger-based instruction snippet describing when to reach for contextception (hub-shaped files, unfamiliar repos, PR review) and when to skip it (typo fixes, leaf files, new files). Drop it into any agent's instruction file (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`, `.windsurf/rules/`, `.github/copilot-instructions.md`).
+- Per-tool README stubs under `integrations/` for Cursor, Windsurf, GitHub Copilot (VSCode), opencode, and warp, each pointing at `AGENTS.md` and giving the tool's preferred placement path and MCP config snippet.
+- **`contextception setup` now supports `opencode`, `vscode`, and `warp`.** opencode writes to `~/.config/opencode/opencode.json` using opencode's `mcp.<name>` schema. VSCode writes to the platform-specific user `mcp.json` using Copilot Chat's `servers.<name>` schema. Warp is detected and prints the manual UI steps (Settings → Agents → MCP servers) since Warp does not configure MCP via a writable file. `--editor=auto` (default) now picks up all six editors.
+- **`contextception setup --instructions`** opt-in flag that upserts the agent instruction snippet into the per-editor file at the current working directory (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules/contextception.mdc`, `.windsurf/rules/contextception.md`, `.github/copilot-instructions.md`). Uses begin/end markers so user-authored content around the block is preserved on re-runs and on `--uninstall --instructions`. Editors sharing a destination (opencode + Warp both use `AGENTS.md`) dedupe to a single write.
+
 ## [1.0.8] - 2026-04-21
 
 ### Added

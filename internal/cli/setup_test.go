@@ -12,7 +12,6 @@ import (
 func TestSetup_FreshInstall_Claude(t *testing.T) {
 	home := t.TempDir()
 	mcpPath := filepath.Join(home, ".claude.json")
-	hookPath := filepath.Join(home, ".claude", "settings.json")
 
 	changed, err := ensureMCPConfig(mcpPath, "claude", false)
 	if err != nil {
@@ -22,15 +21,6 @@ func TestSetup_FreshInstall_Claude(t *testing.T) {
 		t.Fatal("expected changed=true for fresh install")
 	}
 
-	changed, err = ensureHookConfig(hookPath, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !changed {
-		t.Fatal("expected changed=true for fresh hook install")
-	}
-
-	// Verify MCP config.
 	data, err := os.ReadFile(mcpPath)
 	if err != nil {
 		t.Fatal(err)
@@ -46,27 +36,6 @@ func TestSetup_FreshInstall_Claude(t *testing.T) {
 	// Claude should NOT have transportType.
 	if gjson.GetBytes(data, "mcpServers.contextception.transportType").Exists() {
 		t.Fatal("claude config should not have transportType")
-	}
-
-	// Verify hook config.
-	data, err = os.ReadFile(hookPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	entries := gjson.GetBytes(data, "hooks.PreToolUse").Array()
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 PreToolUse entries, got %d", len(entries))
-	}
-	matchers := make(map[string]bool)
-	for _, e := range entries {
-		matchers[e.Get("matcher").String()] = true
-		hookCmd := e.Get("hooks.0.command").String()
-		if hookCmd != "contextception hook-context" {
-			t.Fatalf("expected hook command 'contextception hook-context', got %q", hookCmd)
-		}
-	}
-	if !matchers["Edit"] || !matchers["Write"] {
-		t.Fatalf("expected Edit and Write matchers, got %v", matchers)
 	}
 }
 
@@ -117,26 +86,12 @@ func TestSetup_FreshInstall_Windsurf(t *testing.T) {
 func TestSetup_Idempotent(t *testing.T) {
 	home := t.TempDir()
 	mcpPath := filepath.Join(home, ".claude.json")
-	hookPath := filepath.Join(home, ".claude", "settings.json")
 
-	// First run.
 	if _, err := ensureMCPConfig(mcpPath, "claude", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ensureHookConfig(hookPath, false); err != nil {
-		t.Fatal(err)
-	}
 
-	// Second run should report no changes.
 	changed, err := ensureMCPConfig(mcpPath, "claude", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if changed {
-		t.Fatal("expected changed=false on second run")
-	}
-
-	changed, err = ensureHookConfig(hookPath, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,52 +147,9 @@ func TestSetup_PreservesExistingConfig(t *testing.T) {
 	}
 }
 
-func TestSetup_PreservesExistingHooks(t *testing.T) {
-	home := t.TempDir()
-	hookPath := filepath.Join(home, ".claude", "settings.json")
-
-	existing := `{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [{"type": "command", "command": "my-custom-hook.sh"}]
-      }
-    ]
-  }
-}`
-	if err := os.MkdirAll(filepath.Dir(hookPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(hookPath, []byte(existing), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := ensureHookConfig(hookPath, false); err != nil {
-		t.Fatal(err)
-	}
-
-	data, err := os.ReadFile(hookPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	entries := gjson.GetBytes(data, "hooks.PreToolUse").Array()
-	// Should have original Bash + new Edit + Write = 3.
-	if len(entries) != 3 {
-		t.Fatalf("expected 3 PreToolUse entries, got %d", len(entries))
-	}
-
-	// Original Bash hook should be first.
-	if entries[0].Get("matcher").String() != "Bash" {
-		t.Fatal("existing Bash hook not preserved")
-	}
-}
-
 func TestSetup_DryRun(t *testing.T) {
 	home := t.TempDir()
 	mcpPath := filepath.Join(home, ".claude.json")
-	hookPath := filepath.Join(home, ".claude", "settings.json")
 
 	changed, err := ensureMCPConfig(mcpPath, "claude", true)
 	if err != nil {
@@ -247,20 +159,7 @@ func TestSetup_DryRun(t *testing.T) {
 		t.Fatal("expected changed=true in dry run")
 	}
 
-	// File should NOT exist.
 	if _, err := os.Stat(mcpPath); !os.IsNotExist(err) {
-		t.Fatal("dry run should not create files")
-	}
-
-	changed, err = ensureHookConfig(hookPath, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !changed {
-		t.Fatal("expected changed=true in dry run")
-	}
-
-	if _, err := os.Stat(hookPath); !os.IsNotExist(err) {
 		t.Fatal("dry run should not create files")
 	}
 }
@@ -270,15 +169,24 @@ func TestSetup_Uninstall_Claude(t *testing.T) {
 	mcpPath := filepath.Join(home, ".claude.json")
 	hookPath := filepath.Join(home, ".claude", "settings.json")
 
-	// Install first.
+	// Install MCP, plus seed a legacy hook entry to exercise both removal paths.
 	if _, err := ensureMCPConfig(mcpPath, "claude", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ensureHookConfig(hookPath, false); err != nil {
+	legacy := `{
+  "hooks": {
+    "PreToolUse": [
+      {"matcher": "Edit", "hooks": [{"type": "command", "command": "contextception hook-context"}]}
+    ]
+  }
+}`
+	if err := os.MkdirAll(filepath.Dir(hookPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hookPath, []byte(legacy), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// Uninstall.
 	changed, err := removeMCPConfig(mcpPath, false)
 	if err != nil {
 		t.Fatal(err)
@@ -292,16 +200,14 @@ func TestSetup_Uninstall_Claude(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !changed {
-		t.Fatal("expected changed=true on uninstall")
+		t.Fatal("expected changed=true on uninstall when legacy hook present")
 	}
 
-	// Verify MCP entry removed.
 	data, _ := os.ReadFile(mcpPath)
 	if gjson.GetBytes(data, "mcpServers.contextception").Exists() {
 		t.Fatal("contextception MCP entry should be removed")
 	}
 
-	// Verify hook entries removed.
 	data, _ = os.ReadFile(hookPath)
 	entries := gjson.GetBytes(data, "hooks.PreToolUse").Array()
 	for _, e := range entries {
@@ -356,6 +262,48 @@ func TestSetup_Uninstall_NothingInstalled(t *testing.T) {
 	}
 	if changed {
 		t.Fatal("expected changed=false when nothing installed")
+	}
+}
+
+// TestSetup_Migration_RemovesLegacyHook verifies the upgrade path: a user who
+// previously ran an older `contextception setup` (which wrote a `contextception
+// hook-context` PreToolUse entry into ~/.claude/settings.json) sees that entry
+// silently removed by the next `setup` run, while unrelated hooks survive.
+func TestSetup_Migration_RemovesLegacyHook(t *testing.T) {
+	home := t.TempDir()
+	hookPath := filepath.Join(home, ".claude", "settings.json")
+
+	legacy := `{
+  "hooks": {
+    "PreToolUse": [
+      {"matcher": "Edit", "hooks": [{"type": "command", "command": "contextception hook-context"}]},
+      {"matcher": "Write", "hooks": [{"type": "command", "command": "contextception hook-context"}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "my-custom-hook.sh"}]}
+    ]
+  }
+}`
+	if err := os.MkdirAll(filepath.Dir(hookPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hookPath, []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := removeHookConfig(hookPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true when legacy hook entries are removed")
+	}
+
+	data, _ := os.ReadFile(hookPath)
+	entries := gjson.GetBytes(data, "hooks.PreToolUse").Array()
+	if len(entries) != 1 {
+		t.Fatalf("expected only the unrelated Bash hook to remain, got %d entries", len(entries))
+	}
+	if entries[0].Get("matcher").String() != "Bash" {
+		t.Fatal("non-contextception Bash hook should be preserved")
 	}
 }
 
@@ -433,23 +381,18 @@ func TestSetup_RealisticConfig(t *testing.T) {
 	}
 }
 
-func TestSetup_Uninstall_RemovesOldHookScript(t *testing.T) {
-	// Verify uninstall also removes entries pointing to the old
-	// contextception-remind.sh script.
+func TestSetup_Migration_RemovesPreContextHookCheck(t *testing.T) {
+	// Older versions shipped `contextception hook-check` (a reminder-only hook).
+	// `removeHookConfig` matches the substring "contextception" so it should
+	// strip those entries too.
 	home := t.TempDir()
 	hookPath := filepath.Join(home, ".claude", "settings.json")
 
 	existing := `{
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "Edit",
-        "hooks": [{"type": "command", "command": "/home/user/.claude/hooks/contextception-remind.sh"}]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [{"type": "command", "command": "my-other-hook.sh"}]
-      }
+      {"matcher": "Edit", "hooks": [{"type": "command", "command": "contextception hook-check"}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "my-other-hook.sh"}]}
     ]
   }
 }`
@@ -478,124 +421,24 @@ func TestSetup_Uninstall_RemovesOldHookScript(t *testing.T) {
 	}
 }
 
-func TestHookCheck_SupportedFile(t *testing.T) {
-	if !isSupportedExtension(".py") {
-		t.Fatal(".py should be supported")
-	}
-	if !isSupportedExtension(".go") {
-		t.Fatal(".go should be supported")
-	}
-	if !isSupportedExtension(".ts") {
-		t.Fatal(".ts should be supported")
-	}
-	if !isSupportedExtension(".java") {
-		t.Fatal(".java should be supported")
-	}
-	if !isSupportedExtension(".rs") {
-		t.Fatal(".rs should be supported")
-	}
-}
-
-func TestHookCheck_UnsupportedFile(t *testing.T) {
-	if isSupportedExtension(".md") {
-		t.Fatal(".md should not be supported")
-	}
-	if isSupportedExtension(".json") {
-		t.Fatal(".json should not be supported")
-	}
-	if isSupportedExtension(".yaml") {
-		t.Fatal(".yaml should not be supported")
-	}
-	if isSupportedExtension("") {
-		t.Fatal("empty extension should not be supported")
-	}
-}
-
-func TestSetup_UpgradesOldHookCheck(t *testing.T) {
-	home := t.TempDir()
-	settingsPath := filepath.Join(home, ".claude", "settings.json")
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	// Pre-populate with old hook-check entries.
-	oldConfig := `{
-		"hooks": {
-			"PreToolUse": [
-				{
-					"matcher": "Edit",
-					"hooks": [{"type": "command", "command": "contextception hook-check"}]
-				},
-				{
-					"matcher": "Write",
-					"hooks": [{"type": "command", "command": "contextception hook-check"}]
-				}
-			]
-		}
-	}`
-	if err := os.WriteFile(settingsPath, []byte(oldConfig), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	changed, err := ensureHookConfig(settingsPath, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !changed {
-		t.Fatal("expected hooks to be updated when upgrading from hook-check")
-	}
-
-	// Verify old entries replaced with new.
-	data, _ := os.ReadFile(settingsPath)
-	entries := gjson.GetBytes(data, "hooks.PreToolUse").Array()
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(entries))
-	}
-	for _, e := range entries {
-		cmd := e.Get("hooks.0.command").String()
-		if cmd != "contextception hook-context" {
-			t.Fatalf("expected hook-context, got %q", cmd)
+func TestSupportedExtension_Positive(t *testing.T) {
+	for _, ext := range []string{".py", ".go", ".ts", ".java", ".rs", ".cs"} {
+		if !isSupportedExtension(ext) {
+			t.Fatalf("%s should be supported", ext)
 		}
 	}
 }
 
-func TestSetup_SkipsWhenCurrent(t *testing.T) {
-	home := t.TempDir()
-	settingsPath := filepath.Join(home, ".claude", "settings.json")
-	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	// Pre-populate with current hook-context entries.
-	currentConfig := `{
-		"hooks": {
-			"PreToolUse": [
-				{
-					"matcher": "Edit",
-					"hooks": [{"type": "command", "command": "contextception hook-context"}]
-				},
-				{
-					"matcher": "Write",
-					"hooks": [{"type": "command", "command": "contextception hook-context"}]
-				}
-			]
+func TestSupportedExtension_Negative(t *testing.T) {
+	for _, ext := range []string{".md", ".json", ".yaml", ""} {
+		if isSupportedExtension(ext) {
+			t.Fatalf("%s should not be supported", ext)
 		}
-	}`
-	if err := os.WriteFile(settingsPath, []byte(currentConfig), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	changed, err := ensureHookConfig(settingsPath, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if changed {
-		t.Fatal("should not change when current hook is already installed")
 	}
 }
 
 func TestSetup_UnsupportedEditor(t *testing.T) {
-	_, _, err := editorPaths("/home/test", "vscode")
+	_, _, err := editorPaths("/home/test", "sublime")
 	if err == nil {
 		t.Fatal("expected error for unsupported editor")
 	}
@@ -726,6 +569,211 @@ func TestSetup_DetectEditors(t *testing.T) {
 	editors = detectInstalledEditors(home)
 	if len(editors) != 2 {
 		t.Fatalf("expected 2 editors, got %v", editors)
+	}
+
+	// Add opencode.
+	os.MkdirAll(filepath.Join(home, ".config", "opencode"), 0o755)
+	editors = detectInstalledEditors(home)
+	if !contains(editors, "opencode") {
+		t.Fatalf("expected opencode in %v", editors)
+	}
+
+	// Add VSCode (per-platform path).
+	if dir := vscodeDataDir(home); dir != "" {
+		os.MkdirAll(dir, 0o755)
+		editors = detectInstalledEditors(home)
+		if !contains(editors, "vscode") {
+			t.Fatalf("expected vscode in %v", editors)
+		}
+	}
+
+	// Add Warp.
+	os.MkdirAll(filepath.Join(home, ".warp"), 0o755)
+	editors = detectInstalledEditors(home)
+	if !contains(editors, "warp") {
+		t.Fatalf("expected warp in %v", editors)
+	}
+}
+
+func contains(s []string, want string) bool {
+	for _, v := range s {
+		if v == want {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSetup_FreshInstall_Opencode(t *testing.T) {
+	home := t.TempDir()
+	configPath := filepath.Join(home, ".config", "opencode", "opencode.json")
+
+	changed, err := ensureOpencodeMCPConfig(configPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true for fresh install")
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := gjson.GetBytes(data, "mcp.contextception.type").String(); got != "local" {
+		t.Fatalf(`expected mcp.contextception.type "local", got %q`, got)
+	}
+	cmdArr := gjson.GetBytes(data, "mcp.contextception.command").Array()
+	if len(cmdArr) != 2 || cmdArr[0].String() != "contextception" || cmdArr[1].String() != "mcp" {
+		t.Fatalf("expected command=[contextception, mcp], got %v", cmdArr)
+	}
+	if !gjson.GetBytes(data, "mcp.contextception.enabled").Bool() {
+		t.Fatal("expected enabled=true")
+	}
+	if got := gjson.GetBytes(data, `\$schema`).String(); got != "https://opencode.ai/config.json" {
+		t.Fatalf("expected $schema set to opencode schema URL, got %q", got)
+	}
+}
+
+func TestSetup_Idempotent_Opencode(t *testing.T) {
+	home := t.TempDir()
+	configPath := filepath.Join(home, ".config", "opencode", "opencode.json")
+
+	if _, err := ensureOpencodeMCPConfig(configPath, false); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := ensureOpencodeMCPConfig(configPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Fatal("second run should report changed=false")
+	}
+}
+
+func TestSetup_Uninstall_Opencode(t *testing.T) {
+	home := t.TempDir()
+	configPath := filepath.Join(home, ".config", "opencode", "opencode.json")
+
+	if _, err := ensureOpencodeMCPConfig(configPath, false); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := removeOpencodeMCPConfig(configPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true on uninstall")
+	}
+	data, _ := os.ReadFile(configPath)
+	if gjson.GetBytes(data, "mcp.contextception").Exists() {
+		t.Fatal("contextception entry should be removed")
+	}
+}
+
+func TestSetup_FreshInstall_Vscode(t *testing.T) {
+	home := t.TempDir()
+	configPath := vscodeUserMCPPath(home)
+	if configPath == "" {
+		t.Skip("VSCode integration not supported on this platform")
+	}
+
+	changed, err := ensureVscodeMCPConfig(configPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true for fresh install")
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := gjson.GetBytes(data, "servers.contextception.type").String(); got != "stdio" {
+		t.Fatalf(`expected servers.contextception.type "stdio", got %q`, got)
+	}
+	if got := gjson.GetBytes(data, "servers.contextception.command").String(); got != "contextception" {
+		t.Fatalf(`expected command "contextception", got %q`, got)
+	}
+	args := gjson.GetBytes(data, "servers.contextception.args").Array()
+	if len(args) != 1 || args[0].String() != "mcp" {
+		t.Fatalf("expected args [mcp], got %v", args)
+	}
+}
+
+func TestSetup_Uninstall_Vscode(t *testing.T) {
+	home := t.TempDir()
+	configPath := vscodeUserMCPPath(home)
+	if configPath == "" {
+		t.Skip("VSCode integration not supported on this platform")
+	}
+
+	if _, err := ensureVscodeMCPConfig(configPath, false); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := removeVscodeMCPConfig(configPath, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true on uninstall")
+	}
+}
+
+func TestSetup_Vscode_PreservesOtherServers(t *testing.T) {
+	home := t.TempDir()
+	configPath := vscodeUserMCPPath(home)
+	if configPath == "" {
+		t.Skip("VSCode integration not supported on this platform")
+	}
+
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	existing := `{
+  "servers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["playwright"]
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(existing), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ensureVscodeMCPConfig(configPath, false); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(configPath)
+	if got := gjson.GetBytes(data, "servers.playwright.command").String(); got != "npx" {
+		t.Fatal("existing playwright server lost")
+	}
+	if got := gjson.GetBytes(data, "servers.contextception.type").String(); got != "stdio" {
+		t.Fatal("contextception server not added")
+	}
+}
+
+func TestSetup_EditorPaths_Warp(t *testing.T) {
+	mcpPath, hookPath, err := editorPaths("/home/test", "warp")
+	if err != nil {
+		t.Fatalf("warp should be a valid editor: %v", err)
+	}
+	if mcpPath != "" || hookPath != "" {
+		t.Fatalf("warp should have no file paths (UI-only); got mcp=%q hook=%q", mcpPath, hookPath)
+	}
+}
+
+func TestSetup_EditorPaths_Opencode(t *testing.T) {
+	mcpPath, _, err := editorPaths("/home/test", "opencode")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "/home/test/.config/opencode/opencode.json"
+	if mcpPath != want {
+		t.Fatalf("opencode mcpPath = %q, want %q", mcpPath, want)
 	}
 }
 

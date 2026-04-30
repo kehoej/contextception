@@ -1,10 +1,10 @@
-# CLAUDE.md — Contextception Integration Template
+# CLAUDE.md — Contextception integration template
 
-Copy this file to your project root as `CLAUDE.md` (or append to your existing one) to enable automatic context intelligence in Claude Code.
+Copy this file to your project root as `CLAUDE.md` (or append to your existing one) to enable contextception for Claude Code. This stub configures the MCP server; the actual instruction body lives in [`../AGENTS.md`](../AGENTS.md) and is shared across every supported coding tool.
 
-## MCP Server Configuration
+## MCP server configuration
 
-Add to your `~/.claude.json` or project `.claude/settings.json`:
+Add to `~/.claude.json` (global) or your project's `.claude/settings.json`:
 
 ```json
 {
@@ -17,50 +17,13 @@ Add to your `~/.claude.json` or project `.claude/settings.json`:
 }
 ```
 
-## Instructions for Claude Code
+`contextception setup` (with no args) writes this for you, plus the `/pr-risk` and `/pr-fix` slash commands. Older versions also installed a PreToolUse hook; if your settings still contain one, the next `setup` run silently strips it.
 
-Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Java, Rust, or C# code. Before modifying a file, call `get_context` on it to understand its dependency context. The tool auto-indexes and stays current automatically. If `.contextception/` is not in `.gitignore`, add it.
+## Agent instructions
 
-### When to use each tool
+The instruction body tells Claude Code **when** calling `get_context` / `analyze_change` is worth doing — and, just as importantly, when it isn't.
 
-- **Before modifying any file:** Call `get_context` with the file path. Read the `must_read` files before making changes. Check `blast_radius` to understand risk.
-- **When exploring an unfamiliar project:** Call `get_structure` first for an overview, then `get_entrypoints` to find key files, then `get_archetypes` to see representative files across architectural layers.
-- **When reviewing a PR or branch:** Call `analyze_change` to see blast radius, test gaps, and coupling signals across all changed files.
-- **When searching for a file or symbol:** Call `search` with a path pattern or symbol name (use `type: "symbol"` for symbol search).
-- **After completing work on a file:** Call `rate_context` to provide feedback on how useful the analysis was. Report which suggested files were actually useful, which were unnecessary, and which needed files were missing.
+Two ways to install it:
 
-### Example workflow: modifying a file
-
-1. Call `get_context` on the target file
-2. Read the `must_read` files to understand dependencies
-3. Check `likely_modify` to see what else may need changes
-4. Check `tests` to know which tests to run
-5. Make the change
-6. Call `rate_context` with feedback on which suggested files were useful
-7. Verify by re-running `get_context` if the change affected imports
-
-### Multi-file analysis
-
-When modifying multiple related files, pass them all at once:
-
-```
-get_context with file: ["src/auth/login.ts", "src/auth/session.ts"]
-```
-
-This produces a merged analysis with deduplicated must_read, combined blast radius, and unified test coverage.
-
-### Token budget optimization
-
-For large codebases or when working within tight token limits, use the `token_budget` parameter:
-
-```
-get_context with file: "src/core/engine.ts", token_budget: 4000
-```
-
-Or use workflow modes that automatically adjust output caps:
-
-```
-get_context with file: "src/core/engine.ts", mode: "implement"
-```
-
-Available modes: `plan` (broad context), `implement` (focused, smaller output), `review` (balanced).
+1. **Automatic (recommended):** from inside your project, run `contextception setup --instructions`. It upserts a marker-fenced block into `CLAUDE.md`, preserving any other content. Safe to re-run; `--uninstall --instructions` strips just the block.
+2. **Manual:** append the body of [`../AGENTS.md`](../AGENTS.md) to your project's `CLAUDE.md` (or to `~/.claude/CLAUDE.md` for a global install).

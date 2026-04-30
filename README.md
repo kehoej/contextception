@@ -283,18 +283,24 @@ Contextception averages ~1,000 tokens per analysis vs. Repomix's full-repo outpu
 
 ## MCP Setup (30 seconds)
 
-Make your AI agent smarter. The `setup` command auto-detects your editor and configures everything:
+Make your AI agent smarter. The `setup` command auto-detects every installed editor and configures all of them:
 
 ```bash
-# Claude Code (MCP server + hooks + slash commands)
+# Auto-detect: Claude Code, Cursor, Windsurf, opencode, VSCode (Copilot Chat), Warp
 contextception setup
 
-# Cursor or Windsurf
+# Or target one explicitly
 contextception setup --editor cursor
-contextception setup --editor windsurf
+contextception setup --editor opencode
+contextception setup --editor vscode
+contextception setup --editor warp           # prints manual UI steps (Warp's MCP is UI-configured)
+
+# Also drop the agent instruction snippet into the current project
+cd /path/to/your/project
+contextception setup --instructions          # upserts CLAUDE.md / AGENTS.md / .cursor/rules/ / .github/copilot-instructions.md
 ```
 
-Use `--dry-run` to preview changes, or `--uninstall` to reverse.
+Use `--dry-run` to preview changes, or `--uninstall` to reverse. `--instructions` uses begin/end markers so existing user content in those files is preserved on re-runs and on `--uninstall --instructions`.
 
 Or configure manually — add to your `~/.claude.json` (Claude Code) or equivalent MCP config:
 

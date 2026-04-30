@@ -80,7 +80,7 @@ internal/
 protocol/              JSON Schema specifications
 testdata/              Test fixtures (synthetic repos + expected outputs)
 benchmarks/            Head-to-head comparisons with methodology
-integrations/          MCP config examples for Claude Code, Cursor, Windsurf, Codex
+integrations/          MCP + agent-instruction setups for Claude Code, Cursor, Windsurf, opencode, VSCode/Copilot, Warp, Codex
 ```
 
 ## Key Reference Documents

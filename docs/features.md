@@ -421,9 +421,10 @@ contextception session                  Show adoption across Claude Code session
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--editor` | claude | Target editor: `claude`, `cursor`, `windsurf` |
+| `--editor` | auto | Target editor: `auto` (detect all installed), `claude`, `cursor`, `windsurf`, `opencode`, `vscode`, `warp` |
 | `--dry-run` | false | Show what would change without writing files |
 | `--uninstall` | false | Remove contextception configuration |
+| `--instructions` | false | Also write the per-editor agent instruction snippet (`CLAUDE.md` / `AGENTS.md` / `.cursor/rules/contextception.mdc` / `.windsurf/rules/contextception.md` / `.github/copilot-instructions.md`) into the current project, using begin/end markers so existing user content is preserved on re-runs and on `--uninstall` |
 
 ### Analysis flags (analyze, analyze-change)
 

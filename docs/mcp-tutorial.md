@@ -29,7 +29,7 @@ Your project must use one or more of: Python, TypeScript/JavaScript, Go, Java, R
 
 ### MCP-compatible agent
 
-Any agent that supports the Model Context Protocol stdio transport: Claude Code, Cursor, Windsurf, or custom agents using an MCP client library.
+Any agent that supports the Model Context Protocol stdio transport: Claude Code, Cursor, Windsurf, opencode, VSCode (Copilot Chat), or custom agents using an MCP client library. Warp is supported too, but its MCP servers are configured through the Warp app UI rather than a config file. (GitHub Copilot in older VSCode builds without MCP can still consume contextception via the CLI; see [`integrations/vscode-copilot/`](../integrations/vscode-copilot/).)
 
 ## Step 1: Configure MCP for your tool
 
@@ -38,17 +38,24 @@ Any agent that supports the Model Context Protocol stdio transport: Claude Code,
 The `setup` command configures everything in one step:
 
 ```bash
-# Claude Code (adds MCP server + PreToolUse hooks)
+# Auto-detect every supported editor and configure all of them.
 contextception setup
 
-# Cursor
+# Or target one explicitly (any of: claude, cursor, windsurf, opencode, vscode, warp).
 contextception setup --editor cursor
-
-# Windsurf
-contextception setup --editor windsurf
+contextception setup --editor opencode
+contextception setup --editor vscode
+contextception setup --editor warp        # prints manual UI steps; Warp does not write a config file
 ```
 
-For Claude Code, this also installs hooks that automatically remind the AI to call `get_context` before editing files. Use `--dry-run` to preview changes, or `--uninstall` to reverse.
+Use `--dry-run` to preview changes, or `--uninstall` to reverse. To make the agent actually reach for the tools, you also need the agent **instruction snippet** in your project. Either drop [`integrations/AGENTS.md`](../integrations/AGENTS.md) into the right per-editor file yourself, or let setup do it:
+
+```bash
+cd /path/to/your/project
+contextception setup --instructions       # upserts CLAUDE.md / AGENTS.md / .cursor/rules/contextception.mdc / etc.
+```
+
+`--instructions` uses begin/end markers, so it appends the contextception block to existing files instead of overwriting, and `--uninstall --instructions` strips just the block.
 
 ### Manual configuration
 
@@ -274,80 +281,11 @@ Use contextception MCP tools in repos with Python, TypeScript/JavaScript, Go, Ja
 Before modifying a file, call get_context on it to understand its dependency context.
 ```
 
-### Enforce with a Claude Code hook (recommended)
+### Why we don't ship a forcing hook
 
-Instructions can be ignored. A hook enforces the workflow by reminding the agent every time it tries to edit a code file without checking context first.
+Earlier versions of contextception shipped a Claude Code PreToolUse hook (`contextception hook-context`) that injected dependency context into every Edit/Write. In practice this was too noisy — it fired on small leaf files, on tiny edits, and on first-touch new files where the context wasn't load-bearing. The forcing mechanism was removed in favor of trigger-based **agent instructions** at [`integrations/AGENTS.md`](../integrations/AGENTS.md), which describe the cases where calling `get_context` (or `analyze_change` for diffs) is actually advantageous and the cases where it should be skipped. Drop that snippet into your project's instruction file (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`, `.windsurf/rules/`, `.github/copilot-instructions.md`, etc.) and the agent will reach for contextception only when the call is worth its tokens.
 
-The hook dynamically queries `contextception extensions` for supported file types, so it automatically picks up new languages as they're added.
-
-Create `~/.claude/hooks/contextception-remind.sh`:
-
-```bash
-#!/bin/bash
-# PreToolUse hook for Edit/Write: remind to call get_context first
-
-FILE_PATH=$(echo "$TOOL_INPUT" | python3 -c "
-import json, sys
-d = json.load(sys.stdin)
-print(d.get('file_path', ''))
-" 2>/dev/null)
-
-[ -z "$FILE_PATH" ] && exit 0
-
-# Get the file extension
-EXT=".${FILE_PATH##*.}"
-[ "$EXT" = ".$FILE_PATH" ] && exit 0
-
-# Query contextception for supported extensions (cached per shell session)
-if [ -z "$_CONTEXTCEPTION_EXTS" ]; then
-  _CONTEXTCEPTION_EXTS=$(contextception extensions 2>/dev/null | tr '\n' '|')
-fi
-
-# Skip if contextception isn't installed or returned nothing
-[ -z "$_CONTEXTCEPTION_EXTS" ] && exit 0
-
-# Check if this file's extension is supported
-echo "$_CONTEXTCEPTION_EXTS" | grep -q "$EXT|" || exit 0
-
-echo "CONTEXTCEPTION REMINDER: Before modifying $(basename "$FILE_PATH"), did you call get_context on it? If not, call it now to understand the dependency context before making changes."
-```
-
-Make it executable:
-
-```bash
-chmod +x ~/.claude/hooks/contextception-remind.sh
-```
-
-Then register it in `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/contextception-remind.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/contextception-remind.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-This fires before every file edit, reminding the agent to check dependencies first. It skips non-code files (markdown, JSON, config) and only triggers for the six supported languages.
+If you need stricter enforcement than instructions, the right place to add it is your own pre-commit hook or PR check (e.g. `contextception analyze-change --ci --fail-on=high`), not a per-edit hook in the agent loop.
 
 ### Use get_context for deleted files too
 

@@ -1,10 +1,10 @@
-# Contextception Integration for OpenAI Codex / Agents
+# OpenAI Codex / generic-MCP agents
 
-OpenAI Codex and custom agents can use contextception as an MCP server over stdio transport.
+OpenAI Codex (and any custom agent that speaks the Model Context Protocol) can use contextception as an MCP server over stdio.
 
-## Setup
+This file configures the server. The actual agent instructions — when to reach for contextception and when to skip it — live in the canonical snippet at [`../AGENTS.md`](../AGENTS.md).
 
-### 1. Install contextception
+## Install
 
 ```bash
 go install github.com/kehoej/contextception/cmd/contextception@latest
@@ -16,112 +16,33 @@ Or via Homebrew:
 brew install kehoej/tap/contextception
 ```
 
-### 2. Configure MCP in your agent
+## MCP configuration
 
-Add contextception as an MCP tool server in your agent configuration. The server uses stdio transport:
+Configure your agent to launch contextception over stdio:
 
 ```
 Command: contextception
-Args: mcp
+Args:    mcp
 Transport: stdio
 ```
 
-The server auto-detects the repository root from the current working directory using git.
+The server auto-detects the repository root from the current working directory using git, and auto-indexes the repo on the first call.
 
-### 3. Agent instructions
+## Agent instructions
 
-Add the following to your agent's system prompt or instructions file:
+Drop [`../AGENTS.md`](../AGENTS.md) at your project root as `AGENTS.md`. Codex (and most other AGENTS.md-aware tools) will pick it up automatically.
 
-```
-Before modifying any source file, call the `get_context` MCP tool with the file path.
-Read the returned `must_read` files to understand dependencies before making changes.
-Check `blast_radius` to assess the risk level of the modification.
-Check `tests` to identify which test files cover the subject.
-```
+## Tool reference (quick)
 
-## Available MCP Tools
+| Tool | Purpose |
+|---|---|
+| `get_context(file)` | Dependency context for a file: `must_read`, `likely_modify`, `tests`, `blast_radius`. Accepts a string or array of paths. |
+| `analyze_change(base, head)` | Diff-level risk: blast radius per file, test gaps, coupling signals, hotspots. Best tool for PR review. |
+| `get_structure()` | Directory layout + language distribution. First call when orienting on an unfamiliar repo. |
+| `get_entrypoints()` | Entrypoint files (main, CLI) and most-depended-on foundation files. |
+| `get_archetypes()` | One representative file per architectural layer (Service/Controller, Auth, Hotspot, etc., 18 categories). |
+| `search(query, type)` | Find files by path pattern or symbol name (`type: "symbol"`). |
+| `index()`, `status()` | Index management. The server auto-indexes; you rarely call these directly. |
+| `rate_context(file, usefulness, ...)` | Feedback (1–5) on a previous `get_context` result, with `useful_files` / `unnecessary_files` / `missing_files`. Improves accuracy over time. |
 
-### get_context
-
-Analyze a file's dependency context. Auto-indexes the repository on first call.
-
-**Parameters:**
-- `file` (required) — repo-relative or absolute path, or array of paths for multi-file analysis
-- `mode` — workflow mode: `plan`, `implement`, or `review` (adjusts output caps)
-- `token_budget` — target token budget for output (adjusts caps automatically)
-- `omit_external` — omit external dependencies from output
-- `include_signatures` — include code signatures for must_read symbols
-- `max_must_read` — max must_read entries (default 10)
-- `max_related` — max related entries (default 10)
-- `max_likely_modify` — max likely_modify entries (default 15)
-- `max_tests` — max test entries (default 5)
-
-### index
-
-Build or update the repository index. Uses incremental indexing when possible.
-
-**Parameters:** none
-
-### status
-
-Return index diagnostics: file count, edge count, staleness, last indexed commit.
-
-**Parameters:** none
-
-### search
-
-Search the index for files by path pattern or symbol name.
-
-**Parameters:**
-- `query` (required) — search query string
-- `type` — `path` (default) or `symbol`
-- `limit` — max results (default 50, max 100)
-
-### get_entrypoints
-
-Return the project's entrypoint files and foundation files (most depended-upon). Use for initial project orientation.
-
-**Parameters:**
-- `limit` — max foundation files to return (default 10)
-
-### get_structure
-
-Return directory structure with file counts and language distribution. Use as the first call when exploring an unfamiliar project.
-
-**Parameters:** none
-
-### get_archetypes
-
-Detect representative files across architectural layers. Returns one file per archetype category.
-
-**Parameters:**
-- `categories` — optional list of categories to filter. Available: Service/Controller, Model/Schema, Middleware/Plugin, High Fan-in Utility, Page/Route/Endpoint, Auth/Security, Leaf Component, Config/Constants, Barrel/Index, Test File, Database/Migration, Serialization/Validation, Error Handling, CLI/Command, Event/Message, Interface/Contract, Orchestrator, Hotspot
-
-### analyze_change
-
-Analyze the impact of a git diff (PR or branch). Returns blast radius, test gaps, and coupling signals.
-
-**Parameters:**
-- `base` — base git ref (auto-detects merge-base if omitted)
-- `head` — head git ref (defaults to HEAD)
-
-### rate_context
-
-Rate how useful a previous `get_context` result was. Structured feedback for accuracy tracking.
-
-**Parameters:**
-- `file` (required) — file that was analyzed
-- `usefulness` (required) — 1-5 rating (1=not useful, 5=essential)
-- `useful_files` — which must_read/related files were actually useful
-- `unnecessary_files` — files in must_read that were NOT needed
-- `missing_files` — files you needed that were NOT suggested
-- `modified_files` — files you actually modified
-- `notes` — brief explanation of rating
-
-## Recommended agent workflow
-
-1. On project start: call `get_structure` then `get_entrypoints` for orientation
-2. Before each file modification: call `get_context` on the target file
-3. Read `must_read` files before making changes
-4. After completing work on a file: call `rate_context` with feedback on which files were useful
-5. After a set of changes: call `analyze_change` to verify impact
+For full parameter documentation, see [`../../docs/features.md`](../../docs/features.md).

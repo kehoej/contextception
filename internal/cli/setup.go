@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/kehoej/contextception/internal/version"
@@ -15,35 +16,40 @@ import (
 )
 
 var (
-	setupEditor    string
-	setupDryRun    bool
-	setupUninstall bool
+	setupEditor       string
+	setupDryRun       bool
+	setupUninstall    bool
+	setupInstructions bool
 )
 
 func newSetupCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "setup",
 		Short: "Configure contextception for your AI code editor",
-		Long: `Automatically configure the MCP server, hooks, and slash commands for contextception.
+		Long: `Automatically configure the MCP server and slash commands for contextception.
 
-Supports Claude Code, Cursor, and Windsurf. Use --editor=auto (default) to
-auto-detect installed editors. For Claude Code, also installs PreToolUse hooks
-and the /pr-risk slash command.
+Supports Claude Code, Cursor, Windsurf, opencode, and VSCode. Warp is
+detected for the no-op case but its MCP config is UI-only and cannot be
+written from the CLI. Use --editor=auto (default) to auto-detect installed
+editors. For Claude Code, also installs the /pr-risk and /pr-fix slash
+commands and silently removes any legacy PreToolUse hook entries left
+over from earlier versions.
 
 Run with --uninstall to reverse setup and remove all configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runSetup(setupEditor, setupDryRun, setupUninstall)
+			return runSetup(setupEditor, setupDryRun, setupUninstall, setupInstructions)
 		},
 	}
 
-	cmd.Flags().StringVar(&setupEditor, "editor", "auto", "target editor: auto, claude, cursor, windsurf")
+	cmd.Flags().StringVar(&setupEditor, "editor", "auto", "target editor: auto, claude, cursor, windsurf, opencode, vscode, warp")
 	cmd.Flags().BoolVar(&setupDryRun, "dry-run", false, "show what would change without writing files")
 	cmd.Flags().BoolVar(&setupUninstall, "uninstall", false, "remove contextception configuration")
+	cmd.Flags().BoolVar(&setupInstructions, "instructions", false, "also write the agent instruction snippet (CLAUDE.md, AGENTS.md, .cursor/rules/, etc.) into the current project")
 
 	return cmd
 }
 
-func runSetup(editor string, dryRun bool, uninstall bool) error {
+func runSetup(editor string, dryRun, uninstall, instructions bool) error {
 	editor = strings.ToLower(editor)
 
 	home, err := os.UserHomeDir()
@@ -51,15 +57,20 @@ func runSetup(editor string, dryRun bool, uninstall bool) error {
 		return fmt.Errorf("could not determine home directory: %w", err)
 	}
 
+	// Tracks instruction-file paths we've already written this run, so
+	// editors that share a destination (opencode + warp both use AGENTS.md)
+	// don't print duplicate "already configured" lines.
+	written := make(map[string]bool)
+
 	// Auto-detect: find all installed editors and set up each one.
 	if editor == "auto" {
 		editors := detectInstalledEditors(home)
 		if len(editors) == 0 {
-			return fmt.Errorf("no supported editors detected (looked for Claude Code, Cursor, Windsurf)")
+			return fmt.Errorf("no supported editors detected (looked for Claude Code, Cursor, Windsurf, opencode, VSCode, Warp)")
 		}
 		fmt.Printf("Detected: %s\n\n", strings.Join(editorNames(editors), ", "))
 		for _, ed := range editors {
-			if err := runSetupForEditor(ed, home, dryRun, uninstall); err != nil {
+			if err := runSetupForEditor(ed, home, dryRun, uninstall, instructions, written); err != nil {
 				fmt.Fprintf(os.Stderr, "  Warning: %s setup failed: %v\n", editorDisplayName(ed), err)
 			}
 			fmt.Println()
@@ -67,10 +78,10 @@ func runSetup(editor string, dryRun bool, uninstall bool) error {
 		return nil
 	}
 
-	return runSetupForEditor(editor, home, dryRun, uninstall)
+	return runSetupForEditor(editor, home, dryRun, uninstall, instructions, written)
 }
 
-func runSetupForEditor(editor, home string, dryRun, uninstall bool) error {
+func runSetupForEditor(editor, home string, dryRun, uninstall, instructions bool, written map[string]bool) error {
 	// Validate editor.
 	mcpPath, hookPath, err := editorPaths(home, editor)
 	if err != nil {
@@ -80,7 +91,7 @@ func runSetupForEditor(editor, home string, dryRun, uninstall bool) error {
 	// PATH check (install only).
 	if !uninstall {
 		if _, err := exec.LookPath("contextception"); err != nil {
-			fmt.Fprintln(os.Stderr, "Warning: contextception not found on PATH. Hooks may not work until it's added.")
+			fmt.Fprintln(os.Stderr, "Warning: contextception not found on PATH. The MCP server won't launch until it's added.")
 		}
 	}
 
@@ -92,9 +103,9 @@ func runSetupForEditor(editor, home string, dryRun, uninstall bool) error {
 	}
 
 	if uninstall {
-		return runUninstall(editor, mcpPath, hookPath, dryRun)
+		return runUninstall(editor, mcpPath, hookPath, dryRun, instructions, written)
 	}
-	return runInstall(editor, mcpPath, hookPath, dryRun)
+	return runInstall(editor, mcpPath, hookPath, dryRun, instructions, written)
 }
 
 // detectInstalledEditors checks for the presence of supported editors.
@@ -116,7 +127,46 @@ func detectInstalledEditors(home string) []string {
 		found = append(found, "windsurf")
 	}
 
+	// opencode: ~/.config/opencode/ directory exists.
+	if dirExists(filepath.Join(home, ".config", "opencode")) {
+		found = append(found, "opencode")
+	}
+
+	// VSCode: user data directory exists (cross-platform path varies).
+	if dir := vscodeDataDir(home); dir != "" && dirExists(dir) {
+		found = append(found, "vscode")
+	}
+
+	// Warp: ~/.warp/ directory exists. (We can detect it but cannot
+	// write its MCP config — that has to be done in Warp's UI.)
+	if dirExists(filepath.Join(home, ".warp")) {
+		found = append(found, "warp")
+	}
+
 	return found
+}
+
+// vscodeDataDir returns the per-OS directory where VSCode stores user-level
+// configuration. Returns "" on unsupported platforms.
+func vscodeDataDir(home string) string {
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(home, "Library", "Application Support", "Code")
+	case "linux":
+		return filepath.Join(home, ".config", "Code")
+	case "windows":
+		return filepath.Join(home, "AppData", "Roaming", "Code")
+	}
+	return ""
+}
+
+// vscodeUserMCPPath returns the path to VSCode's user-level MCP config.
+func vscodeUserMCPPath(home string) string {
+	dir := vscodeDataDir(home)
+	if dir == "" {
+		return ""
+	}
+	return filepath.Join(dir, "User", "mcp.json")
 }
 
 func dirExists(path string) bool {
@@ -132,21 +182,56 @@ func editorNames(editors []string) []string {
 	return names
 }
 
-func runInstall(editor, mcpPath, hookPath string, dryRun bool) error {
+func runInstall(editor, mcpPath, hookPath string, dryRun, instructions bool, written map[string]bool) error {
 	home, _ := os.UserHomeDir()
 
-	changed, err := ensureMCPConfig(mcpPath, editor, dryRun)
+	// Warp: MCP is configured through Warp's UI (Settings → Agents →
+	// MCP servers). Print the manual steps and skip the MCP write —
+	// instructions installation (--instructions) still applies because
+	// Warp reads AGENTS.md from the project root.
+	if editor == "warp" {
+		printWarpManualSetup(dryRun, instructions)
+		if instructions {
+			if err := installInstructionFile(editor, dryRun, written); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// MCP config — schema differs per editor.
+	var (
+		changed bool
+		err     error
+	)
+	switch editor {
+	case "opencode":
+		changed, err = ensureOpencodeMCPConfig(mcpPath, dryRun)
+	case "vscode":
+		changed, err = ensureVscodeMCPConfig(mcpPath, dryRun)
+	default:
+		changed, err = ensureMCPConfig(mcpPath, editor, dryRun)
+	}
 	if err != nil {
 		return fmt.Errorf("MCP config: %w", err)
 	}
 	printStatus(changed, dryRun, "MCP server", mcpPath)
 
+	// Migration: silently remove any legacy contextception PreToolUse hook
+	// entries from earlier versions that shipped a hook-based reminder.
+	// We only print when something was actually removed.
 	if editor == "claude" {
-		changed, err = ensureHookConfig(hookPath, dryRun)
+		removed, err := removeHookConfig(hookPath, dryRun)
 		if err != nil {
-			return fmt.Errorf("hook config: %w", err)
+			return fmt.Errorf("hook cleanup: %w", err)
 		}
-		printStatus(changed, dryRun, "PreToolUse hooks", hookPath)
+		if removed {
+			if dryRun {
+				fmt.Printf("  [dry-run] Would remove legacy PreToolUse hook from %s\n", tildeDisplay(hookPath))
+			} else {
+				fmt.Printf("  ✓ Removed legacy PreToolUse hook from %s\n", tildeDisplay(hookPath))
+			}
+		}
 	}
 
 	// Install slash commands (version-stamped so they auto-update on upgrade).
@@ -165,6 +250,26 @@ func runInstall(editor, mcpPath, hookPath string, dryRun bool) error {
 		printStatus(changed, dryRun, "/"+name+" command", fullPath)
 	}
 
+	// Optionally write the agent instruction snippet into the current
+	// project (--instructions flag). For all editors when set, this
+	// upserts the contextception block into the right per-editor file
+	// (CLAUDE.md / AGENTS.md / .cursor/rules/ / etc.) using begin/end
+	// markers so user-authored content around our block is preserved.
+	if instructions {
+		if err := installInstructionFile(editor, dryRun, written); err != nil {
+			return err
+		}
+	} else {
+		// Helpful nudge for editors whose instruction file is per-project
+		// and therefore not written by the global setup.
+		switch editor {
+		case "opencode":
+			fmt.Println("  Note: pass --instructions next time, or copy integrations/AGENTS.md to AGENTS.md at your project root.")
+		case "vscode":
+			fmt.Println("  Note: pass --instructions next time, or copy integrations/AGENTS.md to .github/copilot-instructions.md.")
+		}
+	}
+
 	// Record the version that was set up (for freshness checks).
 	if !dryRun {
 		writeSetupVersion(ver)
@@ -178,10 +283,57 @@ func runInstall(editor, mcpPath, hookPath string, dryRun bool) error {
 	return nil
 }
 
-func runUninstall(editor, mcpPath, hookPath string, dryRun bool) error {
+// printWarpManualSetup prints instructions for the parts of warp setup that
+// can't be automated. Warp configures MCP servers through its app UI. The
+// `instructionsHandled` flag suppresses the AGENTS.md hint when --instructions
+// was passed (the AGENTS.md block is being written by ensureInstructionFile
+// in this same run).
+func printWarpManualSetup(dryRun, instructionsHandled bool) {
+	if dryRun {
+		fmt.Println("  [dry-run] Warp is UI-only — no files would be written.")
+		return
+	}
+	fmt.Println("  Warp configures MCP servers through its app UI, not a config file.")
+	fmt.Println("  To finish setup:")
+	fmt.Println("    1. Open Settings → Agents → MCP servers (or run \"Open MCP Servers\" from the command palette).")
+	fmt.Println("    2. Click + Add → CLI command. Name: contextception. Command: contextception. Args: mcp.")
+	if !instructionsHandled {
+		fmt.Println("    3. Save, then copy integrations/AGENTS.md to AGENTS.md (all caps, required) at your project root.")
+	} else {
+		fmt.Println("    3. Save. The AGENTS.md instruction block is being written into this project below.")
+	}
+}
+
+func runUninstall(editor, mcpPath, hookPath string, dryRun, instructions bool, written map[string]bool) error {
 	home, _ := os.UserHomeDir()
 
-	changed, err := removeMCPConfig(mcpPath, dryRun)
+	// Warp: nothing for us to remove from MCP. The UI entry is manual;
+	// the instruction-file block can still be cleaned up if --instructions
+	// is set.
+	if editor == "warp" {
+		fmt.Println("  Warp configures MCP through its UI — remove the contextception entry from Settings → Agents → MCP servers.")
+		if instructions {
+			if err := uninstallInstructionFile(editor, dryRun, written); err != nil {
+				return err
+			}
+		} else {
+			fmt.Println("  Pass --instructions to also strip the contextception block from AGENTS.md in this project.")
+		}
+		return nil
+	}
+
+	var (
+		changed bool
+		err     error
+	)
+	switch editor {
+	case "opencode":
+		changed, err = removeOpencodeMCPConfig(mcpPath, dryRun)
+	case "vscode":
+		changed, err = removeVscodeMCPConfig(mcpPath, dryRun)
+	default:
+		changed, err = removeMCPConfig(mcpPath, dryRun)
+	}
 	if err != nil {
 		return fmt.Errorf("MCP config: %w", err)
 	}
@@ -190,9 +342,12 @@ func runUninstall(editor, mcpPath, hookPath string, dryRun bool) error {
 	if editor == "claude" {
 		changed, err = removeHookConfig(hookPath, dryRun)
 		if err != nil {
-			return fmt.Errorf("hook config: %w", err)
+			return fmt.Errorf("legacy hook cleanup: %w", err)
 		}
-		printRemoveStatus(changed, dryRun, "PreToolUse hooks", hookPath)
+		// Only mention the hook on uninstall when one was actually present.
+		if changed {
+			printRemoveStatus(changed, dryRun, "legacy PreToolUse hook", hookPath)
+		}
 	}
 
 	// Remove slash commands.
@@ -209,10 +364,82 @@ func runUninstall(editor, mcpPath, hookPath string, dryRun bool) error {
 		printRemoveStatus(changed, dryRun, "/"+name+" command", fullPath)
 	}
 
+	// Strip the agent instruction block from the per-project file too if
+	// the user passes --instructions on uninstall.
+	if instructions {
+		if err := uninstallInstructionFile(editor, dryRun, written); err != nil {
+			return err
+		}
+	}
+
 	if dryRun {
 		fmt.Println("\nDry run complete. No files were modified.")
 	} else {
 		fmt.Println("\nUninstall complete.")
+	}
+	return nil
+}
+
+// installInstructionFile writes the contextception agent-instruction block
+// into the current project's per-editor instruction file (CLAUDE.md,
+// AGENTS.md, .cursor/rules/contextception.mdc, etc.). It uses begin/end
+// markers so user-authored content around the block is preserved.
+//
+// `written` is shared across editors in a single setup run so that editors
+// sharing a destination (e.g. opencode + warp both use AGENTS.md) skip the
+// duplicate write/print.
+func installInstructionFile(editor string, dryRun bool, written map[string]bool) error {
+	target, ok := instructionTargetForEditor(editor)
+	if !ok {
+		return nil
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("instructions: %w", err)
+	}
+	abs, err := filepath.Abs(filepath.Join(cwd, target.relPath))
+	if err != nil {
+		return fmt.Errorf("instructions: %w", err)
+	}
+	if written[abs] {
+		return nil
+	}
+	written[abs] = true
+
+	changed, err := ensureInstructionFile(abs, agentsMDBody, target.frontmatter, dryRun)
+	if err != nil {
+		return fmt.Errorf("instructions: %w", err)
+	}
+	printStatus(changed, dryRun, "agent instructions", abs)
+	return nil
+}
+
+// uninstallInstructionFile is the inverse of installInstructionFile — it
+// strips the contextception block from the per-editor instruction file.
+func uninstallInstructionFile(editor string, dryRun bool, written map[string]bool) error {
+	target, ok := instructionTargetForEditor(editor)
+	if !ok {
+		return nil
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("instructions: %w", err)
+	}
+	abs, err := filepath.Abs(filepath.Join(cwd, target.relPath))
+	if err != nil {
+		return fmt.Errorf("instructions: %w", err)
+	}
+	if written[abs] {
+		return nil
+	}
+	written[abs] = true
+
+	changed, err := removeInstructionBlock(abs, dryRun)
+	if err != nil {
+		return fmt.Errorf("instructions: %w", err)
+	}
+	if changed {
+		printRemoveStatus(changed, dryRun, "agent instructions", abs)
 	}
 	return nil
 }
@@ -273,62 +500,142 @@ func removeMCPConfig(configPath string, dryRun bool) (bool, error) {
 	return true, writeJSON(configPath, data)
 }
 
-// currentHookCommand is the hook command that setup installs.
-const currentHookCommand = "contextception hook-context"
-
-// ensureHookConfig adds PreToolUse hook entries for Edit and Write matchers.
-// If a stale contextception hook exists (e.g. hook-check from an older version),
-// it is removed and replaced with the current hook command.
-func ensureHookConfig(settingsPath string, dryRun bool) (bool, error) {
-	data, err := readOrCreateJSON(settingsPath)
+// ensureOpencodeMCPConfig adds the contextception entry to opencode.json.
+// opencode uses a different schema from claude/cursor/windsurf:
+//
+//	{
+//	  "$schema": "https://opencode.ai/config.json",
+//	  "mcp": {
+//	    "contextception": {
+//	      "type": "local",
+//	      "command": ["contextception", "mcp"],
+//	      "enabled": true
+//	    }
+//	  }
+//	}
+func ensureOpencodeMCPConfig(configPath string, dryRun bool) (bool, error) {
+	data, err := readOrCreateJSON(configPath)
 	if err != nil {
 		return false, err
 	}
 
-	anyChanged := false
-	for _, matcher := range []string{"Edit", "Write"} {
-		// Remove stale contextception hooks for this matcher (returns updated data).
-		var removed bool
-		data, removed, err = removeStaleHookEntry(data, matcher)
-		if err != nil {
-			return false, err
-		}
-		if removed {
-			anyChanged = true
-		}
-
-		// Skip if the current hook is already installed.
-		if hasCurrentHookEntry(data, matcher) {
-			continue
-		}
-
-		entry := map[string]any{
-			"matcher": matcher,
-			"hooks": []map[string]string{
-				{
-					"type":    "command",
-					"command": currentHookCommand,
-				},
-			},
-		}
-
-		data, err = sjson.SetBytes(data, "hooks.PreToolUse.-1", entry)
-		if err != nil {
-			return false, fmt.Errorf("adding hook for %s: %w", matcher, err)
-		}
-		anyChanged = true
+	if gjson.GetBytes(data, "mcp.contextception").Exists() {
+		return false, nil
 	}
 
-	if !anyChanged {
+	// Add the $schema pointer if the file is brand new (helps editors
+	// give validation/autocomplete in opencode.json).
+	if !gjson.GetBytes(data, `\$schema`).Exists() {
+		data, err = sjson.SetBytes(data, `\$schema`, "https://opencode.ai/config.json")
+		if err != nil {
+			return false, fmt.Errorf("setting $schema: %w", err)
+		}
+	}
+
+	entry := map[string]any{
+		"type":    "local",
+		"command": []string{"contextception", "mcp"},
+		"enabled": true,
+	}
+	data, err = sjson.SetBytes(data, "mcp.contextception", entry)
+	if err != nil {
+		return false, fmt.Errorf("setting mcp.contextception: %w", err)
+	}
+
+	if dryRun {
+		return true, nil
+	}
+	return true, writeJSON(configPath, data)
+}
+
+// removeOpencodeMCPConfig deletes the contextception entry from opencode.json.
+func removeOpencodeMCPConfig(configPath string, dryRun bool) (bool, error) {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if !gjson.GetBytes(data, "mcp.contextception").Exists() {
 		return false, nil
+	}
+	data, err = sjson.DeleteBytes(data, "mcp.contextception")
+	if err != nil {
+		return false, fmt.Errorf("deleting mcp.contextception: %w", err)
 	}
 	if dryRun {
 		return true, nil
 	}
-	return true, writeJSON(settingsPath, data)
+	return true, writeJSON(configPath, data)
+}
+
+// ensureVscodeMCPConfig adds the contextception entry to VSCode's user-level
+// mcp.json. The VSCode/Copilot Chat schema uses `servers` rather than
+// `mcpServers`:
+//
+//	{
+//	  "servers": {
+//	    "contextception": {
+//	      "type": "stdio",
+//	      "command": "contextception",
+//	      "args": ["mcp"]
+//	    }
+//	  }
+//	}
+func ensureVscodeMCPConfig(configPath string, dryRun bool) (bool, error) {
+	data, err := readOrCreateJSON(configPath)
+	if err != nil {
+		return false, err
+	}
+
+	if gjson.GetBytes(data, "servers.contextception").Exists() {
+		return false, nil
+	}
+
+	entry := map[string]any{
+		"type":    "stdio",
+		"command": "contextception",
+		"args":    []string{"mcp"},
+	}
+	data, err = sjson.SetBytes(data, "servers.contextception", entry)
+	if err != nil {
+		return false, fmt.Errorf("setting servers.contextception: %w", err)
+	}
+
+	if dryRun {
+		return true, nil
+	}
+	return true, writeJSON(configPath, data)
+}
+
+// removeVscodeMCPConfig deletes the contextception entry from VSCode's mcp.json.
+func removeVscodeMCPConfig(configPath string, dryRun bool) (bool, error) {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if !gjson.GetBytes(data, "servers.contextception").Exists() {
+		return false, nil
+	}
+	data, err = sjson.DeleteBytes(data, "servers.contextception")
+	if err != nil {
+		return false, fmt.Errorf("deleting servers.contextception: %w", err)
+	}
+	if dryRun {
+		return true, nil
+	}
+	return true, writeJSON(configPath, data)
 }
 
 // removeHookConfig removes contextception hook entries from PreToolUse.
+// Used for both --uninstall and as an upgrade-path migration in runInstall:
+// earlier versions of contextception shipped a PreToolUse hook that injected
+// dependency context on every Edit/Write. The hook proved too noisy in
+// practice and was removed; this function strips any leftover entries.
 func removeHookConfig(settingsPath string, dryRun bool) (bool, error) {
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
@@ -380,81 +687,9 @@ func removeHookConfig(settingsPath string, dryRun bool) (bool, error) {
 	return true, writeJSON(settingsPath, data)
 }
 
-// hasCurrentHookEntry checks if the current hook command is already installed
-// for the given matcher.
-func hasCurrentHookEntry(data []byte, matcher string) bool {
-	entries := gjson.GetBytes(data, "hooks.PreToolUse")
-	if !entries.Exists() || !entries.IsArray() {
-		return false
-	}
-
-	found := false
-	entries.ForEach(func(_, value gjson.Result) bool {
-		if value.Get("matcher").String() != matcher {
-			return true
-		}
-		hooks := value.Get("hooks")
-		if !hooks.Exists() || !hooks.IsArray() {
-			return true
-		}
-		hooks.ForEach(func(_, hook gjson.Result) bool {
-			if hook.Get("command").String() == currentHookCommand {
-				found = true
-				return false
-			}
-			return true
-		})
-		return !found
-	})
-	return found
-}
-
-// removeStaleHookEntry removes PreToolUse entries for the given matcher that
-// contain a contextception command other than the current one. Returns the
-// updated data and whether any entries were removed.
-func removeStaleHookEntry(data []byte, matcher string) ([]byte, bool, error) {
-	entries := gjson.GetBytes(data, "hooks.PreToolUse")
-	if !entries.Exists() || !entries.IsArray() {
-		return data, false, nil
-	}
-
-	var toRemove []int
-	entries.ForEach(func(key, value gjson.Result) bool {
-		if value.Get("matcher").String() != matcher {
-			return true
-		}
-		hooks := value.Get("hooks")
-		if !hooks.Exists() || !hooks.IsArray() {
-			return true
-		}
-		hooks.ForEach(func(_, hook gjson.Result) bool {
-			cmd := hook.Get("command").String()
-			// Match any contextception hook that isn't the current command.
-			if strings.Contains(cmd, "contextception") && cmd != currentHookCommand {
-				toRemove = append(toRemove, int(key.Int()))
-				return false
-			}
-			return true
-		})
-		return true
-	})
-
-	if len(toRemove) == 0 {
-		return data, false, nil
-	}
-
-	var err error
-	for i := len(toRemove) - 1; i >= 0; i-- {
-		path := fmt.Sprintf("hooks.PreToolUse.%d", toRemove[i])
-		data, err = sjson.DeleteBytes(data, path)
-		if err != nil {
-			return nil, false, fmt.Errorf("removing stale hook entry: %w", err)
-		}
-	}
-	return data, true, nil
-}
-
 // editorPaths returns the MCP config path and hooks config path for the editor.
+// Both paths may be empty for editors that don't have a writable config file
+// (e.g. warp configures MCP through its UI).
 func editorPaths(home, editor string) (mcpPath, hookPath string, err error) {
 	switch editor {
 	case "claude":
@@ -464,8 +699,18 @@ func editorPaths(home, editor string) (mcpPath, hookPath string, err error) {
 		mcpPath = filepath.Join(home, ".cursor", "mcp.json")
 	case "windsurf":
 		mcpPath = filepath.Join(home, ".codeium", "windsurf", "mcp_config.json")
+	case "opencode":
+		mcpPath = filepath.Join(home, ".config", "opencode", "opencode.json")
+	case "vscode":
+		mcpPath = vscodeUserMCPPath(home)
+		if mcpPath == "" {
+			return "", "", fmt.Errorf("vscode integration not supported on %s", runtime.GOOS)
+		}
+	case "warp":
+		// Warp configures MCP through its UI; runInstall handles this case
+		// without writing files.
 	default:
-		return "", "", fmt.Errorf("unsupported editor: %s (supported: claude, cursor, windsurf)", editor)
+		return "", "", fmt.Errorf("unsupported editor: %s (supported: claude, cursor, windsurf, opencode, vscode, warp)", editor)
 	}
 	return mcpPath, hookPath, nil
 }
@@ -478,6 +723,12 @@ func editorDisplayName(editor string) string {
 		return "Cursor"
 	case "windsurf":
 		return "Windsurf"
+	case "opencode":
+		return "opencode"
+	case "vscode":
+		return "VSCode"
+	case "warp":
+		return "Warp"
 	default:
 		return editor
 	}
